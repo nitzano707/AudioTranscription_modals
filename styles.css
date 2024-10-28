@@ -69,6 +69,19 @@ button:disabled {
     cursor: not-allowed;
 }
 
+.fixed-buttons {
+    position: sticky;
+    top: 0;
+    background-color: #ffffff;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    z-index: 100;
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 10px;
+}
+
+
 #apiRequest {
     margin-bottom: 20px;
 }
