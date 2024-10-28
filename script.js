@@ -88,7 +88,8 @@ async function uploadAudio() {
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        displayTranscription({ segments: transcriptionData }, audioFile.name);
+        saveTranscriptions(transcriptionData, audioFile.name);
+        displayTranscription('text');
     } catch (error) {
         console.error('Error during audio processing:', error);
         alert('שגיאה במהלך התמלול. נא לנסות שוב.');
@@ -221,28 +222,38 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     }
 }
 
-function displayTranscription(data, audioFileName) {
-    closeModal('modal3');
-    openModal('modal4');
+let transcriptionDataText = "";
+let transcriptionDataJson = [];
+let transcriptionDataCsv = "";
 
-    const transcriptionResult = document.getElementById('transcriptionResult');
-    let htmlContent = '';
+function saveTranscriptions(data, audioFileName) {
+    transcriptionDataJson = data;
+
+    transcriptionDataText = data.segments.map(segment => `${formatTime(segment.start)}: ${segment.text}`).join("\n");
+
+    // יצירת פלט CSV
+    transcriptionDataCsv = "start_time,text\n";
     data.segments.forEach(segment => {
-        htmlContent += `<p><strong>${formatTime(segment.start)}</strong>: ${segment.text}</p>`;
+        transcriptionDataCsv += `${formatTime(segment.start)},"${segment.text.replace(/"/g, '""')}"\n`;
     });
-    transcriptionResult.innerHTML = htmlContent;
+}
 
-    // שמירת שם קובץ האודיו להורדה
-    transcriptionResult.setAttribute('data-audio-file-name', audioFileName);
+function displayTranscription(format) {
+    const transcriptionResult = document.getElementById('transcriptionResult');
+    switch (format) {
+        case 'text':
+            transcriptionResult.innerText = transcriptionDataText;
+            break;
+        case 'verbose_json':
+            transcriptionResult.innerText = JSON.stringify(transcriptionDataJson, null, 2);
+            break;
+        case 'csv':
+            transcriptionResult.innerText = transcriptionDataCsv;
+            break;
+    }
 
-    // הוספת לחצנים לאפשרויות התצוגה
-    const transcriptionButtons = document.getElementById('transcriptionButtons');
-    transcriptionButtons.innerHTML = `
-        <button onclick="setTranscriptionFormat('verbose_json')">JSON</button>
-        <button onclick="setTranscriptionFormat('text')">טקסט</button>
-        <button onclick="setTranscriptionFormat('csv')">CSV</button>
-        <button onclick="copyTranscription()">העתקה</button>
-    `;
+    // שמירת הפורמט הנבחר
+    document.getElementById('transcriptionResult').setAttribute('data-format', format);
 }
 
 function formatTime(seconds) {
@@ -253,16 +264,25 @@ function formatTime(seconds) {
 }
 
 function downloadTranscription() {
-    const transcriptionFormat = document.querySelector('.transcription-format.selected').id;
-    const transcriptionResult = document.getElementById('transcriptionResult').innerText;
+    const transcriptionFormat = document.getElementById('transcriptionResult').getAttribute('data-format');
     const audioFileName = document.getElementById('transcriptionResult').getAttribute('data-audio-file-name') || 'audio';
     const sanitizedFileName = audioFileName.replace(/\./g, '_').toLowerCase();
-    let textContent = `תמלול של קובץ אודיו: ${sanitizedFileName}\n\n${transcriptionResult}`;
+    let textContent = "";
     let fileExtension = 'txt';
 
-    if (transcriptionFormat === 'csv') {
-        fileExtension = 'csv';
-        // Logic for converting transcriptionResult to CSV format
+    switch (transcriptionFormat) {
+        case 'text':
+            textContent = transcriptionDataText;
+            fileExtension = 'txt';
+            break;
+        case 'verbose_json':
+            textContent = JSON.stringify(transcriptionDataJson, null, 2);
+            fileExtension = 'json';
+            break;
+        case 'csv':
+            textContent = transcriptionDataCsv;
+            fileExtension = 'csv';
+            break;
     }
 
     const blob = new Blob([textContent], { type: 'text/plain' });
