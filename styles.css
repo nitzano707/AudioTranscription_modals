@@ -60,6 +60,13 @@ button {
     margin: 20px 0;
 }
 
+.button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+
 button:hover {
     background-color: #0056b3;
 }
