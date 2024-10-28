@@ -2,11 +2,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
 
-    // הסתרת אזור הזנת API או הצגת אזור העלאת קובץ
+    // הסתרת אזור הזנת API או הצגת אזור העלאת קובץ וכפתור התחל תהליך
     if (!apiKey) {
         document.getElementById('apiRequest').style.display = 'block';
     } else {
         document.getElementById('apiRequest').style.display = 'none';
+        document.getElementById('startProcessBtn').style.display = 'block';
     }
 });
 
@@ -15,8 +16,10 @@ function saveApiKey() {
     if (apiKeyInput) {
         localStorage.setItem('groqApiKey', apiKeyInput);
         document.getElementById('apiRequest').style.display = 'none';
+        document.getElementById('startProcessBtn').style.display = 'block';
     }
 }
+
 
 function triggerFileUpload() {
     const audioFileInput = document.getElementById('audioFile');
