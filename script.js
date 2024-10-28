@@ -185,7 +185,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'verbose_json');
+    formData.append('response_format', 'text');
     formData.append('language', 'he');
 
     const apiKey = localStorage.getItem('groqApiKey');
@@ -206,7 +206,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 
         if (response.ok) {
             const data = await response.json();
-            transcriptionData.push(...data.segments);
+            transcriptionData.push(data.text);
         } else {
             if (response.status === 401) {
                 alert('שגיאה במפתח API. נא להזין מפתח חדש.');
@@ -223,34 +223,14 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 }
 
 let transcriptionDataText = "";
-let transcriptionDataJson = [];
-let transcriptionDataCsv = "";
 
 function saveTranscriptions(data, audioFileName) {
-    transcriptionDataJson = data;
-
-    transcriptionDataText = data.segments.map(segment => `${formatTime(segment.start)}: ${segment.text}`).join("\n");
-
-    // יצירת פלט CSV
-    transcriptionDataCsv = "start_time,text\n";
-    data.segments.forEach(segment => {
-        transcriptionDataCsv += `${formatTime(segment.start)},"${segment.text.replace(/"/g, '""')}"\n`;
-    });
+    transcriptionDataText = data.join("\n");
 }
 
 function displayTranscription(format) {
     const transcriptionResult = document.getElementById('transcriptionResult');
-    switch (format) {
-        case 'text':
-            transcriptionResult.innerText = transcriptionDataText;
-            break;
-        case 'verbose_json':
-            transcriptionResult.innerText = JSON.stringify(transcriptionDataJson, null, 2);
-            break;
-        case 'csv':
-            transcriptionResult.innerText = transcriptionDataCsv;
-            break;
-    }
+    transcriptionResult.innerText = transcriptionDataText;
 
     // שמירת הפורמט הנבחר
     document.getElementById('transcriptionResult').setAttribute('data-format', format);
@@ -259,62 +239,4 @@ function displayTranscription(format) {
 function formatTime(seconds) {
     const ms = Math.floor((seconds % 1) * 10).toString().padStart(1, '0');
     const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    const m = Math.floor((seconds / 60) % 60).toString().padStart(2, '0');
-    return `${m}:${s}.${ms}`;
-}
-
-function downloadTranscription() {
-    const transcriptionFormat = document.getElementById('transcriptionResult').getAttribute('data-format');
-    const audioFileName = document.getElementById('transcriptionResult').getAttribute('data-audio-file-name') || 'audio';
-    const sanitizedFileName = audioFileName.replace(/\./g, '_').toLowerCase();
-    let textContent = "";
-    let fileExtension = 'txt';
-
-    switch (transcriptionFormat) {
-        case 'text':
-            textContent = transcriptionDataText;
-            fileExtension = 'txt';
-            break;
-        case 'verbose_json':
-            textContent = JSON.stringify(transcriptionDataJson, null, 2);
-            fileExtension = 'json';
-            break;
-        case 'csv':
-            textContent = transcriptionDataCsv;
-            fileExtension = 'csv';
-            break;
-    }
-
-    const blob = new Blob([textContent], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Trans_${sanitizedFileName}.${fileExtension}`;
-    link.click();
-}
-
-function copyTranscription() {
-    const transcriptionText = document.getElementById('transcriptionResult').innerText;
-    navigator.clipboard.writeText(transcriptionText).then(() => {
-        alert('תמלול הועתק בהצלחה!');
-    }).catch(err => {
-        console.error('שגיאה בהעתקת התמלול: ', err);
-    });
-}
-
-function restartProcess() {
-    closeModal('modal4');
-    document.getElementById('audioFile').value = "";
-    document.getElementById('fileName').textContent = "לא נבחר קובץ";
-    document.getElementById('uploadBtn').disabled = true;
-    openModal('modal1'); // חזרה למודל העלאת קובץ
-}
-
-// סגירת מודאל בלחיצה מחוץ לתוכן
-window.onclick = function(event) {
-    const modals = document.getElementsByClassName('modal');
-    for (let i = 0; i < modals.length; i++) {
-        if (event.target == modals[i]) {
-            closeModal(modals[i].id);
-        }
-    }
-};
+    const m = Math.floor((seconds / 60) % 60).toString().padStart(2, '
