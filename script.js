@@ -92,8 +92,9 @@ async function uploadAudio() {
         displayTranscription('text');
         console.log("Displaying transcription.");
 
-        // פתיחת המודאל להצגת התמלול לאחר שהתהליך הסתיים
+        // סגירת מודאל התקדמות ואפשרויות תמלול, ופתיחת מודאל התמלול
         closeModal('modal3'); // סגירת מודאל ההתקדמות
+        closeModal('modal2'); // סגירת מודאל בחירת אפשרויות תמלול
         openModal('modal4');  // פתיחת מודאל הצגת התמלול
     } catch (error) {
         console.error('Error during audio processing:', error);
