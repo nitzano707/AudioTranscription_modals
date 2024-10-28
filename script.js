@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
 
@@ -189,135 +188,14 @@ function bufferToWaveBlob(abuffer) {
     return new Blob([buffer], { type: "audio/wav" });
 }
 
-async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
-    const formData = new FormData();
-    formData.append('file', chunk);
-    formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'json'); // ודא שאתה מבקש פורמט JSON
-    formData.append('language', 'he');
-
-    const apiKey = localStorage.getItem('groqApiKey');
-    if (!apiKey) {
-        alert('מפתח API חסר. נא להזין שוב.');
-        location.reload();
-        return;
-    }
-
-    try {
-        const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: formData
-        });
-
-        if (response.ok) {
-            try {
-                const contentType = response.headers.get("content-type");
-                if (contentType && contentType.includes("application/json")) {
-                    const data = await response.json();
-                    if (data.text) {
-                        transcriptionData.push(data.text);
-                    } else {
-                        console.warn(`Missing text in response for chunk ${currentChunk}`);
-                    }
-                } else {
-                    // טיפול במקרה של פורמט לא צפוי
-                    const responseText = await response.text();
-                    console.warn(`Expected JSON response but got: ${contentType}`);
-                    console.log("Response content:", responseText);
-                }
-            } catch (jsonError) {
-                console.error('Error parsing JSON:', jsonError);
-            }
-        } else {
-            if (response.status === 401) {
-                alert('שגיאה במפתח API. נא להזין מפתח חדש.');
-                localStorage.removeItem('groqApiKey');
-                location.reload();
-                return;
-            }
-            const errorText = await response.text();
-            console.error(`Error for chunk ${currentChunk}:`, errorText);
-        }
-    } catch (error) {
-        console.error('Network error:', error);
-    }
-}
-
-let transcriptionDataText = "";
-
-function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.join("\n");
-    console.log("Transcription data saved successfully:", transcriptionDataText);
-}
-
-function displayTranscription(format) {
-    console.log("Displaying transcription in format:", format);
-    const transcriptionResult = document.getElementById('transcriptionResult');
-    if (transcriptionResult) {
-        transcriptionResult.innerText = transcriptionDataText;
-        console.log("Transcription displayed successfully.");
-    } else {
-        console.warn("Element 'transcriptionResult' not found in the DOM.");
-    }
-
-    // שמירת הפורמט הנבחר
-    document.getElementById('transcriptionResult').setAttribute('data-format', format);
-}
-
-function formatTime(seconds) {
-    const ms = Math.floor((seconds % 1) * 10).toString().padStart(1, '0');
-    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    const m = Math.floor((seconds / 60) % 60).toString().padStart(2, '0');
-    return `${m}:${s}.${ms}`;
-}
-
-function downloadTranscription() {
-    const transcriptionFormat = document.getElementById('transcriptionResult').getAttribute('data-format');
-    const audioFileName = document.getElementById('transcriptionResult').getAttribute('data-audio-file-name') || 'audio';
-    const sanitizedFileName = audioFileName.replace(/\./g, '_').toLowerCase();
-    let textContent = "";
-    let fileExtension = 'txt';
-
-    switch (transcriptionFormat) {
-        case 'text':
-            textContent = transcriptionDataText;
-            fileExtension = 'txt';
-            break;
-        case 'verbose_json':
-            textContent = JSON.stringify(transcriptionDataJson, null, 2);
-            fileExtension = 'json';
-            break;
-        case 'csv':
-            textContent = transcriptionDataCsv;
-            fileExtension = 'csv';
-            break;
-    }
-
-    const blob = new Blob([textContent], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Trans_${sanitizedFileName}.${fileExtension}`;
-    link.click();
-}
-
-function copyTranscription() {
-    const transcriptionText = document.getElementById('transcriptionResult').innerText;
-    navigator.clipboard.writeText(transcriptionText).then(() => {
-        alert('תמלול הועתק בהצלחה!');
-    }).catch(err => {
-        console.error('שגיאה בהעתקת התמלול: ', err);
-    });
-}
-
 function restartProcess() {
-    closeModal('modal4');
+    // סגירה של כל המודאלים הפעילים
+    closeModal('modal4');  // סגור את המודאל האחרון
+    closeModal('modal2');  // סגור את modal2 כדי שלא יישאר פתוח
     document.getElementById('audioFile').value = "";
     document.getElementById('fileName').textContent = "לא נבחר קובץ";
     document.getElementById('uploadBtn').disabled = true;
-    openModal('modal1'); // חזרה למודל העלאת קובץ
+    openModal('modal1'); // פתח את modal1 להתחלה מחדש
 }
 
 // סגירת מודאל בלחיצה מחוץ לתוכן
