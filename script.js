@@ -209,11 +209,16 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 
         if (response.ok) {
             try {
-                const data = await response.json();
-                if (data.text) {
-                    transcriptionData.push(data.text);
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    const data = await response.json();
+                    if (data.text) {
+                        transcriptionData.push(data.text);
+                    } else {
+                        console.warn(`Missing text in response for chunk ${currentChunk}`);
+                    }
                 } else {
-                    console.warn(`Missing text in response for chunk ${currentChunk}`);
+                    console.warn(`Expected JSON response but got: ${contentType}`);
                 }
             } catch (jsonError) {
                 console.error('Error parsing JSON:', jsonError);
