@@ -253,6 +253,13 @@ function downloadTranscription() {
     link.click();
 }
 
+function restartProcess() {
+    closeModal('modal4');
+    document.getElementById('audioFile').value = "";
+    document.getElementById('fileName').textContent = "לא נבחר קובץ";
+    document.getElementById('uploadBtn').disabled = true;
+}
+
 // סגירת מודאל בלחיצה מחוץ לתוכן
 window.onclick = function(event) {
     const modals = document.getElementsByClassName('modal');
