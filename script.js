@@ -234,6 +234,15 @@ function displayTranscription(data, audioFileName) {
 
     // שמירת שם קובץ האודיו להורדה
     transcriptionResult.setAttribute('data-audio-file-name', audioFileName);
+
+    // הוספת לחצנים לאפשרויות התצוגה
+    const transcriptionButtons = document.getElementById('transcriptionButtons');
+    transcriptionButtons.innerHTML = `
+        <button onclick="setTranscriptionFormat('verbose_json')">JSON</button>
+        <button onclick="setTranscriptionFormat('text')">טקסט</button>
+        <button onclick="setTranscriptionFormat('csv')">CSV</button>
+        <button onclick="copyTranscription()">העתקה</button>
+    `;
 }
 
 function formatTime(seconds) {
@@ -244,15 +253,32 @@ function formatTime(seconds) {
 }
 
 function downloadTranscription() {
+    const transcriptionFormat = document.querySelector('.transcription-format.selected').id;
     const transcriptionResult = document.getElementById('transcriptionResult').innerText;
     const audioFileName = document.getElementById('transcriptionResult').getAttribute('data-audio-file-name') || 'audio';
     const sanitizedFileName = audioFileName.replace(/\./g, '_').toLowerCase();
-    const textContent = `תמלול של קובץ אודיו: ${sanitizedFileName}\n\n${transcriptionResult}`;
+    let textContent = `תמלול של קובץ אודיו: ${sanitizedFileName}\n\n${transcriptionResult}`;
+    let fileExtension = 'txt';
+
+    if (transcriptionFormat === 'csv') {
+        fileExtension = 'csv';
+        // Logic for converting transcriptionResult to CSV format
+    }
+
     const blob = new Blob([textContent], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Trans_${sanitizedFileName}.txt`;
+    link.download = `Trans_${sanitizedFileName}.${fileExtension}`;
     link.click();
+}
+
+function copyTranscription() {
+    const transcriptionText = document.getElementById('transcriptionResult').innerText;
+    navigator.clipboard.writeText(transcriptionText).then(() => {
+        alert('תמלול הועתק בהצלחה!');
+    }).catch(err => {
+        console.error('שגיאה בהעתקת התמלול: ', err);
+    });
 }
 
 function restartProcess() {
