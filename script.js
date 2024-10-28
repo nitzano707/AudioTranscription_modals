@@ -56,7 +56,10 @@ async function uploadAudio() {
     }
 
     openModal('modal3'); // הצגת מודאל התקדמות עם אייקון טעינה
-    document.getElementById('modal3').innerHTML += '<div class="loading-icon">(אייקון טעינה)</div>'; // הוספת אייקון טעינה
+    const loadingIcon = document.createElement('div');
+    loadingIcon.className = 'loading-icon';
+    loadingIcon.textContent = '(אייקון טעינה)';
+    document.getElementById('modal3').appendChild(loadingIcon); // הוספת אייקון טעינה בצורה בטוחה
 
     const audioFile = document.getElementById('audioFile').files[0];
     const language = document.getElementById('languageSelect').value;
@@ -206,7 +209,11 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 
         if (response.ok) {
             const data = await response.json();
-            transcriptionData.push(data.text);
+            if (data.text) {
+                transcriptionData.push(data.text);
+            } else {
+                console.warn(`Missing text in response for chunk ${currentChunk}`);
+            }
         } else {
             if (response.status === 401) {
                 alert('שגיאה במפתח API. נא להזין מפתח חדש.');
