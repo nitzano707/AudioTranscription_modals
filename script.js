@@ -245,11 +245,12 @@ function formatTime(seconds) {
 function downloadTranscription() {
     const transcriptionResult = document.getElementById('transcriptionResult').innerText;
     const audioFileName = document.getElementById('transcriptionResult').getAttribute('data-audio-file-name') || 'audio';
-    const textContent = `תמלול של קובץ אודיו: ${audioFileName}\n\n${transcriptionResult}`;
+    const sanitizedFileName = audioFileName.replace(/\./g, '_').toUpperCase();
+    const textContent = `תמלול של קובץ אודיו: ${sanitizedFileName}\n\n${transcriptionResult}`;
     const blob = new Blob([textContent], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Trans_${audioFileName}.txt`;
+    link.download = `Trans_${sanitizedFileName}.txt`;
     link.click();
 }
 
@@ -258,6 +259,7 @@ function restartProcess() {
     document.getElementById('audioFile').value = "";
     document.getElementById('fileName').textContent = "לא נבחר קובץ";
     document.getElementById('uploadBtn').disabled = true;
+    openModal('modal1'); // חזרה למודל העלאת קובץ
 }
 
 // סגירת מודאל בלחיצה מחוץ לתוכן
