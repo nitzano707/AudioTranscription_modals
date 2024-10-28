@@ -188,7 +188,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'text');
+    formData.append('response_format', 'json'); // ודא שאתה מבקש פורמט JSON
     formData.append('language', 'he');
 
     const apiKey = localStorage.getItem('groqApiKey');
@@ -218,7 +218,10 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                         console.warn(`Missing text in response for chunk ${currentChunk}`);
                     }
                 } else {
+                    // טיפול במקרה של פורמט לא צפוי
+                    const responseText = await response.text();
                     console.warn(`Expected JSON response but got: ${contentType}`);
+                    console.log("Response content:", responseText);
                 }
             } catch (jsonError) {
                 console.error('Error parsing JSON:', jsonError);
