@@ -56,18 +56,12 @@ async function uploadAudio() {
     }
 
     openModal('modal3'); // הצגת מודאל התקדמות עם אייקון טעינה
-    const loadingIcon = document.createElement('div');
-    loadingIcon.className = 'loading-icon';
-    loadingIcon.textContent = '(אייקון טעינה)';
-    document.getElementById('modal3').appendChild(loadingIcon); // הוספת אייקון טעינה בצורה בטוחה
+    console.log("Progress modal opened.");
 
     const audioFile = document.getElementById('audioFile').files[0];
-    const language = document.getElementById('languageSelect').value;
-    const progressBar = document.getElementById('progress');
-    const progressText = document.getElementById('progressText');
-
     if (!audioFile) {
         alert('אנא בחר קובץ להעלאה.');
+        closeModal('modal3');
         return;
     }
 
@@ -81,21 +75,28 @@ async function uploadAudio() {
 
         for (let i = 0; i < totalChunks; i++) {
             const chunkFile = new File([chunks[i]], `chunk_${i + 1}.${audioFile.name.split('.').pop()}`, { type: audioFile.type });
-            
-            const progressPercent = Math.round(((i + 1) / totalChunks) * 100);
-            progressBar.style.width = `${progressPercent}%`;
-            progressText.textContent = `${progressPercent}%`;
 
-            await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, progressBar);
+            console.log("Uploading chunk", i + 1, "of", totalChunks);
+
+            const progressPercent = Math.round(((i + 1) / totalChunks) * 100);
+            document.getElementById('progress').style.width = `${progressPercent}%`;
+            document.getElementById('progressText').textContent = `${progressPercent}%`;
+
+            await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks);
 
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
         saveTranscriptions(transcriptionData, audioFile.name);
+        console.log("All chunks processed, saving transcriptions.");
         displayTranscription('text');
+        console.log("Displaying transcription.");
     } catch (error) {
         console.error('Error during audio processing:', error);
         alert('שגיאה במהלך התמלול. נא לנסות שוב.');
+    } finally {
+        closeModal('modal3');
+        console.log("Progress modal closed.");
     }
 }
 
@@ -184,7 +185,7 @@ function bufferToWaveBlob(abuffer) {
     return new Blob([buffer], { type: "audio/wav" });
 }
 
-async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, progressBar) {
+async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
@@ -245,9 +246,11 @@ let transcriptionDataText = "";
 
 function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.join("\n");
+    console.log("Transcription data saved successfully:", transcriptionDataText);
 }
 
 function displayTranscription(format) {
+    console.log("Displaying transcription in format:", format);
     const transcriptionResult = document.getElementById('transcriptionResult');
     transcriptionResult.innerText = transcriptionDataText;
 
