@@ -137,3 +137,18 @@ button:disabled {
     font-size: 1rem;
     color: #666;
 }
+
+.fixed-buttons {
+    position: sticky;
+    top: 0;
+    background-color: #ffffff;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+}
+
+.fixed-buttons button {
+    margin: 0 10px;
+}
