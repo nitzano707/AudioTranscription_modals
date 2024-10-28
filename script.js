@@ -1,5 +1,3 @@
-
-
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
 
@@ -57,7 +55,8 @@ async function uploadAudio() {
         return;
     }
 
-    openModal('modal3'); // הצגת מודאל התקדמות
+    openModal('modal3'); // הצגת מודאל התקדמות עם אייקון טעינה
+    document.getElementById('modal3').innerHTML += '<div class="loading-icon">(אייקון טעינה)</div>'; // הוספת אייקון טעינה
 
     const audioFile = document.getElementById('audioFile').files[0];
     const language = document.getElementById('languageSelect').value;
@@ -247,7 +246,7 @@ function formatTime(seconds) {
 function downloadTranscription() {
     const transcriptionResult = document.getElementById('transcriptionResult').innerText;
     const audioFileName = document.getElementById('transcriptionResult').getAttribute('data-audio-file-name') || 'audio';
-    const sanitizedFileName = audioFileName.replace(/\./g, '_').toUpperCase();
+    const sanitizedFileName = audioFileName.replace(/\./g, '_').toLowerCase();
     const textContent = `תמלול של קובץ אודיו: ${sanitizedFileName}\n\n${transcriptionResult}`;
     const blob = new Blob([textContent], { type: 'text/plain' });
     const link = document.createElement('a');
