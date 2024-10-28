@@ -12,12 +12,15 @@
     <!-- אזור הזנת API -->
     <div id="apiRequest" style="display:none;">
         <label for="apiKeyInput">הזן את ה-API מ-GROQ:</label>
-        <input type="text" id="apiKeyInput">
+        <input type="password" id="apiKeyInput">
         <button onclick="saveApiKey()">שמור</button>
+        <p class="explanation-text">
+            קוד ה-API ניתן להפקה בחינם מאתר GROQ. תהליך זה הוא חד פעמי ונועד כדי לאפשר לך גישה למודל התמלול שלנו. לאחר הפעם הראשונה, הכניסה תהיה ישירות למסך העלאת הקובץ.
+        </p>
     </div>
 
     <!-- כפתור ראשי לפתיחת התהליך -->
-    <button onclick="openModal('modal1')">התחל תהליך</button>
+    <button id="startProcessBtn" onclick="openModal('modal1')" style="display:none;">התחל תהליך</button>
 
     <!-- מודאל ראשון להעלאת קובץ -->
     <div id="modal1" class="modal">
@@ -62,17 +65,18 @@
         </div>
     </div>
 
+    <!-- מודאל רביעי - הצגת תמלול -->
     <div id="modal4" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('modal4')">&times;</span>
-        <div class="modal-body">
-            <p>תמלול הושלם</p>
-            <div id="transcriptionResult"></div>
-            <button onclick="downloadTranscription()">הורד תמלול כ-TXT</button>
-            <button onclick="restartProcess()">התחל מחדש</button>
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal4')">&times;</span>
+            <div class="modal-body">
+                <p>תמלול הושלם</p>
+                <div id="transcriptionResult"></div>
+                <button onclick="downloadTranscription()">הורד תמלול כ-TXT</button>
+                <button onclick="restartProcess()">התחל מחדש</button>
+            </div>
         </div>
     </div>
-</div>
 
     <script src="script.js"></script>
 </body>
