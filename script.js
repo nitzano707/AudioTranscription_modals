@@ -239,4 +239,62 @@ function displayTranscription(format) {
 function formatTime(seconds) {
     const ms = Math.floor((seconds % 1) * 10).toString().padStart(1, '0');
     const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    const m = Math.floor((seconds / 60) % 60).toString().padStart(2, '
+    const m = Math.floor((seconds / 60) % 60).toString().padStart(2, '0');
+    return `${m}:${s}.${ms}`;
+}
+
+function downloadTranscription() {
+    const transcriptionFormat = document.getElementById('transcriptionResult').getAttribute('data-format');
+    const audioFileName = document.getElementById('transcriptionResult').getAttribute('data-audio-file-name') || 'audio';
+    const sanitizedFileName = audioFileName.replace(/\./g, '_').toLowerCase();
+    let textContent = "";
+    let fileExtension = 'txt';
+
+    switch (transcriptionFormat) {
+        case 'text':
+            textContent = transcriptionDataText;
+            fileExtension = 'txt';
+            break;
+        case 'verbose_json':
+            textContent = JSON.stringify(transcriptionDataJson, null, 2);
+            fileExtension = 'json';
+            break;
+        case 'csv':
+            textContent = transcriptionDataCsv;
+            fileExtension = 'csv';
+            break;
+    }
+
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Trans_${sanitizedFileName}.${fileExtension}`;
+    link.click();
+}
+
+function copyTranscription() {
+    const transcriptionText = document.getElementById('transcriptionResult').innerText;
+    navigator.clipboard.writeText(transcriptionText).then(() => {
+        alert('תמלול הועתק בהצלחה!');
+    }).catch(err => {
+        console.error('שגיאה בהעתקת התמלול: ', err);
+    });
+}
+
+function restartProcess() {
+    closeModal('modal4');
+    document.getElementById('audioFile').value = "";
+    document.getElementById('fileName').textContent = "לא נבחר קובץ";
+    document.getElementById('uploadBtn').disabled = true;
+    openModal('modal1'); // חזרה למודל העלאת קובץ
+}
+
+// סגירת מודאל בלחיצה מחוץ לתוכן
+window.onclick = function(event) {
+    const modals = document.getElementsByClassName('modal');
+    for (let i = 0; i < modals.length; i++) {
+        if (event.target == modals[i]) {
+            closeModal(modals[i].id);
+        }
+    }
+};
