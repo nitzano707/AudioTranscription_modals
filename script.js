@@ -87,7 +87,7 @@ async function uploadAudio() {
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        displayTranscription({ segments: transcriptionData });
+        displayTranscription({ segments: transcriptionData }, audioFile.name);
     } catch (error) {
         console.error('Error during audio processing:', error);
         alert('שגיאה במהלך התמלול. נא לנסות שוב.');
@@ -220,7 +220,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     }
 }
 
-function displayTranscription(data) {
+function displayTranscription(data, audioFileName) {
     closeModal('modal3');
     openModal('modal4');
 
@@ -230,6 +230,9 @@ function displayTranscription(data) {
         htmlContent += `<p><strong>${formatTime(segment.start)}</strong>: ${segment.text}</p>`;
     });
     transcriptionResult.innerHTML = htmlContent;
+
+    // שמירת שם קובץ האודיו להורדה
+    transcriptionResult.setAttribute('data-audio-file-name', audioFileName);
 }
 
 function formatTime(seconds) {
@@ -241,10 +244,12 @@ function formatTime(seconds) {
 
 function downloadTranscription() {
     const transcriptionResult = document.getElementById('transcriptionResult').innerText;
-    const blob = new Blob([transcriptionResult], { type: 'text/plain' });
+    const audioFileName = document.getElementById('transcriptionResult').getAttribute('data-audio-file-name') || 'audio';
+    const textContent = `תמלול של קובץ אודיו: ${audioFileName}\n\n${transcriptionResult}`;
+    const blob = new Blob([textContent], { type: 'text/plain' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'transcription.txt';
+    link.download = `Trans_${audioFileName}.txt`;
     link.click();
 }
 
