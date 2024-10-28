@@ -91,12 +91,14 @@ async function uploadAudio() {
         console.log("All chunks processed, saving transcriptions.");
         displayTranscription('text');
         console.log("Displaying transcription.");
+
+        // פתיחת המודאל להצגת התמלול לאחר שהתהליך הסתיים
+        closeModal('modal3'); // סגירת מודאל ההתקדמות
+        openModal('modal4');  // פתיחת מודאל הצגת התמלול
     } catch (error) {
         console.error('Error during audio processing:', error);
         alert('שגיאה במהלך התמלול. נא לנסות שוב.');
-    } finally {
         closeModal('modal3');
-        console.log("Progress modal closed.");
     }
 }
 
@@ -252,7 +254,12 @@ function saveTranscriptions(data, audioFileName) {
 function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
     const transcriptionResult = document.getElementById('transcriptionResult');
-    transcriptionResult.innerText = transcriptionDataText;
+    if (transcriptionResult) {
+        transcriptionResult.innerText = transcriptionDataText;
+        console.log("Transcription displayed successfully.");
+    } else {
+        console.warn("Element 'transcriptionResult' not found in the DOM.");
+    }
 
     // שמירת הפורמט הנבחר
     document.getElementById('transcriptionResult').setAttribute('data-format', format);
