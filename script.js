@@ -276,7 +276,7 @@ function restartProcess() {
     document.getElementById('uploadBtn').disabled = true;
     openModal('modal1'); // פתח את modal1 להתחלה מחדש
 }
-
+/*
 // סגירת מודאל בלחיצה מחוץ לתוכן
 window.onclick = function(event) {
     const modals = document.getElementsByClassName('modal');
@@ -286,3 +286,4 @@ window.onclick = function(event) {
         }
     }
 };
+*/
