@@ -25,6 +25,9 @@ body {
     width: 50%;
     border-radius: 10px;
     position: relative;
+    text-align: right;
+    overflow-y: auto;
+    max-height: 80vh;
 }
 
 .close {
