@@ -208,11 +208,15 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
         });
 
         if (response.ok) {
-            const data = await response.json();
-            if (data.text) {
-                transcriptionData.push(data.text);
-            } else {
-                console.warn(`Missing text in response for chunk ${currentChunk}`);
+            try {
+                const data = await response.json();
+                if (data.text) {
+                    transcriptionData.push(data.text);
+                } else {
+                    console.warn(`Missing text in response for chunk ${currentChunk}`);
+                }
+            } catch (jsonError) {
+                console.error('Error parsing JSON:', jsonError);
             }
         } else {
             if (response.status === 401) {
@@ -305,4 +309,3 @@ window.onclick = function(event) {
         }
     }
 };
-
