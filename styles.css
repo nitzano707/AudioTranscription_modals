@@ -187,6 +187,7 @@ button:disabled {
     overflow: hidden;
     background-color: #f1f1f1;
     border-bottom: 1px solid #ccc;
+    margin-top: 20px;
 }
 
 .tablinks {
@@ -196,6 +197,7 @@ button:disabled {
     cursor: pointer;
     padding: 14px 16px;
     transition: 0.3s;
+    font-size: 16px;
 }
 
 .tablinks:hover {
@@ -210,7 +212,8 @@ button:disabled {
 .tabcontent {
     display: none;
     padding: 20px;
-    border-top: none;
+    border-top: 1px solid #ccc;
     background-color: #f9f9f9;
     text-align: left;
+    margin-top: 10px;
 }
