@@ -296,7 +296,7 @@ function downloadTranscription() {
         alert('לא נבחר פורמט להורדה. נא לבחור פורמט מתמלול.');
         return;
     }
-    const format = activeTab.dataset.format;
+    const format = activeTab.textContent.trim().toLowerCase().replace(' ', '_');
     let blob, fileName;
 
     if (format === "text") {
