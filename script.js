@@ -267,18 +267,23 @@ function formatTimestamp(seconds) {
 
 
 
+
 function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.map(d => d.text).join("\n");
 
     // יצירת קובץ SRT עבור כל משפט בנפרד
     transcriptionDataSRT = data.map((d, index) => {
-        const startTime = formatTimestamp(d.start);
-        const endTime = formatTimestamp(d.end);
-        return `${index + 1}\n${startTime} --> ${endTime}\n${d.text.trim()}\n`;
+        const sentences = d.text.split('. '); // חלוקה למשפטים
+        return sentences.map((sentence, sIndex) => {
+            const startTime = formatTimestamp(d.start + (sIndex * 2)); // חישוב זמן התחלה לכל משפט
+            const endTime = formatTimestamp(d.start + ((sIndex + 1) * 2)); // חישוב זמן סיום לכל משפט
+            return `${index + sIndex + 1}\n${startTime} --> ${endTime}\n${sentence.trim()}\n`;
+        }).join("\n");
     }).join("\n\n");
 
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
+
 
     
 
@@ -311,6 +316,7 @@ function displayTranscription(format) {
     transcriptionResult.parentElement.style.display = "block";
     console.log("Transcription displayed successfully.");
 }
+
 
 
 function openTab(evt, tabName) {
