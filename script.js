@@ -264,7 +264,6 @@ function displayTranscription(format) {
     if (!transcriptionResult) {
         transcriptionResult = document.createElement('div');
         transcriptionResult.id = 'transcriptionResult';
-        transcriptionResult.className = 'tabcontent';
         document.getElementById('modal4').appendChild(transcriptionResult);
     }
     
@@ -292,7 +291,12 @@ function openTab(evt, tabName) {
 }
 
 function downloadTranscription() {
-    const format = document.querySelector(".tablinks.active").dataset.format;
+    const activeTab = document.querySelector(".tablinks.active");
+    if (!activeTab) {
+        alert('לא נבחר פורמט להורדה. נא לבחור פורמט מתמלול.');
+        return;
+    }
+    const format = activeTab.dataset.format;
     let blob, fileName;
 
     if (format === "text") {
