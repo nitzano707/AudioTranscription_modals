@@ -279,7 +279,8 @@ function cleanText(text) {
 
 function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.map(d => cleanText(d.text)).join("\n");
-
+    transcriptionDataText = data.map(d => cleanText(d.text)).join(" ");
+    
     // יצירת קובץ SRT עבור כל משפט בנפרד
     transcriptionDataSRT = data.map((d, index) => {
         return `${index + 1}\n${d.timestamp}\n${cleanText(d.text)}\n`;
