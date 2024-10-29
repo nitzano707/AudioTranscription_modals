@@ -229,7 +229,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                 if (contentType && contentType.includes("application/json")) {
                     const data = await response.json();
                     if (data.text) {
-                        transcriptionData.push(data.text);
+                        transcriptionData.push({ text: data.text, timestamp: new Date().toISOString() });
                     } else {
                         console.warn(`Missing text in response for chunk ${currentChunk}`);
                     }
@@ -257,8 +257,8 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 }
 
 function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.join("\n");
-    transcriptionDataJson = { transcriptions: data };
+    transcriptionDataText = data.map(d => d.text).join("\n");
+    transcriptionDataJson = { transcriptions: data.map(d => ({ text: d.text })) };
     transcriptionDataVerboseJson = JSON.stringify({ transcriptions: data }, null, 2);
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
@@ -293,7 +293,7 @@ function displayTranscription(format) {
         transcriptionResult.textContent = transcriptionDataVerboseJson;
     }
 
-    transcriptionResult.style.display = "block";
+    transcriptionResult.parentElement.style.display = "block";
     console.log("Transcription displayed successfully.");
 }
 
