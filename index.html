@@ -77,14 +77,14 @@
         <span class="close" onclick="closeModal('modal4')">&times;</span>
         <div class="modal-body">
             <div class="fixed-buttons">
-                <button onclick="downloadTranscription()">הורד תמלול כ-TXT</button>
+                <button onclick="downloadTranscription()">הורד תמלול כפורמט נבחר</button>
                 <button onclick="restartProcess()">התחל מחדש</button>
             </div>
             <p>תמלול הושלם</p>
             <div class="tabs">
-                <button class="tablinks" onclick="openTab(event, 'textTab')">טקסט</button>
-                <button class="tablinks" onclick="openTab(event, 'jsonTab')">JSON</button>
-                <button class="tablinks" onclick="openTab(event, 'verboseJsonTab')">Verbose JSON</button>
+                <button class="tablinks" onclick="openTab(event, 'textTab')" data-format="text">טקסט</button>
+                <button class="tablinks" onclick="openTab(event, 'jsonTab')" data-format="json">JSON</button>
+                <button class="tablinks" onclick="openTab(event, 'verboseJsonTab')" data-format="verbose_json">Verbose JSON</button>
             </div>
             <div id="textTab" class="tabcontent">
                 <pre id="textContent"></pre>
@@ -98,6 +98,7 @@
         </div>
     </div>
 </div>
+
 
     <script src="script.js"></script>
 </body>
