@@ -1,4 +1,3 @@
-
 // משתנים גלובליים לאחסון התמלול בפורמטים שונים
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
@@ -77,7 +76,7 @@ async function uploadAudio() {
         return;
     }
 
-    const maxChunkSizeMB = 20;
+    const maxChunkSizeMB = 24;
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
     let transcriptionData = [];
 
@@ -104,9 +103,8 @@ async function uploadAudio() {
         displayTranscription('text');
         console.log("Displaying transcription.");
 
-        // סגירת מודאל התקדמות ואפשרויות תמלול, ופתיחת מודאל התמלול
+        // סגירת מודאל התקדמות ופתיחת מודאל התמלול
         closeModal('modal3'); // סגירת מודאל ההתקדמות
-        closeModal('modal2'); // סגירת מודאל בחירת אפשרויות תמלול
         openModal('modal4');  // פתיחת מודאל הצגת התמלול
     } catch (error) {
         console.error('Error during audio processing:', error);
@@ -159,7 +157,6 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
 
     return chunks;
 }
-
 
 function bufferToWaveBlob(abuffer) {
     const numOfChan = abuffer.numberOfChannels;
@@ -289,16 +286,8 @@ function cleanText(text) {
     return text.replace(/\s+/g, ' ').trim();
 }
 
-
 function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.map((d, index) => {
-        // בדיקה אם יש סימן פיסוק בסוף המקטע, במידה ואין נוסיף רווח
-        if (/[.?!]$/.test(d.text.trim())) {
-            return cleanText(d.text);
-        } else {
-            return cleanText(d.text) + " ";
-        }
-    }).join("").trim();
+    transcriptionDataText = data.map(d => cleanText(d.text)).join(" ");
 
     // יצירת קובץ SRT עבור כל משפט בנפרד
     transcriptionDataSRT = data.map((d, index) => {
@@ -307,8 +296,6 @@ function saveTranscriptions(data, audioFileName) {
 
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
-
-   
 
 function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
@@ -395,7 +382,7 @@ function downloadTranscription() {
 function restartProcess() {
     // סגירה של כל המודאלים הפעילים
     closeModal('modal4');  // סגור את המודאל האחרון
-    closeModal('modal2');  // סגור את modal2 כדי שלא יישאר פתוח
+    closeModal('modal3');  // סגור את modal3 כדי שלא יישאר פתוח
     document.getElementById('audioFile').value = "";
     document.getElementById('fileName').textContent = "לא נבחר קובץ";
     document.getElementById('uploadBtn').disabled = true;
@@ -412,4 +399,3 @@ window.onclick = function(event) {
         }
     }
 };
-*/
