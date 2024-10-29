@@ -231,10 +231,10 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                     const endTime = formatTimestamp(segment.end);
                     const text = segment.text.trim();
 
-                    transcriptionData.push(`${index + 1}
-${startTime} --> ${endTime}
-${text}
-`);
+                    transcriptionData.push({
+                        text: text,
+                        timestamp: `${startTime} --> ${endTime}`
+                    });
                 });
             } else {
                 console.warn(`Missing segments in response for chunk ${currentChunk}`);
@@ -269,9 +269,7 @@ function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.map(d => d.text).join("\n");
 
     transcriptionDataSRT = data.map((d, index) => {
-        const startTime = formatTimestamp(d.timestamp);
-        const endTime = formatTimestamp(d.timestamp + 2); // חותמת זמן של 2 שניות לאחר ההתחלה
-        return `${index + 1}\n${startTime},000 --> ${endTime},000\n${d.text}\n`;
+        return `${index + 1}\n${d.timestamp}\n${d.text}\n`;
     }).join("\n");
 
     console.log("Transcription data saved successfully:", transcriptionDataText);
@@ -357,12 +355,6 @@ function downloadTranscription() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-}
-
-function formatTimestamp(index) {
-    const minutes = Math.floor(index / 60);
-    const seconds = index % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function restartProcess() {
