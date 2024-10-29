@@ -1,3 +1,8 @@
+// משתנים גלובליים לאחסון התמלול בפורמטים שונים
+let transcriptionDataText = '';
+let transcriptionDataJson = '';
+let transcriptionDataVerboseJson = '';
+
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
 
@@ -18,7 +23,6 @@ function saveApiKey() {
         document.getElementById('startProcessBtn').style.display = 'block';
     }
 }
-
 
 function triggerFileUpload() {
     const audioFileInput = document.getElementById('audioFile');
@@ -267,15 +271,36 @@ function displayTranscription(format) {
 }
 
 function downloadTranscription() {
-    if (!transcriptionDataText) {
-        alert('אין תמלול להורדה.');
-        return;
+    const format = document.querySelector(".tablinks.active").dataset.format;
+    let blob, fileName;
+
+    if (format === "text") {
+        if (!transcriptionDataText) {
+            alert('אין תמלול להורדה.');
+            return;
+        }
+        blob = new Blob([transcriptionDataText], { type: 'text/plain' });
+        fileName = 'transcription.txt';
+    } else if (format === "json") {
+        if (!transcriptionDataJson) {
+            alert('אין תמלול להורדה.');
+            return;
+        }
+        blob = new Blob([JSON.stringify(transcriptionDataJson, null, 2)], { type: 'application/json' });
+        fileName = 'transcription.json';
+    } else if (format === "verbose_json") {
+        if (!transcriptionDataVerboseJson) {
+            alert('אין תמלול להורדה.');
+            return;
+        }
+        blob = new Blob([transcriptionDataVerboseJson], { type: 'application/json' });
+        fileName = 'transcription_verbose.json';
     }
-    const blob = new Blob([transcriptionDataText], { type: 'text/plain' });
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'transcription.txt';
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -290,6 +315,7 @@ function restartProcess() {
     document.getElementById('uploadBtn').disabled = true;
     openModal('modal1'); // פתח את modal1 להתחלה מחדש
 }
+
 /*
 // סגירת מודאל בלחיצה מחוץ לתוכן
 window.onclick = function(event) {
