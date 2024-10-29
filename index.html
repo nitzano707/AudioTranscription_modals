@@ -19,11 +19,10 @@
         </p>
     </div>
 
-    
     <!-- כפתור ראשי לפתיחת התהליך -->
-<div class="button-container">
-    <button id="startProcessBtn" onclick="openModal('modal1')" style="display:none;">התחל תהליך</button>
-</div>
+    <div class="button-container">
+        <button id="startProcessBtn" onclick="openModal('modal1')" style="display:none;">התחל תהליך</button>
+    </div>
 
     <!-- מודאל ראשון להעלאת קובץ -->
     <div id="modal1" class="modal">
@@ -34,27 +33,12 @@
                 <input type="file" id="audioFile" accept=".mp3, .mp4, .wav, .aac, .m4a, .webm" style="display:none;">
                 <button onclick="triggerFileUpload()">לחץ להעלאה או גרור ושחרר קובץ כאן</button>
                 <span id="fileName">לא נבחר קובץ</span>
-                <button id="uploadBtn" onclick="openModal('modal2')" disabled>הבא</button>
+                <button id="uploadBtn" onclick="uploadAudio()" disabled>הבא</button>
             </div>
         </div>
     </div>
 
-    <!-- מודאל שני לבחירת אפשרויות ותמלול -->
-    <div id="modal2" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('modal2')">&times;</span>
-            <div class="modal-body">
-                <p>בחר אפשרויות תמלול</p>
-                <select id="languageSelect">
-                    <option value="he">עברית</option>
-                    <option value="en">אנגלית</option>
-                </select>
-                <button onclick="uploadAudio()">תמלל</button>
-            </div>
-        </div>
-    </div>
-
-   <!-- מודאל שלישי - הצגת התקדמות -->
+    <!-- מודאל שלישי - הצגת התקדמות -->
     <div id="modal3" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('modal3')">&times;</span>
@@ -70,30 +54,29 @@
         </div>
     </div>
 
-  <!-- מודאל רביעי - הצגת תמלול עם כרטיסיות -->
-<div id="modal4" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('modal4')">&times;</span>
-        <div class="modal-body">
-            <div class="fixed-buttons">
-                <button onclick="downloadTranscription()">הורד תמלול כפורמט נבחר</button>
-                <button onclick="restartProcess()">התחל מחדש</button>
-            </div>
-            <p>תמלול הושלם</p>
-            <div class="tabs">
-                <button class="tablinks" onclick="openTab(event, 'textTab')" data-format="text">טקסט</button>
-                <button class="tablinks" onclick="openTab(event, 'srtTab')" data-format="srt">SRT</button>
-            </div>
-            <div id="textTab" class="tabcontent">
-                <pre id="textContent"></pre>
-            </div>
-            <div id="srtTab" class="tabcontent" style="display:none;">
-                <pre id="srtContent"></pre>
+    <!-- מודאל רביעי - הצגת תמלול עם כרטיסיות -->
+    <div id="modal4" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('modal4')">&times;</span>
+            <div class="modal-body">
+                <div class="fixed-buttons">
+                    <button onclick="downloadTranscription()">הורד תמלול כפורמט נבחר</button>
+                    <button onclick="restartProcess()">התחל מחדש</button>
+                </div>
+                <p>תמלול הושלם</p>
+                <div class="tabs">
+                    <button class="tablinks" onclick="openTab(event, 'textTab')" data-format="text">טקסט</button>
+                    <button class="tablinks" onclick="openTab(event, 'srtTab')" data-format="srt">SRT</button>
+                </div>
+                <div id="textTab" class="tabcontent">
+                    <pre id="textContent"></pre>
+                </div>
+                <div id="srtTab" class="tabcontent" style="display:none;">
+                    <pre id="srtContent"></pre>
+                </div>
             </div>
         </div>
     </div>
-</div>
-
 
     <script src="script.js"></script>
 </body>
