@@ -227,14 +227,18 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             if (data.segments) {
                 // יצירת SRT עבור כל משפט בנפרד
                 data.segments.forEach((segment, index) => {
-                    const startTime = formatTimestamp(segment.start);
-                    const endTime = formatTimestamp(segment.end);
-                    const text = segment.text.trim();
+                    if (typeof segment.start === 'number' && typeof segment.end === 'number') {
+                        const startTime = formatTimestamp(segment.start);
+                        const endTime = formatTimestamp(segment.end);
+                        const text = segment.text.trim();
 
-                    transcriptionData.push({
-                        text: text,
-                        timestamp: `${startTime} --> ${endTime}`
-                    });
+                        transcriptionData.push({
+                            text: text,
+                            timestamp: `${startTime} --> ${endTime}`
+                        });
+                    } else {
+                        console.warn(`Invalid timestamp for segment ${index}:`, segment);
+                    }
                 });
             } else {
                 console.warn(`Missing segments in response for chunk ${currentChunk}`);
@@ -255,6 +259,10 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 }
 
 function formatTimestamp(seconds) {
+    if (typeof seconds !== 'number' || isNaN(seconds)) {
+        console.error('Invalid seconds value for timestamp:', seconds);
+        return '00:00:00,000';
+    }
     const date = new Date(seconds * 1000);
     const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
@@ -269,13 +277,13 @@ function saveTranscriptions(data, audioFileName) {
 
     // יצירת קובץ SRT עבור כל משפט בנפרד
     transcriptionDataSRT = data.map((d, index) => {
-        if (isNaN(d.timestamp)) {
+        if (!d.timestamp || d.timestamp.includes('NaN')) {
             console.warn(`Invalid timestamp for segment ${index}:`, d);
             return ''; // דילוג על מקטע עם זמן לא תקין
         }
 
         return `${index + 1}\n${d.timestamp}\n${d.text.trim()}\n`;
-    }).join("\n\n");
+    }).filter(segment => segment !== '').join("\n\n");
 
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
