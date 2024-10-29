@@ -251,19 +251,31 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     }
 }
 
-function displayTranscription(format) {
-    console.log("Displaying transcription in format:", format);
-    if (format === "text") {
-        document.getElementById('textContent').textContent = transcriptionDataText;
-    } else if (format === "json") {
-        document.getElementById('jsonContent').textContent = JSON.stringify(transcriptionDataJson, null, 2);
-    } else if (format === "verbose_json") {
-        document.getElementById('verboseJsonContent').textContent = transcriptionDataVerboseJson;
-    }
-    console.log("Transcription displayed successfully.");
-    document.getElementById('textTab').style.display = "block"; // הצגת התוכן הראשוני כטקסט
+function saveTranscriptions(data, audioFileName) {
+    transcriptionDataText = data.join("\n");
+    transcriptionDataJson = { transcriptions: data };
+    transcriptionDataVerboseJson = JSON.stringify({ transcriptions: data }, null, 2);
+    console.log("Transcription data saved successfully:", transcriptionDataText);
 }
 
+function displayTranscription(format) {
+    console.log("Displaying transcription in format:", format);
+    let transcriptionResult = document.getElementById('transcriptionResult');
+    if (!transcriptionResult) {
+        transcriptionResult = document.createElement('div');
+        transcriptionResult.id = 'transcriptionResult';
+        document.getElementById('modal4').appendChild(transcriptionResult);
+    }
+    
+    if (format === "text") {
+        transcriptionResult.textContent = transcriptionDataText;
+    } else if (format === "json") {
+        transcriptionResult.textContent = JSON.stringify(transcriptionDataJson, null, 2);
+    } else if (format === "verbose_json") {
+        transcriptionResult.textContent = transcriptionDataVerboseJson;
+    }
+    console.log("Transcription displayed successfully.");
+}
 
 function openTab(evt, tabName) {
     const tabcontent = document.getElementsByClassName("tabcontent");
@@ -277,7 +289,6 @@ function openTab(evt, tabName) {
     document.getElementById(tabName).style.display = "block";
     evt.currentTarget.className += " active";
 }
-
 
 function downloadTranscription() {
     const activeTab = document.querySelector(".tablinks.active");
