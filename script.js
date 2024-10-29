@@ -13,6 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('apiRequest').style.display = 'none';
         document.getElementById('startProcessBtn').style.display = 'block';
     }
+
+    // הגדרת ברירת המחדל להצגת תמלול כטקסט
+    document.getElementById('textTab').style.display = 'block';
+    document.querySelector("button[onclick*='textTab']").classList.add('active');
 });
 
 function saveApiKey() {
