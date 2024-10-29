@@ -1,15 +1,22 @@
-// JavaScript Script for Audio Transcription App
+// משתנים גלובליים לאחסון התמלול בפורמטים שונים
+let transcriptionDataText = '';
+let transcriptionDataSRT = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
 
-    // Display API input area or file upload area based on the presence of the API key
+    // הסתרת אזור הזנת API או הצגת אזור העלאת קובץ וכפתור התחל תהליך
     if (!apiKey) {
         document.getElementById('apiRequest').style.display = 'block';
     } else {
         document.getElementById('apiRequest').style.display = 'none';
         document.getElementById('startProcessBtn').style.display = 'block';
     }
+
+    // הגדרת ברירת המחדל להצגת תמלול כטקסט
+    document.getElementById('textTab').style.display = 'block';
+    document.querySelector("button[onclick*='textTab']").classList.add('active');
+    displayTranscription('text');
 });
 
 function saveApiKey() {
@@ -26,13 +33,12 @@ function triggerFileUpload() {
     audioFileInput.click();
 }
 
-// Event listener for file upload input
-const audioFileInput = document.getElementById('audioFile');
-audioFileInput.addEventListener('change', function () {
+// מאזין לאירוע שינוי ברכיב העלאת הקובץ
+document.getElementById('audioFile').addEventListener('change', function () {
     const fileName = this.files[0] ? this.files[0].name : "לא נבחר קובץ";
     document.getElementById('fileName').textContent = fileName;
 
-    // Update state of the "Next" button
+    // עדכון מצב כפתור "הבא"
     const uploadBtn = document.getElementById('uploadBtn');
     if (this.files[0]) {
         uploadBtn.disabled = false;
@@ -60,7 +66,7 @@ async function uploadAudio() {
         return;
     }
 
-    openModal('modal3'); // Show progress modal
+    openModal('modal3'); // הצגת מודאל התקדמות עם אייקון טעינה
     console.log("Progress modal opened.");
 
     const audioFile = document.getElementById('audioFile').files[0];
@@ -97,10 +103,10 @@ async function uploadAudio() {
         displayTranscription('text');
         console.log("Displaying transcription.");
 
-        // Close progress modal and open transcription modal
-        closeModal('modal3');
-        closeModal('modal2');
-        openModal('modal4');
+        // סגירת מודאל התקדמות ואפשרויות תמלול, ופתיחת מודאל התמלול
+        closeModal('modal3'); // סגירת מודאל ההתקדמות
+        closeModal('modal2'); // סגירת מודאל בחירת אפשרויות תמלול
+        openModal('modal4');  // פתיחת מודאל הצגת התמלול
     } catch (error) {
         console.error('Error during audio processing:', error);
         alert('שגיאה במהלך התמלול. נא לנסות שוב.');
@@ -197,7 +203,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'verbose_json');
+    formData.append('response_format', 'verbose_json'); // שימוש בפורמט JSON מפורט
     formData.append('language', 'he');
 
     const apiKey = localStorage.getItem('groqApiKey');
@@ -219,6 +225,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
         if (response.ok) {
             const data = await response.json();
             if (data.segments) {
+                // יצירת SRT עבור כל משפט בנפרד
                 data.segments.forEach((segment, index) => {
                     const startTime = formatTimestamp(segment.start);
                     const endTime = formatTimestamp(segment.end);
@@ -255,65 +262,119 @@ function formatTimestamp(seconds) {
     return `${hours}:${minutes}:${secs},${millis}`;
 }
 
+
 function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.join("\n");
+    transcriptionDataText = data.map(d => d.text).join("\n");
+
+    transcriptionDataSRT = data.map((d, index) => {
+        const startTime = d.timestamp;
+        const endTime = formatTimestamp(d.timestamp + 2); // חותמת זמן של 2 שניות לאחר ההתחלה
+        return `${index + 1}\n${startTime},000 --> ${endTime},000\n${d.text}\n`;
+    }).join("\n");
+
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
 
 function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
-    const transcriptionResult = document.getElementById('transcriptionResult');
-    if (transcriptionResult) {
-        transcriptionResult.innerText = transcriptionDataText;
-        console.log("Transcription displayed successfully.");
-    } else {
-        console.warn("Element 'transcriptionResult' not found in the DOM.");
+    let transcriptionResult;
+    if (format === "text") {
+        transcriptionResult = document.getElementById('textContent');
+    } else if (format === "srt") {
+        transcriptionResult = document.getElementById('srtContent');
     }
-    document.getElementById('transcriptionResult').setAttribute('data-format', format);
-}
 
-function downloadTranscription() {
-    const format = document.getElementById('transcriptionResult').getAttribute('data-format');
-    if (!transcriptionDataText) {
-        alert('אין תמלול להורדה.');
+    if (!transcriptionResult) {
+        console.error('Invalid tab name or element not found:', format);
         return;
     }
-    const blob = new Blob([transcriptionDataText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `transcription.${format}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
 
-function restartProcess() {
-    closeModal('modal4');
-    closeModal('modal2');
-    document.getElementById('audioFile').value = "";
-    document.getElementById('fileName').textContent = "לא נבחר קובץ";
-    document.getElementById('uploadBtn').disabled = true;
-    openModal('modal1');
+    // ווידוא שהכרטיסיה הרלוונטית מוצגת
+    const tabcontent = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+
+    if (format === "text") {
+        transcriptionResult.textContent = transcriptionDataText;
+    } else if (format === "srt") {
+        transcriptionResult.textContent = transcriptionDataSRT;
+    }
+
+    transcriptionResult.parentElement.style.display = "block";
+    console.log("Transcription displayed successfully.");
 }
 
 function openTab(evt, tabName) {
-    const tabcontents = document.getElementsByClassName('tabcontent');
-    for (let i = 0; i < tabcontents.length; i++) {
-        tabcontents[i].style.display = 'none';
+    const tabcontent = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
     }
-
-    const tablinks = document.getElementsByClassName('tablinks');
+    const tablinks = document.getElementsByClassName("tablinks");
     for (let i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(' active', '');
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
     }
-
-    document.getElementById(tabName).style.display = 'block';
-    evt.currentTarget.className += ' active';
-
-    displayTranscription(tabName);
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+    
+    // עדכון התמלול בהתאם לכרטיסיה שנבחרה
+    const format = evt.currentTarget.getAttribute('data-format');
+    displayTranscription(format);
 }
 
+function downloadTranscription() {
+    const activeTab = document.querySelector(".tablinks.active");
+    if (!activeTab) {
+        alert('לא נבחר פורמט להורדה. נא לבחור פורמט מתמלול.');
+        return;
+    }
+    const format = activeTab.getAttribute('data-format');
+    let blob, fileName;
+
+    if (format === "text") {
+        if (!transcriptionDataText) {
+            alert('אין תמלול להורדה.');
+            return;
+        }
+        blob = new Blob([transcriptionDataText], { type: 'text/plain' });
+        fileName = 'transcription.txt';
+    } else if (format === "srt") {
+        if (!transcriptionDataSRT) {
+            alert('אין תמלול להורדה.');
+            return;
+        }
+        blob = new Blob([transcriptionDataSRT], { type: 'text/plain' });
+        fileName = 'transcription.srt';
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function formatTimestamp(index) {
+    const minutes = Math.floor(index / 60);
+    const seconds = index % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function restartProcess() {
+    // סגירה של כל המודאלים הפעילים
+    closeModal('modal4');  // סגור את המודאל האחרון
+    closeModal('modal2');  // סגור את modal2 כדי שלא יישאר פתוח
+    document.getElementById('audioFile').value = "";
+    document.getElementById('fileName').textContent = "לא נבחר קובץ";
+    document.getElementById('uploadBtn').disabled = true;
+    openModal('modal1'); // פתח את modal1 להתחלה מחדש
+}
+
+/*
+// סגירת מודאל בלחיצה מחוץ לתוכן
 window.onclick = function(event) {
     const modals = document.getElementsByClassName('modal');
     for (let i = 0; i < modals.length; i++) {
@@ -322,3 +383,4 @@ window.onclick = function(event) {
         }
     }
 };
+*/
