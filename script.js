@@ -277,7 +277,7 @@ function saveTranscriptions(data, audioFileName) {
 
     // יצירת קובץ SRT עבור כל משפט בנפרד
     transcriptionDataSRT = data.map((d, index) => {
-        if (!d.timestamp || d.timestamp.includes('NaN')) {
+        if (!d.timestamp || d.timestamp.includes('NaN') || !isValidTimestamp(d.timestamp)) {
             console.warn(`Invalid timestamp for segment ${index}:`, d);
             return ''; // דילוג על מקטע עם זמן לא תקין
         }
@@ -287,6 +287,12 @@ function saveTranscriptions(data, audioFileName) {
 
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
+
+function isValidTimestamp(timestamp) {
+    const regex = /^\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}$/;
+    return regex.test(timestamp);
+}
+
 
 function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
