@@ -258,16 +258,21 @@ function saveTranscriptions(data, audioFileName) {
 
 function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
-    const transcriptionResult = document.getElementById('transcriptionResult');
-    if (transcriptionResult) {
-        transcriptionResult.innerText = transcriptionDataText;
-        console.log("Transcription displayed successfully.");
-    } else {
-        console.warn("Element 'transcriptionResult' not found in the DOM.");
+    let transcriptionResult = document.getElementById('transcriptionResult');
+    if (!transcriptionResult) {
+        transcriptionResult = document.createElement('div');
+        transcriptionResult.id = 'transcriptionResult';
+        document.body.appendChild(transcriptionResult);
     }
-
-    // שמירת הפורמט הנבחר
-    document.getElementById('transcriptionResult').setAttribute('data-format', format);
+    
+    if (format === "text") {
+        transcriptionResult.textContent = transcriptionDataText;
+    } else if (format === "json") {
+        transcriptionResult.textContent = JSON.stringify(transcriptionDataJson, null, 2);
+    } else if (format === "verbose_json") {
+        transcriptionResult.textContent = transcriptionDataVerboseJson;
+    }
+    console.log("Transcription displayed successfully.");
 }
 
 function downloadTranscription() {
