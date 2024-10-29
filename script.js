@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // הגדרת ברירת המחדל להצגת תמלול כטקסט
     document.getElementById('textTab').style.display = 'block';
     document.querySelector("button[onclick*='textTab']").classList.add('active');
+    displayTranscription('text');
 });
 
 function saveApiKey() {
@@ -309,7 +310,8 @@ function openTab(evt, tabName) {
     evt.currentTarget.className += " active";
     
     // עדכון התמלול בהתאם לכרטיסיה שנבחרה
-    displayTranscription(tabName);
+    const format = evt.currentTarget.getAttribute('data-format');
+    displayTranscription(format);
 }
 
 function downloadTranscription() {
@@ -318,7 +320,7 @@ function downloadTranscription() {
         alert('לא נבחר פורמט להורדה. נא לבחור פורמט מתמלול.');
         return;
     }
-    const format = activeTab.textContent.trim().toLowerCase().replace(' ', '_');
+    const format = activeTab.getAttribute('data-format');
     let blob, fileName;
 
     if (format === "text") {
