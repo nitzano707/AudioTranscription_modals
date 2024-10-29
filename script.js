@@ -231,7 +231,10 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                     const endTime = formatTimestamp(segment.end);
                     const text = segment.text.trim();
 
-                    transcriptionData.push(`${index + 1}\n${startTime} --> ${endTime}\n${text}\n`);
+                    transcriptionData.push(`${index + 1}
+${startTime} --> ${endTime}
+${text}
+`);
                 });
             } else {
                 console.warn(`Missing segments in response for chunk ${currentChunk}`);
@@ -262,12 +265,11 @@ function formatTimestamp(seconds) {
     return `${hours}:${minutes}:${secs},${millis}`;
 }
 
-
 function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.map(d => d.text).join("\n");
 
     transcriptionDataSRT = data.map((d, index) => {
-        const startTime = d.timestamp;
+        const startTime = formatTimestamp(d.timestamp);
         const endTime = formatTimestamp(d.timestamp + 2); // חותמת זמן של 2 שניות לאחר ההתחלה
         return `${index + 1}\n${startTime},000 --> ${endTime},000\n${d.text}\n`;
     }).join("\n");
