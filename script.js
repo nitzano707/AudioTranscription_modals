@@ -115,13 +115,24 @@ async function uploadAudio() {
 }
 
 async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
+    // אם הקובץ קטן מהגודל המרבי, החזר אותו במקטע אחד
+    if (file.size <= maxChunkSizeBytes) {
+        return [file];
+    }
+
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const arrayBuffer = await file.arrayBuffer();
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
     const sampleRate = audioBuffer.sampleRate;
     const numChannels = audioBuffer.numberOfChannels;
-    const chunkDuration = maxChunkSizeBytes / (sampleRate * numChannels * 2);
+    const totalSizeBytes = file.size;
+
+    // חשב את מספר המקטעים הדרוש כך שכל מקטע לא יעלה על maxChunkSizeBytes
+    const numberOfChunks = Math.ceil(totalSizeBytes / maxChunkSizeBytes);
+
+    // חשב את משך הזמן לכל מקטע באופן פרופורציונלי
+    const chunkDuration = audioBuffer.duration / numberOfChunks;
     let currentTime = 0;
     const chunks = [];
 
@@ -147,6 +158,7 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
 
     return chunks;
 }
+
 
 function bufferToWaveBlob(abuffer) {
     const numOfChan = abuffer.numberOfChannels;
