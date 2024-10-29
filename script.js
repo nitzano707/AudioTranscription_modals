@@ -258,8 +258,19 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 
 function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.map(d => d.text).join("\n");
-    transcriptionDataJson = { transcriptions: data.map(d => ({ text: d.text })) };
-    transcriptionDataVerboseJson = JSON.stringify({ transcriptions: data }, null, 2);
+
+    transcriptionDataJson = {
+        transcriptions: data.map((d, index) => ({
+            timestamp: formatTimestamp(index),
+            text: d.text
+        }))
+    };
+
+    transcriptionDataVerboseJson = data.map((d, index) => ({
+        timestamp: formatTimestamp(index),
+        text: d.text
+    })).map(JSON.stringify).join("\n");
+
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
 
@@ -288,7 +299,7 @@ function displayTranscription(format) {
     if (format === "text") {
         transcriptionResult.textContent = transcriptionDataText;
     } else if (format === "json") {
-        transcriptionResult.textContent = JSON.stringify(transcriptionDataJson, null, 2);
+        transcriptionResult.textContent = transcriptionDataJson.transcriptions.map(t => `${t.timestamp}: ${t.text}`).join("\n");
     } else if (format === "verbose_json") {
         transcriptionResult.textContent = transcriptionDataVerboseJson;
     }
@@ -296,6 +307,13 @@ function displayTranscription(format) {
     transcriptionResult.parentElement.style.display = "block";
     console.log("Transcription displayed successfully.");
 }
+
+function formatTimestamp(index) {
+    const minutes = Math.floor(index / 60);
+    const seconds = index % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
 
 function openTab(evt, tabName) {
     const tabcontent = document.getElementsByClassName("tabcontent");
