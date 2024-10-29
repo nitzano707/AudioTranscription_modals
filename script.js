@@ -1,7 +1,6 @@
 // משתנים גלובליים לאחסון התמלול בפורמטים שונים
 let transcriptionDataText = '';
-let transcriptionDataJson = '';
-let transcriptionDataVerboseJson = '';
+let transcriptionDataSRT = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
@@ -259,14 +258,11 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.map(d => d.text).join("\n");
 
-    transcriptionDataJson = {
-        transcriptions: data.map((d) => ({
-            timestamp: d.timestamp,
-            text: d.text
-        }))
-    };
-
-    transcriptionDataVerboseJson = data.map((d) => `${d.timestamp}: ${d.text}`).join("\n");
+    transcriptionDataSRT = data.map((d, index) => {
+        const startTime = d.timestamp;
+        const endTime = formatTimestamp(d.timestamp + 2); // חותמת זמן של 2 שניות לאחר ההתחלה
+        return `${index + 1}\n${startTime},000 --> ${endTime},000\n${d.text}\n`;
+    }).join("\n");
 
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
@@ -276,10 +272,8 @@ function displayTranscription(format) {
     let transcriptionResult;
     if (format === "text") {
         transcriptionResult = document.getElementById('textContent');
-    } else if (format === "json") {
-        transcriptionResult = document.getElementById('jsonContent');
-    } else if (format === "verbose_json") {
-        transcriptionResult = document.getElementById('verboseJsonContent');
+    } else if (format === "srt") {
+        transcriptionResult = document.getElementById('srtContent');
     }
 
     if (!transcriptionResult) {
@@ -295,10 +289,8 @@ function displayTranscription(format) {
 
     if (format === "text") {
         transcriptionResult.textContent = transcriptionDataText;
-    } else if (format === "json") {
-        transcriptionResult.textContent = transcriptionDataJson.transcriptions.map(t => `${t.timestamp}: ${t.text}`).join("\n");
-    } else if (format === "verbose_json") {
-        transcriptionResult.textContent = transcriptionDataVerboseJson;
+    } else if (format === "srt") {
+        transcriptionResult.textContent = transcriptionDataSRT;
     }
 
     transcriptionResult.parentElement.style.display = "block";
@@ -338,20 +330,13 @@ function downloadTranscription() {
         }
         blob = new Blob([transcriptionDataText], { type: 'text/plain' });
         fileName = 'transcription.txt';
-    } else if (format === "json") {
-        if (!transcriptionDataJson) {
+    } else if (format === "srt") {
+        if (!transcriptionDataSRT) {
             alert('אין תמלול להורדה.');
             return;
         }
-        blob = new Blob([JSON.stringify(transcriptionDataJson, null, 2)], { type: 'application/json' });
-        fileName = 'transcription.json';
-    } else if (format === "verbose_json") {
-        if (!transcriptionDataVerboseJson) {
-            alert('אין תמלול להורדה.');
-            return;
-        }
-        blob = new Blob([transcriptionDataVerboseJson], { type: 'application/json' });
-        fileName = 'transcription_verbose.json';
+        blob = new Blob([transcriptionDataSRT], { type: 'text/plain' });
+        fileName = 'transcription.srt';
     }
 
     const url = URL.createObjectURL(blob);
