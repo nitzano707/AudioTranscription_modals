@@ -48,24 +48,15 @@ document.getElementById('audioFile').addEventListener('change', function () {
 });
 
 function openModal(modalId) {
-    // הסתר את כל המודאלים לפני הצגת המודאל הנבחר
-    const modals = document.getElementsByClassName('modal');
-    for (let i = 0; i < modals.length; i++) {
-        modals[i].style.display = 'none';
-    }
-    
-    // הצגת המודאל הנבחר בלבד
     const modal = document.getElementById(modalId);
     modal.style.display = 'block';
     document.body.classList.add('modal-open');
-    document.getElementById('content').classList.add('blur');
 }
 
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     modal.style.display = 'none';
     document.body.classList.remove('modal-open');
-    document.getElementById('content').classList.remove('blur');
 }
 
 async function uploadAudio() {
@@ -85,7 +76,7 @@ async function uploadAudio() {
         return;
     }
 
-    const maxChunkSizeMB = 10; // שינוי גודל המקטע ל-10 מגהבייט במקום 24
+    const maxChunkSizeMB = 20;
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
     let transcriptionData = [];
 
@@ -296,7 +287,14 @@ function cleanText(text) {
 }
 
 function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.map(d => cleanText(d.text)).join(" ");
+    transcriptionDataText = data.map((d, index) => {
+        // בדיקה אם יש סימן פיסוק בסוף המקטע, במידה ואין נוסיף רווח
+        if (/[.?!]$/.test(d.text.trim())) {
+            return cleanText(d.text);
+        } else {
+            return cleanText(d.text) + " ";
+        }
+    }).join("").trim();
 
     // יצירת קובץ SRT עבור כל משפט בנפרד
     transcriptionDataSRT = data.map((d, index) => {
