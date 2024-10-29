@@ -48,6 +48,13 @@ document.getElementById('audioFile').addEventListener('change', function () {
 });
 
 function openModal(modalId) {
+    // הסתר את כל המודאלים לפני הצגת המודאל הנבחר
+    const modals = document.getElementsByClassName('modal');
+    for (let i = 0; i < modals.length; i++) {
+        modals[i].style.display = 'none';
+    }
+    
+    // הצגת המודאל הנבחר בלבד
     const modal = document.getElementById(modalId);
     modal.style.display = 'block';
     document.body.classList.add('modal-open');
@@ -76,7 +83,7 @@ async function uploadAudio() {
         return;
     }
 
-    const maxChunkSizeMB = 24;
+    const maxChunkSizeMB = 10; // שינוי גודל המקטע ל-10 מגהבייט במקום 24
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
     let transcriptionData = [];
 
@@ -388,14 +395,3 @@ function restartProcess() {
     document.getElementById('uploadBtn').disabled = true;
     openModal('modal1'); // פתח את modal1 להתחלה מחדש
 }
-
-/*
-// סגירת מודאל בלחיצה מחוץ לתוכן
-window.onclick = function(event) {
-    const modals = document.getElementsByClassName('modal');
-    for (let i = 0; i < modals.length; i++) {
-        if (event.target == modals[i]) {
-            closeModal(modals[i].id);
-        }
-    }
-};
