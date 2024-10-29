@@ -1,3 +1,4 @@
+const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
 
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
