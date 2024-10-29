@@ -240,6 +240,8 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     formData.append('model', 'whisper-large-v3-turbo');
     formData.append('response_format', 'verbose_json'); // שימוש בפורמט JSON מפורט לקבלת חותמות זמן
     formData.append('language', defaultLanguage); // שימוש בשפת ברירת מחדל
+    formData.append('_source', false); // לא למשוך הכול
+    formData.append('fields', '["timestamp", "message"]'); // למשוך רק את השדות האלה
 
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
