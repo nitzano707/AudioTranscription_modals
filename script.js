@@ -229,7 +229,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                 if (contentType && contentType.includes("application/json")) {
                     const data = await response.json();
                     if (data.text) {
-                        transcriptionData.push({ text: data.text, timestamp: new Date().toISOString() });
+                        transcriptionData.push({ text: data.text, timestamp: formatTimestamp(transcriptionData.length) });
                     } else {
                         console.warn(`Missing text in response for chunk ${currentChunk}`);
                     }
@@ -260,16 +260,13 @@ function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.map(d => d.text).join("\n");
 
     transcriptionDataJson = {
-        transcriptions: data.map((d, index) => ({
-            timestamp: formatTimestamp(index),
+        transcriptions: data.map((d) => ({
+            timestamp: d.timestamp,
             text: d.text
         }))
     };
 
-    transcriptionDataVerboseJson = data.map((d, index) => ({
-        timestamp: formatTimestamp(index),
-        text: d.text
-    })).map(JSON.stringify).join("\n");
+    transcriptionDataVerboseJson = data.map((d) => `${d.timestamp}: ${d.text}`).join("\n");
 
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
@@ -278,14 +275,12 @@ function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
     let transcriptionResult;
     if (format === "text") {
-    transcriptionResult.textContent = transcriptionDataText;
-} else if (format === "json") {
-    transcriptionResult.textContent = transcriptionDataJson.transcriptions.map(t => `${t.timestamp}: ${t.text}`).join("\n");
-} else if (format === "verbose_json") {
-    transcriptionResult.textContent = transcriptionDataVerboseJson.segments.map(segment => {
-        return `Start: ${segment.start} - End: ${segment.end} - Speaker: ${segment.speaker || 'Unknown'} - Text: ${segment.text}`;
-    }).join("\n");
-}
+        transcriptionResult = document.getElementById('textContent');
+    } else if (format === "json") {
+        transcriptionResult = document.getElementById('jsonContent');
+    } else if (format === "verbose_json") {
+        transcriptionResult = document.getElementById('verboseJsonContent');
+    }
 
     if (!transcriptionResult) {
         console.error('Invalid tab name or element not found:', format);
@@ -309,13 +304,6 @@ function displayTranscription(format) {
     transcriptionResult.parentElement.style.display = "block";
     console.log("Transcription displayed successfully.");
 }
-
-function formatTimestamp(index) {
-    const minutes = Math.floor(index / 60);
-    const seconds = index % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
 
 function openTab(evt, tabName) {
     const tabcontent = document.getElementsByClassName("tabcontent");
@@ -374,6 +362,12 @@ function downloadTranscription() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+function formatTimestamp(index) {
+    const minutes = Math.floor(index / 60);
+    const seconds = index % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function restartProcess() {
