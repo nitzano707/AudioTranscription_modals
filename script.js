@@ -288,6 +288,9 @@ function openTab(evt, tabName) {
     }
     document.getElementById(tabName).style.display = "block";
     evt.currentTarget.className += " active";
+    
+    // עדכון התמלול בהתאם לכרטיסיה שנבחרה
+    displayTranscription(tabName);
 }
 
 function downloadTranscription() {
@@ -329,6 +332,7 @@ function downloadTranscription() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 function restartProcess() {
