@@ -203,7 +203,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'json'); // ודא שאתה מבקש פורמט JSON
+    formData.append('response_format', 'verbose_json'); // שימוש בפורמט JSON מפורט
     formData.append('language', 'he');
 
     const apiKey = localStorage.getItem('groqApiKey');
@@ -223,22 +223,18 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
         });
 
         if (response.ok) {
-            try {
-                const contentType = response.headers.get("content-type");
-                if (contentType && contentType.includes("application/json")) {
-                    const data = await response.json();
-                    if (data.text) {
-                        transcriptionData.push({ text: data.text, timestamp: formatTimestamp(transcriptionData.length) });
-                    } else {
-                        console.warn(`Missing text in response for chunk ${currentChunk}`);
-                    }
-                } else {
-                    const responseText = await response.text();
-                    console.warn(`Expected JSON response but got: ${contentType}`);
-                    console.log("Response content:", responseText);
-                }
-            } catch (jsonError) {
-                console.error('Error parsing JSON:', jsonError);
+            const data = await response.json();
+            if (data.segments) {
+                // יצירת SRT עבור כל משפט בנפרד
+                data.segments.forEach((segment, index) => {
+                    const startTime = formatTimestamp(segment.start);
+                    const endTime = formatTimestamp(segment.end);
+                    const text = segment.text.trim();
+
+                    transcriptionData.push(`${index + 1}\n${startTime} --> ${endTime}\n${text}\n`);
+                });
+            } else {
+                console.warn(`Missing segments in response for chunk ${currentChunk}`);
             }
         } else {
             if (response.status === 401) {
@@ -254,6 +250,18 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
         console.error('Network error:', error);
     }
 }
+
+function formatTimestamp(seconds) {
+    const date = new Date(0);
+    date.setSeconds(seconds);
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const secs = String(date.getUTCSeconds()).padStart(2, '0');
+    const millis = String(date.getUTCMilliseconds()).padStart(3, '0');
+
+    return `${hours}:${minutes}:${secs},${millis}`;
+}
+
 
 function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.map(d => d.text).join("\n");
