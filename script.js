@@ -1,8 +1,8 @@
-
 // משתנים גלובליים לאחסון התמלול בפורמטים שונים
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
+let maxChunkSizeMB = 15; // גודל מקטע ברירת מחדל במגהבייט
 
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
@@ -78,7 +78,15 @@ async function uploadAudio() {
         return;
     }
 
-    const maxChunkSizeMB = 15;
+    // בדיקה אם סוג הקובץ הוא MP3 והגדלת גודל המקטע
+    if (audioFile.type === 'audio/mpeg') {
+        maxChunkSizeMB = 10;
+        console.log("File is MP3, setting maxChunkSizeMB to 10");
+    } else {
+        maxChunkSizeMB = 15;
+        console.log("File is not MP3, using default maxChunkSizeMB of 15");
+    }
+
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
     let transcriptionData = [];
 
@@ -173,7 +181,6 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
 
     return chunks;
 }
-
 
 function bufferToWaveBlob(abuffer) {
     const numOfChan = abuffer.numberOfChannels;
