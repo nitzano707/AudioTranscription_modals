@@ -263,20 +263,31 @@ function displayTranscription(format) {
     let transcriptionResult;
     if (format === "text") {
         transcriptionResult = document.getElementById('textContent');
-        transcriptionResult.textContent = transcriptionDataText;
     } else if (format === "json") {
         transcriptionResult = document.getElementById('jsonContent');
-        transcriptionResult.textContent = JSON.stringify(transcriptionDataJson, null, 2);
     } else if (format === "verbose_json") {
         transcriptionResult = document.getElementById('verboseJsonContent');
-        transcriptionResult.textContent = transcriptionDataVerboseJson;
     }
-    
+
+    if (!transcriptionResult) {
+        console.error('Invalid tab name or element not found:', format);
+        return;
+    }
+
     // ווידוא שהכרטיסיה הרלוונטית מוצגת
     const tabcontent = document.getElementsByClassName("tabcontent");
     for (let i = 0; i < tabcontent.length; i++) {
         tabcontent[i].style.display = "none";
     }
+
+    if (format === "text") {
+        transcriptionResult.textContent = transcriptionDataText;
+    } else if (format === "json") {
+        transcriptionResult.textContent = JSON.stringify(transcriptionDataJson, null, 2);
+    } else if (format === "verbose_json") {
+        transcriptionResult.textContent = transcriptionDataVerboseJson;
+    }
+
     transcriptionResult.style.display = "block";
     console.log("Transcription displayed successfully.");
 }
