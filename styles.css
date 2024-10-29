@@ -199,6 +199,7 @@ button:disabled {
     transition: 0.3s;
     font-size: 16px;
     color: #333;
+    font-weight: bold;
 }
 
 .tablinks:hover {
@@ -220,4 +221,15 @@ button:disabled {
     background-color: #f9f9f9;
     text-align: left;
     margin-top: 10px;
+}
+
+/* תאוריות למצב ריחוף ולחיצה על כרטיסיות */
+.tablinks:focus {
+    background-color: #ccc;
+    color: #000;
+}
+
+.tablinks:active {
+    background-color: #bbb;
+    color: #000;
 }
