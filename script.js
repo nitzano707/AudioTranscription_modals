@@ -203,7 +203,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'json'); // שימוש בפורמט JSON 
+    formData.append('response_format', 'verbose_json'); // שימוש בפורמט JSON מפורט לקבלת חותמות זמן
     formData.append('language', 'he');
 
     const apiKey = localStorage.getItem('groqApiKey');
@@ -264,28 +264,21 @@ function formatTimestamp(seconds) {
     return `${hours}:${minutes}:${secs},${millis}`;
 }
 
-
-
-
-
 function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.map(d => d.text).join("\n");
 
     // יצירת קובץ SRT עבור כל משפט בנפרד
     transcriptionDataSRT = data.map((d, index) => {
-        const sentences = d.text.split('. '); // חלוקה למשפטים
-        return sentences.map((sentence, sIndex) => {
-            const startTime = formatTimestamp(d.start + (sIndex * 2)); // חישוב זמן התחלה לכל משפט
-            const endTime = formatTimestamp(d.start + ((sIndex + 1) * 2)); // חישוב זמן סיום לכל משפט
-            return `${index + sIndex + 1}\n${startTime} --> ${endTime}\n${sentence.trim()}\n`;
-        }).join("\n");
+        if (isNaN(d.timestamp)) {
+            console.warn(`Invalid timestamp for segment ${index}:`, d);
+            return ''; // דילוג על מקטע עם זמן לא תקין
+        }
+
+        return `${index + 1}\n${d.timestamp}\n${d.text.trim()}\n`;
     }).join("\n\n");
 
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
-
-
-    
 
 function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
@@ -316,8 +309,6 @@ function displayTranscription(format) {
     transcriptionResult.parentElement.style.display = "block";
     console.log("Transcription displayed successfully.");
 }
-
-
 
 function openTab(evt, tabName) {
     const tabcontent = document.getElementsByClassName("tabcontent");
