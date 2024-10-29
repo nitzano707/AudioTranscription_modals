@@ -58,12 +58,14 @@ function openModal(modalId) {
     const modal = document.getElementById(modalId);
     modal.style.display = 'block';
     document.body.classList.add('modal-open');
+    document.getElementById('content').classList.add('blur');
 }
 
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     modal.style.display = 'none';
     document.body.classList.remove('modal-open');
+    document.getElementById('content').classList.remove('blur');
 }
 
 async function uploadAudio() {
