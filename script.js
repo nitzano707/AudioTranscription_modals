@@ -81,8 +81,10 @@ async function uploadAudio() {
     let transcriptionData = [];
 
     try {
+        console.log("Starting to split the audio file into chunks...");
         const chunks = await splitAudioToChunksBySize(audioFile, maxChunkSizeBytes);
         const totalChunks = chunks.length;
+        console.log(`Total chunks created: ${totalChunks}`);
 
         for (let i = 0; i < totalChunks; i++) {
             const chunkFile = new File([chunks[i]], `chunk_${i + 1}.${audioFile.name.split('.').pop()}`, { type: audioFile.type });
@@ -224,6 +226,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     }
 
     try {
+        console.log(`Sending chunk ${currentChunk} of ${totalChunks} to the API...`);
         const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
             method: 'POST',
             headers: {
@@ -234,6 +237,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 
         if (response.ok) {
             const data = await response.json();
+            console.log(`Received response for chunk ${currentChunk}:`, data);
             if (data.segments) {
                 // יצירת SRT עבור כל משפט בנפרד
                 data.segments.forEach((segment, index) => {
