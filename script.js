@@ -1,6 +1,7 @@
 // משתנים גלובליים לאחסון התמלול בפורמטים שונים
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
+const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
 
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
@@ -216,7 +217,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
     formData.append('response_format', 'verbose_json'); // שימוש בפורמט JSON מפורט לקבלת חותמות זמן
-    formData.append('language', 'he');
+    formData.append('language', defaultLanguage); // שימוש בשפת ברירת מחדל
 
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
