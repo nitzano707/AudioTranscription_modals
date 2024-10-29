@@ -213,12 +213,15 @@ button:disabled {
     border-radius: 5px;
 }
 
+
 .tabcontent pre {
     white-space: pre-wrap;
     word-wrap: break-word;
     font-size: 14px;
     direction: rtl;
+    font-family: Arial, sans-serif;
 }
+
 
 /* שינוי צבע פס גלילה לאנכי */
 .tabcontent::-webkit-scrollbar {
