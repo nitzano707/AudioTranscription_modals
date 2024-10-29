@@ -182,11 +182,10 @@ button:disabled {
     display: block;
 }
 
-/* סגנון לכרטיסיות */
+/* עיצוב הכרטיסיות */
 .tabs {
-    overflow: hidden;
-    background-color: #f1f1f1;
-    border-bottom: 1px solid #ccc;
+    display: flex;
+    justify-content: center;
     margin-top: 20px;
 }
 
@@ -195,41 +194,111 @@ button:disabled {
     border: none;
     outline: none;
     cursor: pointer;
-    padding: 14px 16px;
+    padding: 14px 20px;
     transition: 0.3s;
     font-size: 16px;
-    color: #333;
-    font-weight: bold;
+    margin: 0 5px;
+    border-radius: 4px;
 }
 
 .tablinks:hover {
     background-color: #ddd;
-    color: #000;
 }
 
 .tablinks.active {
     background-color: #ccc;
-    color: #000;
     font-weight: bold;
 }
 
-/* תוכן הכרטיסיות */
+/* עיצוב תוכן הכרטיסיות */
 .tabcontent {
     display: none;
     padding: 20px;
     border-top: 1px solid #ccc;
-    background-color: #f9f9f9;
+    max-height: 400px;
+    overflow-y: auto;
     text-align: left;
-    margin-top: 10px;
+    white-space: pre-wrap; /* שמירה על רווחים ושורות בפורמט ה-Verbose JSON */
 }
 
-/* תאוריות למצב ריחוף ולחיצה על כרטיסיות */
-.tablinks:focus {
-    background-color: #ccc;
-    color: #000;
+/* כפתורי הורדה והתחל מחדש */
+.fixed-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
 }
 
-.tablinks:active {
-    background-color: #bbb;
-    color: #000;
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin: 10px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* עיצוב המודאלים */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: #ffffff;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 60%;
+    border-radius: 10px;
+    position: relative;
+    text-align: right;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* עיצוב טאב תוכן פעיל */
+.tabcontent.active {
+    display: block;
+}
+
+/* עיצוב פס הגלילה */
+.tabcontent {
+    overflow-y: auto;
+    overflow-x: hidden;
 }
