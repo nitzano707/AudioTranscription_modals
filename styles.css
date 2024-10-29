@@ -182,12 +182,11 @@ button:disabled {
     display: block;
 }
 
+/* כרטיסיות */
 .tabs {
     overflow: hidden;
     background-color: #f1f1f1;
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
+    border-bottom: 1px solid #ccc;
 }
 
 .tablinks {
@@ -197,7 +196,6 @@ button:disabled {
     cursor: pointer;
     padding: 14px 16px;
     transition: 0.3s;
-    font-size: 16px;
 }
 
 .tablinks:hover {
@@ -208,14 +206,11 @@ button:disabled {
     background-color: #ccc;
 }
 
+/* תוכן הכרטיסיות */
 .tabcontent {
     display: none;
     padding: 20px;
     border-top: none;
+    background-color: #f9f9f9;
     text-align: left;
-    background-color: #fff;
-    max-height: 400px;
-    overflow-y: auto;
 }
-
-
