@@ -277,10 +277,17 @@ function cleanText(text) {
     return text.replace(/\s+/g, ' ').trim();
 }
 
+
 function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.map(d => cleanText(d.text)).join("\n");
-    transcriptionDataText = data.map(d => cleanText(d.text)).join(" ");
-    
+    transcriptionDataText = data.map((d, index) => {
+        // בדיקה אם יש סימן פיסוק בסוף המקטע, במידה ואין נוסיף רווח
+        if (/[.?!]$/.test(d.text.trim())) {
+            return cleanText(d.text);
+        } else {
+            return cleanText(d.text) + " ";
+        }
+    }).join("").trim();
+
     // יצירת קובץ SRT עבור כל משפט בנפרד
     transcriptionDataSRT = data.map((d, index) => {
         return `${index + 1}\n${d.timestamp}\n${cleanText(d.text)}\n`;
@@ -288,6 +295,8 @@ function saveTranscriptions(data, audioFileName) {
 
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
+
+   
 
 function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
