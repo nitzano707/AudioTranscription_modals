@@ -265,15 +265,23 @@ function formatTimestamp(seconds) {
     return `${hours}:${minutes}:${secs},${millis}`;
 }
 
+
+
+
 function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.map(d => d.text).join("\n");
 
+    // יצירת קובץ SRT עבור כל משפט בנפרד
     transcriptionDataSRT = data.map((d, index) => {
-        return `${index + 1}\n${d.timestamp}\n${d.text}\n`;
-    }).join("\n");
+        const startTime = formatTimestamp(d.start);
+        const endTime = formatTimestamp(d.end);
+        return `${index + 1}\n${startTime} --> ${endTime}\n${d.text.trim()}\n`;
+    }).join("\n\n");
 
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
+
+    
 
 function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
