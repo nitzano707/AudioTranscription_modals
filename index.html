@@ -71,7 +71,7 @@
         </div>
     </div>
 
-   <!-- מודאל רביעי - הצגת תמלול -->
+   <!-- מודאל רביעי - הצגת תמלול עם כרטיסיות -->
 <div id="modal4" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeModal('modal4')">&times;</span>
@@ -81,7 +81,20 @@
                 <button onclick="restartProcess()">התחל מחדש</button>
             </div>
             <p>תמלול הושלם</p>
-            <div id="transcriptionResult" style="margin-top: 20px;"></div>
+            <div class="tabs">
+                <button class="tablinks" onclick="openTab(event, 'textTab')">טקסט</button>
+                <button class="tablinks" onclick="openTab(event, 'jsonTab')">JSON</button>
+                <button class="tablinks" onclick="openTab(event, 'verboseJsonTab')">Verbose JSON</button>
+            </div>
+            <div id="textTab" class="tabcontent">
+                <pre id="textContent"></pre>
+            </div>
+            <div id="jsonTab" class="tabcontent" style="display:none;">
+                <pre id="jsonContent"></pre>
+            </div>
+            <div id="verboseJsonTab" class="tabcontent" style="display:none;">
+                <pre id="verboseJsonContent"></pre>
+            </div>
         </div>
     </div>
 </div>
