@@ -253,6 +253,8 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 
 function saveTranscriptions(data, audioFileName) {
     transcriptionDataText = data.join("\n");
+    transcriptionDataJson = { transcriptions: data };
+    transcriptionDataVerboseJson = JSON.stringify({ transcriptions: data }, null, 2);
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
 
@@ -262,7 +264,8 @@ function displayTranscription(format) {
     if (!transcriptionResult) {
         transcriptionResult = document.createElement('div');
         transcriptionResult.id = 'transcriptionResult';
-        document.body.appendChild(transcriptionResult);
+        transcriptionResult.className = 'tabcontent';
+        document.getElementById('modal4').appendChild(transcriptionResult);
     }
     
     if (format === "text") {
@@ -273,6 +276,19 @@ function displayTranscription(format) {
         transcriptionResult.textContent = transcriptionDataVerboseJson;
     }
     console.log("Transcription displayed successfully.");
+}
+
+function openTab(evt, tabName) {
+    const tabcontent = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    const tablinks = document.getElementsByClassName("tablinks");
+    for (let i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
 }
 
 function downloadTranscription() {
