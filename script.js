@@ -255,8 +255,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 }
 
 function formatTimestamp(seconds) {
-    const date = new Date(0);
-    date.setSeconds(seconds);
+    const date = new Date(seconds * 1000);
     const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
     const secs = String(date.getUTCSeconds()).padStart(2, '0');
@@ -312,6 +311,7 @@ function displayTranscription(format) {
     transcriptionResult.parentElement.style.display = "block";
     console.log("Transcription displayed successfully.");
 }
+
 
 function openTab(evt, tabName) {
     const tabcontent = document.getElementsByClassName("tabcontent");
