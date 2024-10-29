@@ -50,7 +50,7 @@ body {
 button {
     padding: 10px 20px;
     font-size: 16px;
-    background-color: #007bff;
+    background-color: #ff8c00;
     color: white;
     border: none;
     border-radius: 5px;
@@ -65,9 +65,8 @@ button {
     margin-top: 20px;
 }
 
-
 button:hover {
-    background-color: #0056b3;
+    background-color: #e67e22;
 }
 
 button:disabled {
@@ -90,7 +89,6 @@ button:disabled {
 .fixed-buttons button {
     margin: 0 10px;
 }
-
 
 #apiRequest {
     margin-bottom: 20px;
@@ -115,7 +113,7 @@ button:disabled {
 .progress {
     height: 100%;
     width: 0;
-    background-color: #007bff;
+    background-color: #ff8c00;
     text-align: center;
     line-height: 25px;
     color: white;
@@ -132,7 +130,7 @@ button:disabled {
 }
 
 .upload-box {
-    border: 2px dashed #007bff;
+    border: 2px dashed #ff8c00;
     border-radius: 10px;
     padding: 40px;
     width: 50%;
@@ -143,7 +141,7 @@ button:disabled {
 }
 
 .upload-box:hover {
-    border-color: #0056b3;
+    border-color: #e67e22;
 }
 
 .drop-zone {
@@ -161,19 +159,6 @@ button:disabled {
     font-size: 1rem;
     color: #666;
 }
-
-.fixed-buttons {
-    position: sticky;
-    top: 0;
-    background-color: #ffffff;
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-    z-index: 100;
-    display: flex;
-    justify-content: space-between;
-}
-
-
 
 .loading-gif {
     width: min(250px, 20vw);
@@ -194,22 +179,23 @@ button:disabled {
 }
 
 .tablinks {
-    background-color: #f1f1f1;
+    background-color: #ff8c00;
     border: none;
     outline: none;
     cursor: pointer;
     padding: 14px 16px;
     transition: background-color 0.3s, color 0.3s;
     font-size: 16px;
+    color: #fff;
 }
 
 .tablinks:hover {
-    background-color: #ddd;
-    color: #000;
+    background-color: #e67e22;
+    color: #fff;
 }
 
 .tablinks.active {
-    background-color: #007bff;
+    background-color: #d35400;
     color: white;
     border-radius: 5px;
 }
@@ -218,7 +204,7 @@ button:disabled {
     display: none;
     padding: 20px;
     border-top: none;
-    text-align: left;
+    text-align: right;
     overflow-y: auto;
     max-height: 60vh;
     background-color: #ffffff;
@@ -230,12 +216,7 @@ button:disabled {
     white-space: pre-wrap;
     word-wrap: break-word;
     font-size: 14px;
-}
-
-/* שינוי צבע כפתורים במצב ריחוף */
-button.tablinks:hover {
-    background-color: #0056b3;
-    color: white;
+    direction: rtl;
 }
 
 /* שינוי צבע פס גלילה לאנכי */
