@@ -260,20 +260,24 @@ function saveTranscriptions(data, audioFileName) {
 
 function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
-    let transcriptionResult = document.getElementById('transcriptionResult');
-    if (!transcriptionResult) {
-        transcriptionResult = document.createElement('div');
-        transcriptionResult.id = 'transcriptionResult';
-        document.getElementById('modal4').appendChild(transcriptionResult);
-    }
-    
+    let transcriptionResult;
     if (format === "text") {
+        transcriptionResult = document.getElementById('textContent');
         transcriptionResult.textContent = transcriptionDataText;
     } else if (format === "json") {
+        transcriptionResult = document.getElementById('jsonContent');
         transcriptionResult.textContent = JSON.stringify(transcriptionDataJson, null, 2);
     } else if (format === "verbose_json") {
+        transcriptionResult = document.getElementById('verboseJsonContent');
         transcriptionResult.textContent = transcriptionDataVerboseJson;
     }
+    
+    // ווידוא שהכרטיסיה הרלוונטית מוצגת
+    const tabcontent = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    transcriptionResult.style.display = "block";
     console.log("Transcription displayed successfully.");
 }
 
