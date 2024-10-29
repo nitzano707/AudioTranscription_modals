@@ -278,12 +278,14 @@ function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
     let transcriptionResult;
     if (format === "text") {
-        transcriptionResult = document.getElementById('textContent');
-    } else if (format === "json") {
-        transcriptionResult = document.getElementById('jsonContent');
-    } else if (format === "verbose_json") {
-        transcriptionResult = document.getElementById('verboseJsonContent');
-    }
+    transcriptionResult.textContent = transcriptionDataText;
+} else if (format === "json") {
+    transcriptionResult.textContent = transcriptionDataJson.transcriptions.map(t => `${t.timestamp}: ${t.text}`).join("\n");
+} else if (format === "verbose_json") {
+    transcriptionResult.textContent = transcriptionDataVerboseJson.segments.map(segment => {
+        return `Start: ${segment.start} - End: ${segment.end} - Speaker: ${segment.speaker || 'Unknown'} - Text: ${segment.text}`;
+    }).join("\n");
+}
 
     if (!transcriptionResult) {
         console.error('Invalid tab name or element not found:', format);
