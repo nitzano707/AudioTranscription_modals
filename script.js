@@ -135,12 +135,24 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
 
     // חשב את משך הזמן לכל מקטע באופן פרופורציונלי
     const chunkDuration = audioBuffer.duration / numberOfChunks;
+    if (chunkDuration <= 0) {
+        console.error("Invalid chunk duration:", chunkDuration);
+        throw new Error("Chunk duration must be greater than 0.");
+    }
+
     let currentTime = 0;
     const chunks = [];
 
     while (currentTime < audioBuffer.duration) {
         const end = Math.min(currentTime + chunkDuration, audioBuffer.duration);
         const frameCount = Math.floor((end - currentTime) * sampleRate);
+
+        // בדיקה אם מספר הפריימים תקין
+        if (frameCount <= 0) {
+            console.warn("Skipping chunk with invalid frame count:", frameCount);
+            currentTime = end;
+            continue;
+        }
 
         const chunkBuffer = audioContext.createBuffer(numChannels, frameCount, sampleRate);
 
@@ -160,6 +172,7 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
 
     return chunks;
 }
+
 
 function bufferToWaveBlob(abuffer) {
     const numOfChan = abuffer.numberOfChannels;
