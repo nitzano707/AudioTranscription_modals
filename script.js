@@ -3,6 +3,7 @@ let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
 let maxChunkSizeMB = 15; // גודל מקטע ברירת מחדל במגהבייט
+let cumulativeOffset = 0; // משתנה גלובלי לשמירה על הזמן המצטבר
 
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
@@ -261,11 +262,15 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             const data = await response.json();
             console.log(`Received response for chunk ${currentChunk}:`, data);
             if (data.segments) {
-                // יצירת SRT עבור כל משפט בנפרד
+                // יצירת SRT עבור כל משפט בנפרד והוספת ה-offset המצטבר
                 data.segments.forEach((segment, index) => {
                     if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-                        const startTime = formatTimestamp(segment.start);
-                        const endTime = formatTimestamp(segment.end);
+                        // הוספת ה-offset לזמנים הנוכחיים
+                        const adjustedStart = segment.start + cumulativeOffset;
+                        const adjustedEnd = segment.end + cumulativeOffset;
+
+                        const startTime = formatTimestamp(adjustedStart);
+                        const endTime = formatTimestamp(adjustedEnd);
                         const text = segment.text.trim();
 
                         transcriptionData.push({
@@ -276,6 +281,9 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                         console.warn(`Invalid timestamp for segment ${index}:`, segment);
                     }
                 });
+
+                // עדכון ה-offset המצטבר עם הזמן של המקטע האחרון
+                cumulativeOffset += data.segments[data.segments.length - 1].end;
             } else {
                 console.warn(`Missing segments in response for chunk ${currentChunk}`);
             }
