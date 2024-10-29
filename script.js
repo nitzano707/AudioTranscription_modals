@@ -77,7 +77,7 @@ async function uploadAudio() {
         return;
     }
 
-    const maxChunkSizeMB = 20;
+    const maxChunkSizeMB = 15;
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
     let transcriptionData = [];
 
