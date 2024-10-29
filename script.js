@@ -266,6 +266,21 @@ function displayTranscription(format) {
     document.getElementById('transcriptionResult').setAttribute('data-format', format);
 }
 
+function downloadTranscription() {
+    if (!transcriptionDataText) {
+        alert('אין תמלול להורדה.');
+        return;
+    }
+    const blob = new Blob([transcriptionDataText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'transcription.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
 function restartProcess() {
     // סגירה של כל המודאלים הפעילים
     closeModal('modal4');  // סגור את המודאל האחרון
