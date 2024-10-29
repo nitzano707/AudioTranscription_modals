@@ -71,7 +71,7 @@
         </div>
     </div>
 
-   <!-- מודאל רביעי - הצגת תמלול עם כרטיסיות -->
+  <!-- מודאל רביעי - הצגת תמלול עם כרטיסיות -->
 <div id="modal4" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeModal('modal4')">&times;</span>
@@ -83,17 +83,13 @@
             <p>תמלול הושלם</p>
             <div class="tabs">
                 <button class="tablinks" onclick="openTab(event, 'textTab')" data-format="text">טקסט</button>
-                <button class="tablinks" onclick="openTab(event, 'jsonTab')" data-format="json">JSON</button>
-                <button class="tablinks" onclick="openTab(event, 'verboseJsonTab')" data-format="verbose_json">Verbose JSON</button>
+                <button class="tablinks" onclick="openTab(event, 'srtTab')" data-format="srt">SRT</button>
             </div>
             <div id="textTab" class="tabcontent">
                 <pre id="textContent"></pre>
             </div>
-            <div id="jsonTab" class="tabcontent" style="display:none;">
-                <pre id="jsonContent"></pre>
-            </div>
-            <div id="verboseJsonTab" class="tabcontent" style="display:none;">
-                <pre id="verboseJsonContent"></pre>
+            <div id="srtTab" class="tabcontent" style="display:none;">
+                <pre id="srtContent"></pre>
             </div>
         </div>
     </div>
