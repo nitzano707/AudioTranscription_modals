@@ -241,7 +241,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     formData.append('response_format', 'json'); // שימוש בפורמט JSON מפורט לקבלת חותמות זמן
     formData.append('language', defaultLanguage); // שימוש בשפת ברירת מחדל
     
-  /*  formData.append('fields', '["timestamp", "message"]'); */ למשוך רק את השדות האלה
+  
 
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
