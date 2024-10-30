@@ -94,6 +94,26 @@ async function splitAudioToChunks(file) {
     return file.size <= maxChunkSizeBytes ? [file] : await splitLargeFile(file);
 }
 
+async function createChunk(audioBuffer, startTime, chunkDuration) {
+    const sampleRate = audioBuffer.sampleRate;
+    const numChannels = audioBuffer.numberOfChannels;
+    const frameCount = Math.floor(Math.min(chunkDuration, audioBuffer.duration - startTime) * sampleRate);
+    
+    const chunkBuffer = new AudioContext().createBuffer(numChannels, frameCount, sampleRate);
+    
+    for (let channel = 0; channel < numChannels; channel++) {
+        const originalData = audioBuffer.getChannelData(channel);
+        const chunkData = chunkBuffer.getChannelData(channel);
+        const startFrame = Math.floor(startTime * sampleRate);
+        
+        for (let i = 0; i < frameCount; i++) {
+            chunkData[i] = originalData[startFrame + i];
+        }
+    }
+    
+    return bufferToWaveBlob(chunkBuffer);
+}
+
 async function splitLargeFile(file) {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const arrayBuffer = await file.arrayBuffer();
