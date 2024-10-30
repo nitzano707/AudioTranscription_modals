@@ -164,65 +164,50 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
     return chunks;
 }
 
-async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
-    const formData = new FormData();
-    formData.append('file', chunk);
-    formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'verbose_json'); // שינוי לפורמט verbose_json
-    formData.append('language', defaultLanguage);
+function bufferToWaveBlob(buffer) {
+    const numOfChannels = buffer.numberOfChannels,
+        length = buffer.length * numOfChannels * 2 + 44,
+        bufferData = new ArrayBuffer(length),
+        view = new DataView(bufferData),
+        channels = [],
+        sampleRate = buffer.sampleRate,
+        offset = 0;
 
-    const apiKey = localStorage.getItem('groqApiKey');
-    if (!apiKey) {
-        alert('מפתח API חסר. נא להזין שוב.');
-        location.reload();
-        return;
-    }
-
-    try {
-        console.log(`Sending chunk ${currentChunk} of ${totalChunks} to the API...`);
-        const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: formData
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            console.log(`Received response for chunk ${currentChunk}:`, data);
-            if (data.segments) {
-                data.segments.forEach((segment, index) => {
-                    if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-                        const adjustedStart = segment.start + cumulativeOffset;
-                        const adjustedEnd = segment.end + cumulativeOffset;
-
-                        const startTime = formatTimestamp(adjustedStart);
-                        const endTime = formatTimestamp(adjustedEnd);
-                        const text = segment.text.trim();
-
-                        transcriptionData.push({
-                            text: text,
-                            timestamp: `${startTime} --> ${endTime}`
-                        });
-                    }
-                });
-
-                cumulativeOffset += data.segments[data.segments.length - 1].end;
-            }
-        } else {
-            if (response.status === 401) {
-                alert('שגיאה במפתח API. נא להזין מפתח חדש.');
-                localStorage.removeItem('groqApiKey');
-                location.reload();
-                return;
-            }
-            const errorText = await response.text();
-            console.error(`Error for chunk ${currentChunk}:`, errorText);
+    function writeString(view, offset, string) {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
         }
-    } catch (error) {
-        console.error('Network error:', error);
     }
+
+    writeString(view, offset, 'RIFF'); offset += 4;
+    view.setUint32(offset, length - 8, true); offset += 4;
+    writeString(view, offset, 'WAVE'); offset += 4;
+    writeString(view, offset, 'fmt '); offset += 4;
+    view.setUint32(offset, 16, true); offset += 4;
+    view.setUint16(offset, 1, true); offset += 2;
+    view.setUint16(offset, numOfChannels, true); offset += 2;
+    view.setUint32(offset, sampleRate, true); offset += 4;
+    view.setUint32(offset, sampleRate * 4, true); offset += 4;
+    view.setUint16(offset, numOfChannels * 2, true); offset += 2;
+    view.setUint16(offset, 16, true); offset += 2;
+    writeString(view, offset, 'data'); offset += 4;
+    view.setUint32(offset, length - offset - 4, true); offset += 4;
+
+    for (let i = 0; i < buffer.numberOfChannels; i++) {
+        channels.push(buffer.getChannelData(i));
+    }
+
+    let sample;
+    while (offset < length) {
+        for (let i = 0; i < numOfChannels; i++) {
+            sample = Math.max(-1, Math.min(1, channels[i][offset / 2 / numOfChannels | 0]));
+            sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF) | 0;
+            view.setInt16(offset, sample, true);
+            offset += 2;
+        }
+    }
+
+    return new Blob([bufferData], { type: 'audio/wav' });
 }
 
 function formatTimestamp(seconds) {
@@ -354,3 +339,7 @@ function restartProcess() {
     document.getElementById('uploadBtn').disabled = true;
     openModal('modal1');
 }
+
+
+
+                                
