@@ -2,7 +2,7 @@
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
-let maxChunkSizeMB = 3; // גודל מקטע ברירת מחדל במגהבייט
+let maxChunkSizeMB = 25; // גודל מקטע ברירת מחדל במגהבייט
 let cumulativeOffset = 0; // משתנה גלובלי לשמירה על הזמן המצטבר
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -84,8 +84,8 @@ async function uploadAudio() {
         maxChunkSizeMB = 3;
         console.log("File is MP3, setting maxChunkSizeMB to 3");
     } else {
-        maxChunkSizeMB = 3;
-        console.log("File is not MP3, using default maxChunkSizeMB of 3");
+        maxChunkSizeMB = 25;
+        console.log("File is not MP3, using default maxChunkSizeMB of 253");
     }
 
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
