@@ -1,6 +1,5 @@
-// Constants
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
-const CHUNK_SIZE = 20 * 1024 * 1024;    // 20MB for safety
+/// Constants
+const MAX_CHUNK_SIZE = 25 * 1024 * 1024; // 25MB for splitting and uploading
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 
 // State Management
@@ -44,38 +43,17 @@ function triggerFileUpload() {
 }
 
 // Audio Processing
-class AudioChunker {
-    constructor(file) {
-        this.file = file;
-        this.offset = 0;
-        this.chunks = [];
+async function splitAudioFile(file) {
+    const chunks = [];
+    let offset = 0;
+    while (offset < file.size) {
+        const end = Math.min(offset + MAX_CHUNK_SIZE, file.size);
+        const chunk = file.slice(offset, end);
+        const chunkFile = new File([chunk], `chunk_${chunks.length + 1}.${file.name.split('.').pop()}`, { type: file.type });
+        chunks.push(chunkFile);
+        offset = end;
     }
-
-    async initialize() {
-        if (this.file.size <= MAX_FILE_SIZE) {
-            this.chunks = [this.file];
-            return;
-        }
-
-        let offset = 0;
-        while (offset < this.file.size) {
-            const end = Math.min(offset + CHUNK_SIZE, this.file.size);
-            const chunk = this.file.slice(offset, end);
-            const chunkFile = new File([chunk], `chunk_${this.chunks.length}.${this.file.name.split('.').pop()}`, {
-                type: this.file.type
-            });
-            this.chunks.push(chunkFile);
-            offset = end;
-        }
-    }
-
-    getChunks() {
-        return this.chunks;
-    }
-
-    getChunksCount() {
-        return this.chunks.length;
-    }
+    return chunks;
 }
 
 // API Communication
@@ -131,9 +109,7 @@ async function uploadAudio() {
     openModal('modal3');
 
     try {
-        const chunker = new AudioChunker(file);
-        await chunker.initialize();
-        const chunks = chunker.getChunks();
+        const chunks = await splitAudioFile(file);
 
         for (let i = 0; i < chunks.length; i++) {
             updateProgress((i / chunks.length) * 100);
@@ -253,13 +229,6 @@ function displayTranscription(format) {
     }
 }
 
-function openTab(evt, tabName) {
-    document.querySelectorAll('.tablinks').forEach(btn => btn.classList.remove('active'));
-    evt.currentTarget.classList.add('active');
-    displayTranscription(evt.currentTarget.getAttribute('data-format'));
-}
-
-// Utility Functions
 function formatTimestamp(seconds) {
     if (typeof seconds !== 'number' || isNaN(seconds)) {
         return '00:00:00,000';
@@ -273,33 +242,6 @@ function formatTimestamp(seconds) {
     ].join(':') + ',' + String(date.getUTCMilliseconds()).padStart(3, '0');
 }
 
-function downloadTranscription() {
-    const activeTab = document.querySelector('.tablinks.active');
-    if (!activeTab) {
-        alert('לא נבחר פורמט להורדה. נא לבחור פורמט תמלול.');
-        return;
-    }
-
-    const format = activeTab.getAttribute('data-format');
-    const content = format === 'text' ? state.transcriptionText : state.transcriptionSRT;
-    
-    if (!content) {
-        alert('אין תמלול להורדה.');
-        return;
-    }
-
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `transcription.${format === 'text' ? 'txt' : 'srt'}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-// Reset Functions
 function resetState() {
     state = {
         isProcessing: state.isProcessing,
