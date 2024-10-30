@@ -46,32 +46,22 @@ function triggerFileUpload() {
 
 // Audio Processing
 async function splitAudioFile(file) {
-    const chunkSize = 24 * 1024 * 1024; // 24MB
+    const chunkSize = 24 * 1024 * 1024; // גודל כל מקטע הוא 24 מגה
+    const chunks = Math.ceil(file.size / chunkSize);
     const audioChunks = [];
 
-    if (file.size > chunkSize) {
-        // פיצול הקובץ למקטעים על בסיס גודל
-        const chunks = Math.ceil(file.size / chunkSize);
-        for (let i = 0; i < chunks; i++) {
-            const start = i * chunkSize;
-            const end = Math.min((i + 1) * chunkSize, file.size);
-            const chunk = file.slice(start, end);
-            
-            // הגדרת שם וסוג חדש לקובץ המקטע
-            const extension = file.name.split('.').pop().toLowerCase();
-            const mimeType = file.type || `audio/${extension}`;
-            const newFileName = `${file.name.split('.').slice(0, -1).join('.')}_chunk_${i + 1}.${extension}`;
-            
-            // יצירת הקובץ החדש
-            const newFile = new File([chunk], newFileName, { type: mimeType });
-            audioChunks.push(newFile);
-        }
-    } else {
-        audioChunks.push(file);
+    for (let i = 0; i < chunks; i++) {
+        const start = i * chunkSize;
+        const end = Math.min((i + 1) * chunkSize, file.size);
+        const chunk = file.slice(start, end);
+
+        // יצירת קובץ חדש מסוג WAV
+        audioChunks.push(new File([chunk], `chunk_${i + 1}.wav`, { type: 'audio/wav' }));
     }
 
     return audioChunks;
 }
+
 
 
 
