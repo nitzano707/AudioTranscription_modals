@@ -79,15 +79,6 @@ async function uploadAudio() {
         return;
     }
 
-    // בדיקה אם סוג הקובץ הוא MP3 והגדלת גודל המקטע
-    if (audioFile.type === 'audio/mpeg') {
-        maxChunkSizeMB = 20;
-        console.log("File is MP3, setting maxChunkSizeMB to 20");
-    } else {
-        maxChunkSizeMB = 25;
-        console.log("File is not MP3, using default maxChunkSizeMB of 25");
-    }
-
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
     let transcriptionData = [];
 
@@ -127,7 +118,6 @@ async function uploadAudio() {
 }
 
 async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
-    // אם הקובץ קטן מהגודל המרבי, החזר אותו במקטע אחד
     if (file.size <= maxChunkSizeBytes) {
         return [file];
     }
@@ -140,15 +130,8 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
     const numChannels = audioBuffer.numberOfChannels;
     const totalSizeBytes = file.size;
 
-    // חשב את מספר המקטעים הדרוש כך שכל מקטע לא יעלה על maxChunkSizeBytes
     const numberOfChunks = Math.ceil(totalSizeBytes / maxChunkSizeBytes);
-
-    // חשב את משך הזמן לכל מקטע באופן פרופורציונלי
     const chunkDuration = audioBuffer.duration / numberOfChunks;
-    if (chunkDuration <= 0) {
-        console.error("Invalid chunk duration:", chunkDuration);
-        throw new Error("Chunk duration must be greater than 0.");
-    }
 
     let currentTime = 0;
     const chunks = [];
@@ -157,9 +140,7 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
         const end = Math.min(currentTime + chunkDuration, audioBuffer.duration);
         const frameCount = Math.floor((end - currentTime) * sampleRate);
 
-        // בדיקה אם מספר הפריימים תקין
         if (frameCount <= 0) {
-            console.warn("Skipping chunk with invalid frame count:", frameCount);
             currentTime = end;
             continue;
         }
@@ -183,65 +164,12 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
     return chunks;
 }
 
-function bufferToWaveBlob(abuffer) {
-    const numOfChan = abuffer.numberOfChannels;
-    const length = abuffer.length * numOfChan * 2 + 44;
-    const buffer = new ArrayBuffer(length);
-    const view = new DataView(buffer);
-    const channels = [];
-    let offset = 0;
-    let pos = 0;
-
-    function setUint16(data) {
-        view.setUint16(pos, data, true);
-        pos += 2;
-    }
-
-    function setUint32(data) {
-        view.setUint32(pos, data, true);
-        pos += 4;
-    }
-
-    setUint32(0x46464952); // "RIFF"
-    setUint32(length - 8); // file length - 8
-    setUint32(0x45564157); // "WAVE"
-
-    setUint32(0x20746d66); // "fmt " chunk
-    setUint32(16);         // PCM format
-    setUint16(1);          // format (PCM)
-    setUint16(numOfChan);
-    setUint32(abuffer.sampleRate);
-    setUint32(abuffer.sampleRate * 2 * numOfChan);
-    setUint16(numOfChan * 2);
-    setUint16(16);
-
-    setUint32(0x61746164); // "data" chunk
-    setUint32(length - pos - 4);
-
-    for (let i = 0; i < abuffer.numberOfChannels; i++) {
-        channels.push(abuffer.getChannelData(i));
-    }
-
-    while (pos < length) {
-        for (let i = 0; i < numOfChan; i++) {
-            const sample = Math.max(-1, Math.min(1, channels[i][offset]));
-            view.setInt16(pos, sample < 0 ? sample * 32768 : sample * 32767, true);
-            pos += 2;
-        }
-        offset++;
-    }
-
-    return new Blob([buffer], { type: "audio/wav" });
-}
-
 async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'verbose_json'); // שימוש בפורמט JSON מפורט לקבלת חותמות זמן
-    formData.append('language', defaultLanguage); // שימוש בשפת ברירת מחדל
-    
-  
+    formData.append('response_format', 'json'); // שינוי לפורמט JSON
+    formData.append('language', defaultLanguage);
 
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
@@ -264,10 +192,8 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             const data = await response.json();
             console.log(`Received response for chunk ${currentChunk}:`, data);
             if (data.segments) {
-                // יצירת SRT עבור כל משפט בנפרד והוספת ה-offset המצטבר
                 data.segments.forEach((segment, index) => {
                     if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-                        // הוספת ה-offset לזמנים הנוכחיים
                         const adjustedStart = segment.start + cumulativeOffset;
                         const adjustedEnd = segment.end + cumulativeOffset;
 
@@ -279,15 +205,10 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                             text: text,
                             timestamp: `${startTime} --> ${endTime}`
                         });
-                    } else {
-                        console.warn(`Invalid timestamp for segment ${index}:`, segment);
                     }
                 });
 
-                // עדכון ה-offset המצטבר עם הזמן של המקטע האחרון
                 cumulativeOffset += data.segments[data.segments.length - 1].end;
-            } else {
-                console.warn(`Missing segments in response for chunk ${currentChunk}`);
             }
         } else {
             if (response.status === 401) {
@@ -323,8 +244,7 @@ function cleanText(text) {
 }
 
 function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.map((d, index) => {
-        // בדיקה אם יש סימן פיסוק בסוף המקטע, במידה ואין נוסיף רווח
+    transcriptionDataText = data.map((d) => {
         if (/[.?!]$/.test(d.text.trim())) {
             return cleanText(d.text);
         } else {
@@ -332,7 +252,6 @@ function saveTranscriptions(data, audioFileName) {
         }
     }).join("").trim();
 
-    // יצירת קובץ SRT עבור כל משפט בנפרד
     transcriptionDataSRT = data.map((d, index) => {
         return `${index + 1}\n${d.timestamp}\n${cleanText(d.text)}\n`;
     }).join("\n\n");
@@ -354,7 +273,6 @@ function displayTranscription(format) {
         return;
     }
 
-    // ווידוא שהכרטיסיה הרלוונטית מוצגת
     const tabcontent = document.getElementsByClassName("tabcontent");
     for (let i = 0; i < tabcontent.length; i++) {
         tabcontent[i].style.display = "none";
@@ -381,8 +299,7 @@ function openTab(evt, tabName) {
     }
     document.getElementById(tabName).style.display = "block";
     evt.currentTarget.className += " active";
-    
-    // עדכון התמלול בהתאם לכרטיסיה שנבחרה
+
     const format = evt.currentTarget.getAttribute('data-format');
     displayTranscription(format);
 }
@@ -423,11 +340,10 @@ function downloadTranscription() {
 }
 
 function restartProcess() {
-    // סגירה של כל המודאלים הפעילים
-    closeModal('modal4');  // סגור את המודאל האחרון
-    closeModal('modal3');  // סגור את modal3 כדי שלא יישאר פתוח
+    closeModal('modal4');
+    closeModal('modal3');
     document.getElementById('audioFile').value = "";
     document.getElementById('fileName').textContent = "לא נבחר קובץ";
     document.getElementById('uploadBtn').disabled = true;
-    openModal('modal1'); // פתח את modal1 להתחלה מחדש
+    openModal('modal1');
 }
