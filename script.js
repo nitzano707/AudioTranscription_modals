@@ -149,22 +149,24 @@ async function uploadAudio() {
         return;
     }
 
+    // בדיקת סוג הקובץ
+    const validTypes = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/ogg'];
+    if (!validTypes.includes(file.type)) {
+        alert('פורמט הקובץ אינו נתמך. אנא השתמש בקובץ MP3, WAV, M4A או OGG.');
+        return;
+    }
+
     isProcessing = true;
     openModal('modal3');
     resetTranscriptionData();
 
     try {
-        // אם הקובץ קטן מהגודל המקסימלי, נשלח ישירות
-        if (file.size <= MAX_CHUNK_SIZE) {
-            const response = await sendChunkToAPI(file, apiKey);
+        const response = await sendChunkToAPI(file, apiKey);
+        if (response.text) {
             transcriptionDataText = response.text;
             generateSRTFormat(response);
-        } else {
-            // אחרת, נחלק ונעבד חלקים
-            const chunks = await splitFileIntoChunks(file);
-            await processChunks(chunks, apiKey);
+            showResults();
         }
-        showResults();
     } catch (error) {
         console.error('Processing Error:', error);
         handleError(error);
