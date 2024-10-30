@@ -74,19 +74,18 @@ function closeModal(modalId) {
 // File Processing
 async function splitFileIntoChunks(file) {
     if (file.size <= MAX_CHUNK_SIZE) {
-        return [file];
+        return [file]; // אם הקובץ קטן מספיק, להחזיר אותו כמו שהוא
     }
 
+    // רק אם הקובץ גדול מדי, לחלק אותו
     const chunks = [];
     let start = 0;
+    const chunkSize = MAX_CHUNK_SIZE;
     
     while (start < file.size) {
-        const end = Math.min(start + MAX_CHUNK_SIZE, file.size);
+        const end = Math.min(start + chunkSize, file.size);
         const chunk = file.slice(start, end);
-        const chunkFile = new File([chunk], `chunk_${chunks.length + 1}.${file.name.split('.').pop()}`, {
-            type: file.type
-        });
-        chunks.push(chunkFile);
+        chunks.push(new File([chunk], file.name, { type: file.type }));
         start = end;
     }
 
@@ -155,8 +154,16 @@ async function uploadAudio() {
     resetTranscriptionData();
 
     try {
-        const chunks = await splitFileIntoChunks(file);
-        await processChunks(chunks, apiKey);
+        // אם הקובץ קטן מהגודל המקסימלי, נשלח ישירות
+        if (file.size <= MAX_CHUNK_SIZE) {
+            const response = await sendChunkToAPI(file, apiKey);
+            transcriptionDataText = response.text;
+            generateSRTFormat(response);
+        } else {
+            // אחרת, נחלק ונעבד חלקים
+            const chunks = await splitFileIntoChunks(file);
+            await processChunks(chunks, apiKey);
+        }
         showResults();
     } catch (error) {
         console.error('Processing Error:', error);
