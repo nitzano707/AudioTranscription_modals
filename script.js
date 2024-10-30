@@ -273,6 +273,8 @@ function displayTranscription(format) {
         return;
     }
 
+    console.log("Updating transcription content for element:", transcriptionResult);
+
     const tabcontent = document.getElementsByClassName("tabcontent");
     for (let i = 0; i < tabcontent.length; i++) {
         tabcontent[i].style.display = "none";
@@ -280,9 +282,9 @@ function displayTranscription(format) {
 
     setTimeout(() => {
         if (format === "text") {
-            transcriptionResult.innerHTML = transcriptionDataText;
+            transcriptionResult.innerText = transcriptionDataText;
         } else if (format === "srt") {
-            transcriptionResult.innerHTML = transcriptionDataSRT;
+            transcriptionResult.innerText = transcriptionDataSRT;
         }
 
         transcriptionResult.parentElement.style.display = "block";
