@@ -278,14 +278,16 @@ function displayTranscription(format) {
         tabcontent[i].style.display = "none";
     }
 
-    if (format === "text") {
-        transcriptionResult.textContent = transcriptionDataText;
-    } else if (format === "srt") {
-        transcriptionResult.textContent = transcriptionDataSRT;
-    }
+    setTimeout(() => {
+        if (format === "text") {
+            transcriptionResult.textContent = transcriptionDataText;
+        } else if (format === "srt") {
+            transcriptionResult.textContent = transcriptionDataSRT;
+        }
 
-    transcriptionResult.parentElement.style.display = "block";
-    console.log("Transcription displayed successfully.");
+        transcriptionResult.parentElement.style.display = "block";
+        console.log("Transcription displayed successfully.");
+    }, 100);
 }
 
 function openTab(evt, tabName) {
