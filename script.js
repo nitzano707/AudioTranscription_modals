@@ -168,7 +168,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'json'); // שינוי לפורמט JSON
+    formData.append('response_format', 'verbose_json'); // שינוי לפורמט verbose_json
     formData.append('language', defaultLanguage);
 
     const apiKey = localStorage.getItem('groqApiKey');
