@@ -280,6 +280,9 @@ function displayTranscription(format) {
         tabcontent[i].style.display = "none";
     }
 
+    // ווידוא שהכרטיסיה הרלוונטית מוצגת
+    transcriptionResult.parentElement.style.display = "block";
+
     setTimeout(() => {
         if (format === "text") {
             transcriptionResult.innerText = transcriptionDataText;
