@@ -1,8 +1,9 @@
 // Global variables
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
-const MAX_CHUNK_SIZE = 25 * 1024 * 1024; // 25MB in bytes
+const MAX_CHUNK_SIZE = 25 * 1024 * 1024; // 25MB
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
+let cumulativeOffset = 0;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -55,6 +56,48 @@ function closeModal(modalId) {
     }
 }
 
+// File Processing Functions
+async function splitFileIntoChunks(file) {
+    if (file.size <= MAX_CHUNK_SIZE) {
+        return [file];
+    }
+
+    const totalChunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
+    const chunks = [];
+    
+    for (let i = 0; i < totalChunks; i++) {
+        const start = i * MAX_CHUNK_SIZE;
+        const end = Math.min(start + MAX_CHUNK_SIZE, file.size);
+        chunks.push(file.slice(start, end));
+    }
+    
+    return chunks;
+}
+
+async function sendChunkToAPI(chunk, apiKey) {
+    const formData = new FormData();
+    formData.append('file', chunk);
+    formData.append('model', 'whisper-large-v3-turbo');
+    formData.append('response_format', 'json');
+    formData.append('language', 'he');
+
+    const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+        body: formData
+    });
+
+    if (!response.ok) {
+        if (response.status === 401) {
+            localStorage.removeItem('groqApiKey');
+            throw new Error('Invalid API key');
+        }
+        throw new Error(`API Error: ${response.status}`);
+    }
+
+    return await response.json();
+}
+
 // Main Processing Function
 async function uploadAudio() {
     const apiKey = localStorage.getItem('groqApiKey');
@@ -70,64 +113,74 @@ async function uploadAudio() {
     }
 
     openModal('modal3');
+    cumulativeOffset = 0; // Reset offset for new file
+    
     try {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('model', 'whisper-large-v3-turbo');
-        formData.append('response_format', 'json');
-        formData.append('language', 'he');
+        const chunks = await splitFileIntoChunks(file);
+        const totalChunks = chunks.length;
+        let combinedText = '';
+        let allSegments = [];
 
-        updateProgress(10);
-        
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${apiKey}` },
-            body: formData
-        });
-
-        updateProgress(50);
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                localStorage.removeItem('groqApiKey');
-                throw new Error('Invalid API key');
+        for (let i = 0; i < totalChunks; i++) {
+            const progressPercent = ((i + 1) / totalChunks) * 100;
+            updateProgress(progressPercent);
+            
+            const response = await sendChunkToAPI(chunks[i], apiKey);
+            if (response.text) {
+                combinedText += response.text + ' ';
+                if (response.segments) {
+                    const adjustedSegments = response.segments.map(segment => ({
+                        ...segment,
+                        start: segment.start + cumulativeOffset,
+                        end: segment.end + cumulativeOffset
+                    }));
+                    allSegments = allSegments.concat(adjustedSegments);
+                    
+                    if (adjustedSegments.length > 0) {
+                        cumulativeOffset += adjustedSegments[adjustedSegments.length - 1].end;
+                    }
+                }
             }
-            throw new Error(`API Error: ${response.status}`);
         }
 
-        const result = await response.json();
-        updateProgress(90);
-
-        if (result.text) {
-            transcriptionDataText = result.text;
-            generateSRTFormat(result);
-            showResults();
-        } else {
-            throw new Error('No transcription data received');
-        }
+        transcriptionDataText = combinedText.trim();
+        generateSRTFormat({ segments: allSegments });
+        showResults();
 
     } catch (error) {
         console.error('Error:', error);
-        alert(error.message === 'Invalid API key' ? 
-            'שגיאה במפתח API. נא להזין מפתח חדש.' : 
-            'שגיאה בתהליך התמלול. נא לנסות שוב.');
-        
-        if (error.message === 'Invalid API key') {
-            location.reload();
-        }
+        handleError(error);
     } finally {
         closeModal('modal3');
     }
 }
 
 function updateProgress(percent) {
-    document.getElementById('progress').style.width = `${percent}%`;
-    document.getElementById('progressText').textContent = `${Math.round(percent)}%`;
+    const progress = document.getElementById('progress');
+    const progressText = document.getElementById('progressText');
+    if (progress && progressText) {
+        progress.style.width = `${percent}%`;
+        progressText.textContent = `${Math.round(percent)}%`;
+    }
+}
+
+function handleError(error) {
+    if (error.message === 'Invalid API key') {
+        alert('שגיאה במפתח API. נא להזין מפתח חדש.');
+        location.reload();
+    } else {
+        alert('שגיאה בתהליך התמלול. נא לנסות שוב.');
+    }
 }
 
 function generateSRTFormat(result) {
-    if (!result.segments) {
-        transcriptionDataSRT = '';
+    if (!result.segments || result.segments.length === 0) {
+        // If no segments, create artificial segment from text
+        if (transcriptionDataText) {
+            transcriptionDataSRT = `1\n00:00:00,000 --> 00:00:30,000\n${transcriptionDataText}\n`;
+        } else {
+            transcriptionDataSRT = '';
+        }
         return;
     }
 
@@ -162,11 +215,13 @@ function displayTranscription(format) {
     const contentId = format === 'text' ? 'textContent' : 'srtContent';
     const content = format === 'text' ? transcriptionDataText : transcriptionDataSRT;
     
+    // Hide all tab content
     document.querySelectorAll('.tabcontent').forEach(tab => {
         tab.style.display = 'none';
         tab.classList.remove('active');
     });
     
+    // Show selected tab and update content
     const selectedTab = document.getElementById(format + 'Tab');
     const contentElement = document.getElementById(contentId);
     
@@ -174,15 +229,18 @@ function displayTranscription(format) {
         selectedTab.style.display = 'block';
         selectedTab.classList.add('active');
         contentElement.textContent = content;
+        console.log(`Displaying ${format} content:`, content); // Debug log
     }
 }
 
 function openTab(evt, tabName) {
+    // Update tab buttons
     document.querySelectorAll('.tablinks').forEach(btn => {
         btn.classList.remove('active');
     });
     evt.currentTarget.classList.add('active');
     
+    // Display content
     const format = evt.currentTarget.getAttribute('data-format');
     displayTranscription(format);
 }
@@ -222,6 +280,8 @@ function restartProcess() {
     document.getElementById('uploadBtn').disabled = true;
     openModal('modal1');
     
+    // Reset state
     transcriptionDataText = '';
     transcriptionDataSRT = '';
+    cumulativeOffset = 0;
 }
