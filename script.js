@@ -45,17 +45,21 @@ function triggerFileUpload() {
 
 // Audio Processing
 async function splitAudioFile(file) {
-    const chunks = [];
-    let offset = 0;
-    while (offset < file.size) {
-        const end = Math.min(offset + MAX_CHUNK_SIZE, file.size);
-        const chunk = file.slice(offset, end);
-        const chunkFile = new File([chunk], `chunk_${chunks.length + 1}.${file.name.split('.').pop()}`, { type: file.type });
-        chunks.push(chunkFile);
-        offset = end;
+    const chunkSize = 24 * 1024 * 1024; // 24 מגה
+    const chunks = Math.ceil(file.size / chunkSize);
+    const audioChunks = [];
+
+    for (let i = 0; i < chunks; i++) {
+        const start = i * chunkSize;
+        const end = Math.min((i + 1) * chunkSize, file.size);
+        const chunk = file.slice(start, end, file.type); // שמירה על סוג הקובץ המקורי
+
+        audioChunks.push(new File([chunk], `chunk_${i + 1}.${file.name.split('.').pop()}`, { type: file.type }));
     }
-    return chunks;
+
+    return audioChunks;
 }
+
 
 // API Communication
 async function transcribeChunk(chunk, apiKey) {
@@ -163,17 +167,32 @@ function adjustSegmentTimings(segments, chunkIndex, totalChunks) {
 }
 
 function generateSRTFormat() {
-    if (!state.segments.length) {
-        state.transcriptionSRT = state.transcriptionText ? 
-            `1\n00:00:00,000 --> ${formatTimestamp(30)}\n${state.transcriptionText}\n` : 
-            '';
+    if (!state.segments || state.segments.length === 0) {
+        console.error("אין תוצאות תמלול זמינות ליצירת SRT");
         return;
     }
 
-    state.transcriptionSRT = state.segments.map((segment, index) => 
-        `${index + 1}\n${formatTimestamp(segment.start)} --> ${formatTimestamp(segment.end)}\n${segment.text.trim()}\n`
-    ).join('\n');
+    let srtContent = '';
+    let index = 1;
+
+    state.segments.forEach(segment => {
+        const start = formatTimestamp(segment.start);
+        const end = formatTimestamp(segment.end);
+        const text = segment.text;
+
+        srtContent += `${index}\n${start} --> ${end}\n${text}\n\n`;
+        index++;
+    });
+
+    // כתיבת התוכן לטאב המתאים
+    const srtElement = document.getElementById("srtContent");
+    if (srtElement) {
+        srtElement.textContent = srtContent; // הצגת תוכן ה-SRT
+    } else {
+        console.error("אלמנט עם ID 'srtContent' לא נמצא");
+    }
 }
+
 
 // UI Functions
 function saveApiKey() {
