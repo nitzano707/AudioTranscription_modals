@@ -46,23 +46,33 @@ function triggerFileUpload() {
 
 // Audio Processing
 async function splitAudioFile(file) {
-    const chunkSize = 24 * 1024 * 1024; // 24 מגה
-    const chunks = Math.ceil(file.size / chunkSize);
+    const chunkSize = 24 * 1024 * 1024; // 24MB
     const audioChunks = [];
 
-    for (let i = 0; i < chunks; i++) {
-        const start = i * chunkSize;
-        const end = Math.min((i + 1) * chunkSize, file.size);
-        const chunk = file.slice(start, end, file.type); // שמירה על סוג הקובץ המקורי
-
-        // יצירת קובץ חדש על בסיס המקטע
-        const newFileName = `${file.name.split('.').slice(0, -1).join('.')}_chunk_${i + 1}.${file.name.split('.').pop()}`;
-        const newFile = new File([chunk], newFileName, { type: file.type });
-        audioChunks.push(newFile);
+    if (file.size > chunkSize) {
+        // פיצול הקובץ למקטעים על בסיס גודל
+        const chunks = Math.ceil(file.size / chunkSize);
+        for (let i = 0; i < chunks; i++) {
+            const start = i * chunkSize;
+            const end = Math.min((i + 1) * chunkSize, file.size);
+            const chunk = file.slice(start, end);
+            
+            // הגדרת שם וסוג חדש לקובץ המקטע
+            const extension = file.name.split('.').pop().toLowerCase();
+            const mimeType = file.type || `audio/${extension}`;
+            const newFileName = `${file.name.split('.').slice(0, -1).join('.')}_chunk_${i + 1}.${extension}`;
+            
+            // יצירת הקובץ החדש
+            const newFile = new File([chunk], newFileName, { type: mimeType });
+            audioChunks.push(newFile);
+        }
+    } else {
+        audioChunks.push(file);
     }
 
     return audioChunks;
 }
+
 
 
 
@@ -189,14 +199,14 @@ function generateSRTFormat() {
         index++;
     });
 
-    // כתיבת התוכן לטאב המתאים
     const srtElement = document.getElementById("srtContent");
     if (srtElement) {
-        srtElement.textContent = srtContent; // הצגת תוכן ה-SRT
+        srtElement.textContent = srtContent;
     } else {
         console.error("אלמנט עם ID 'srtContent' לא נמצא");
     }
 }
+
 
 
 // UI Functions
@@ -244,31 +254,32 @@ function closeModal(modalId) {
 
 // Tab Management
 function openTab(evt, tabName) {
-    // Hide all tab content
+    // הסתרת כל הטאבים
     document.querySelectorAll('.tabcontent').forEach(tab => {
         tab.style.display = 'none';
         tab.classList.remove('active');
     });
 
-    // Remove 'active' class from all tab buttons
+    // הסרת ה"active" מכל הכפתורים
     document.querySelectorAll('.tablinks').forEach(button => button.classList.remove('active'));
 
-    // Show the selected tab content if it exists
+    // הצגת התוכן הנבחר
     const selectedContent = document.getElementById(tabName);
     if (selectedContent) {
         selectedContent.style.display = 'block';
         selectedContent.classList.add('active');
     } else {
-        console.error(`Element with ID '${tabName}' not found`);
+        console.error(`אלמנט עם ID '${tabName}' לא נמצא`);
     }
 
-    // Set the corresponding tab button as active if it exists
-    if (evt.currentTarget) {
+    // הוספת מחלקת "active" לכפתור הנוכחי
+    if (evt && evt.currentTarget) {
         evt.currentTarget.classList.add('active');
     } else {
-        console.error(`Button element for tab '${tabName}' not found`);
+        console.error(`לא נמצא הכפתור עבור הטאב '${tabName}'`);
     }
 }
+
 
 
 // Display Functions
