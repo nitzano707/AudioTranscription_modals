@@ -250,7 +250,7 @@ function saveTranscriptions(data, audioFileName) {
         } else {
             return cleanText(d.text) + " ";
         }
-    }).join("").trim();
+    }).join(" ").trim();
 
     transcriptionDataSRT = data.map((d, index) => {
         return `${index + 1}\n${d.timestamp}\n${cleanText(d.text)}\n`;
