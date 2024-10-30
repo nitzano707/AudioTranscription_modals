@@ -202,7 +202,7 @@ button:disabled {
 }
 
 .tabcontent {
-    display: none;
+    display: block; /* שינוי הכרטיסיות כך שיוצגו כברירת מחדל */
     padding: 20px;
     border-top: none;
     text-align: right;
