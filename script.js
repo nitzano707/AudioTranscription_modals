@@ -73,8 +73,8 @@ async function transcribeChunk(chunk, apiKey, retryCount = 0) {
             body: formData
         });
 
-        if (response.status === 429 && retryCount < 3) {
-            const waitTime = Math.pow(2, retryCount) * 6000;
+        if (response.status === 429 && retryCount < 5) {
+            const waitTime = Math.pow(2, retryCount) * 10000; // Increased wait time to reduce rate limit issues
             await new Promise(resolve => setTimeout(resolve, waitTime));
             return transcribeChunk(chunk, apiKey, retryCount + 1);
         }
@@ -111,6 +111,7 @@ async function uploadAudio() {
     try {
         const chunks = await splitAudioFile(file);
 
+        // Sequentially process each chunk
         for (let i = 0; i < chunks.length; i++) {
             updateProgress((i / chunks.length) * 100);
             const result = await transcribeChunk(chunks[i], apiKey);
@@ -202,6 +203,14 @@ function closeModal(modalId) {
         modal.style.display = 'none';
         document.body.classList.remove('modal-open');
     }
+}
+
+// Tab Management
+function openTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
+    document.getElementById(tabName).style.display = 'block';
 }
 
 // Display Functions
