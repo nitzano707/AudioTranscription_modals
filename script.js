@@ -219,12 +219,33 @@ function closeModal(modalId) {
 }
 
 // Tab Management
-function openTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => {
+function openTab(evt, tabName) {
+    // Hide all tab content
+    document.querySelectorAll('.tabcontent').forEach(tab => {
         tab.style.display = 'none';
+        tab.classList.remove('active');
     });
-    document.getElementById(tabName).style.display = 'block';
+
+    // Remove 'active' class from all tab buttons
+    document.querySelectorAll('.tablinks').forEach(button => button.classList.remove('active'));
+
+    // Show the selected tab content if it exists
+    const selectedContent = document.getElementById(tabName);
+    if (selectedContent) {
+        selectedContent.style.display = 'block';
+        selectedContent.classList.add('active');
+    } else {
+        console.error(`Element with ID '${tabName}' not found`);
+    }
+
+    // Set the corresponding tab button as active if it exists
+    if (evt.currentTarget) {
+        evt.currentTarget.classList.add('active');
+    } else {
+        console.error(`Button element for tab '${tabName}' not found`);
+    }
 }
+
 
 // Display Functions
 function showResults() {
