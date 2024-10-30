@@ -1,4 +1,4 @@
-
+/* CSS - עיצוב הממשק */
 body {
     font-family: Arial, sans-serif;
     text-align: center;
@@ -171,8 +171,6 @@ button:disabled {
 }
 
 /* עיצוב הכרטיסיות */
-
-/* עיצוב לטאבים ולתוכן טאבים */
 .tabs {
     display: flex;
     justify-content: space-around;
