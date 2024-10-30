@@ -53,29 +53,27 @@
         </div>
     </div>
 
-    <!-- מודאל רביעי - הצגת תמלול עם כרטיסיות -->
     <div id="modal4" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('modal4')">&times;</span>
-            <div class="modal-body">
-                <div class="fixed-buttons">
-                    <button onclick="downloadTranscription()">הורד תמלול כפורמט נבחר</button>
-                    <button onclick="restartProcess()">התחל מחדש</button>
-                </div>
-                <p>תמלול הושלם</p>
-                <div class="tabs">
-                    <button class="tablinks" onclick="openTab(event, 'textTab')" data-format="text">הצג תמלול כטקסט</button>
-                    <button class="tablinks" onclick="openTab(event, 'srtTab')" data-format="srt">הצג תמלול כ SRT</button>
-                </div>
-                <div id="textTab" class="tabcontent">
-                    <pre id="textContent"></pre>
-                </div>
-                <div id="srtTab" class="tabcontent" style="display:none;">
-                    <pre id="srtContent"></pre>
-                </div>
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('modal4')">&times;</span>
+        <div class="modal-body">
+            <div class="fixed-buttons">
+                <button onclick="downloadTranscription()">הורד תמלול כפורמט נבחר</button>
+                <button onclick="restartProcess()">התחל מחדש</button>
+            </div>
+            <div class="tabs">
+                <button class="tablinks active" onclick="openTab(event, 'textTab')" data-format="text">הצג תמלול כטקסט</button>
+                <button class="tablinks" onclick="openTab(event, 'srtTab')" data-format="srt">הצג תמלול כ-SRT</button>
+            </div>
+            <div id="textTab" class="tabcontent active">
+                <pre id="textContent"></pre>
+            </div>
+            <div id="srtTab" class="tabcontent">
+                <pre id="srtContent"></pre>
             </div>
         </div>
     </div>
+</div>
 
     <script src="script.js"></script>
 </body>
