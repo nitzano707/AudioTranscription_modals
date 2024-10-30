@@ -1,6 +1,7 @@
 /// Constants
-const MAX_CHUNK_SIZE = 25 * 1024 * 1024; // 25MB for splitting and uploading
+const MAX_CHUNK_SIZE = 24 * 1024 * 1024; // 24MB for splitting and uploading
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
+const WAIT_TIME_BETWEEN_CHUNKS = 10000; // 10 seconds wait between each chunk upload
 
 // State Management
 let state = {
@@ -57,39 +58,27 @@ async function splitAudioFile(file) {
 }
 
 // API Communication
-async function transcribeChunk(chunk, apiKey, retryCount = 0) {
+async function transcribeChunk(chunk, apiKey) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
     formData.append('response_format', 'verbose_json');
     formData.append('language', 'he');
 
-    try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: formData
-        });
+    const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: formData
+    });
 
-        if (response.status === 429 && retryCount < 5) {
-            const waitTime = Math.pow(2, retryCount) * 10000; // Increased wait time to reduce rate limit issues
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-            return transcribeChunk(chunk, apiKey, retryCount + 1);
-        }
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        return result;
-
-    } catch (error) {
-        console.error('Transcription error:', error);
-        throw error;
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
+
+    return await response.json();
 }
 
 // Main Processing
@@ -114,6 +103,7 @@ async function uploadAudio() {
         // Sequentially process each chunk
         for (let i = 0; i < chunks.length; i++) {
             updateProgress((i / chunks.length) * 100);
+            showMessage(`מתמלל חלק ${i + 1} מתוך ${chunks.length}...`, 0);
             const result = await transcribeChunk(chunks[i], apiKey);
             
             if (result.text) {
@@ -123,6 +113,9 @@ async function uploadAudio() {
                     state.segments.push(...adjustedSegments);
                 }
             }
+
+            // Wait between each chunk upload to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, WAIT_TIME_BETWEEN_CHUNKS));
         }
 
         state.transcriptionText = state.transcriptionText.trim();
