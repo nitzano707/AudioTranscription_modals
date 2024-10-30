@@ -70,7 +70,12 @@ async function splitFileIntoChunks(file) {
     
     while (start < file.size) {
         const end = Math.min(start + MAX_CHUNK_SIZE, file.size);
-        chunks.push(file.slice(start, end, file.type));
+        const chunk = file.slice(start, end);
+        // יוצרים קובץ חדש עם הפורמט המקורי
+        const newFile = new File([chunk], `chunk_${chunks.length}.mp3`, {
+            type: file.type
+        });
+        chunks.push(newFile);
         start = end;
     }
 
