@@ -56,29 +56,111 @@ function closeModal(modalId) {
     }
 }
 
-// File Processing Functions
+// Audio Processing Functions
 async function splitFileIntoChunks(file) {
-    if (file.size <= MAX_CHUNK_SIZE) {
-        return [file];
+    if (file.size <= MAX_CHUNK_SIZE) return [file];
+
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+    const chunkDuration = 60; // seconds per chunk
+    const sampleRate = audioBuffer.sampleRate;
+    const chunksCount = Math.ceil(audioBuffer.duration / chunkDuration);
+    const chunks = [];
+
+    for (let i = 0; i < chunksCount; i++) {
+        const startTime = i * chunkDuration;
+        const endTime = Math.min((i + 1) * chunkDuration, audioBuffer.duration);
+        const chunkSamples = (endTime - startTime) * sampleRate;
+        
+        const chunkBuffer = new AudioContext().createBuffer(
+            audioBuffer.numberOfChannels,
+            chunkSamples,
+            sampleRate
+        );
+
+        for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+            const channelData = audioBuffer.getChannelData(channel);
+            const newData = channelData.slice(
+                Math.floor(startTime * sampleRate),
+                Math.floor(endTime * sampleRate)
+            );
+            chunkBuffer.getChannelData(channel).set(newData);
+        }
+
+        const blob = await audioBufferToBlob(chunkBuffer);
+        chunks.push(blob);
     }
 
-    const totalChunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
-    const chunks = [];
-    
-    for (let i = 0; i < totalChunks; i++) {
-        const start = i * MAX_CHUNK_SIZE;
-        const end = Math.min(start + MAX_CHUNK_SIZE, file.size);
-        chunks.push(file.slice(start, end));
-    }
-    
     return chunks;
+}
+
+async function audioBufferToBlob(audioBuffer) {
+    const offlineCtx = new OfflineAudioContext(
+        audioBuffer.numberOfChannels,
+        audioBuffer.length,
+        audioBuffer.sampleRate
+    );
+
+    const source = offlineCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(offlineCtx.destination);
+    source.start();
+
+    const renderedBuffer = await offlineCtx.startRendering();
+    const wav = audioBufferToWav(renderedBuffer);
+    return new Blob([wav], { type: 'audio/wav' });
+}
+
+function audioBufferToWav(buffer) {
+    const numChannels = buffer.numberOfChannels;
+    const length = buffer.length * numChannels * 2;
+    const arrayBuffer = new ArrayBuffer(44 + length);
+    const view = new DataView(arrayBuffer);
+    
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + length, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, buffer.sampleRate, true);
+    view.setUint32(28, buffer.sampleRate * numChannels * 2, true);
+    view.setUint16(32, numChannels * 2, true);
+    view.setUint16(34, 16, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, length, true);
+
+    const channels = [];
+    for (let i = 0; i < numChannels; i++) {
+        channels.push(buffer.getChannelData(i));
+    }
+
+    let offset = 44;
+    for (let i = 0; i < buffer.length; i++) {
+        for (let channel = 0; channel < numChannels; channel++) {
+            const sample = Math.max(-1, Math.min(1, channels[channel][i]));
+            view.setInt16(offset, sample * 0x7FFF, true);
+            offset += 2;
+        }
+    }
+
+    return arrayBuffer;
+}
+
+function writeString(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+    }
 }
 
 async function sendChunkToAPI(chunk, apiKey) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'verbose_json'); // שינוי לפורמט מפורט
+    formData.append('response_format', 'verbose_json');
     formData.append('language', 'he');
 
     const response = await fetch(API_URL, {
@@ -95,7 +177,9 @@ async function sendChunkToAPI(chunk, apiKey) {
         throw new Error(`API Error: ${response.status}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('API Response:', result);
+    return result;
 }
 
 // Main Processing Function
@@ -113,7 +197,7 @@ async function uploadAudio() {
     }
 
     openModal('modal3');
-    cumulativeOffset = 0; // Reset offset for new file
+    cumulativeOffset = 0;
     
     try {
         const chunks = await splitFileIntoChunks(file);
@@ -126,20 +210,20 @@ async function uploadAudio() {
             updateProgress(progressPercent);
             
             const response = await sendChunkToAPI(chunks[i], apiKey);
-            if (response.text) {
-                combinedText += response.text + ' ';
-                if (response.segments) {
-                    const adjustedSegments = response.segments.map(segment => ({
-                        ...segment,
-                        start: segment.start + cumulativeOffset,
-                        end: segment.end + cumulativeOffset
-                    }));
-                    allSegments = allSegments.concat(adjustedSegments);
-                    
-                    if (adjustedSegments.length > 0) {
-                        cumulativeOffset += adjustedSegments[adjustedSegments.length - 1].end;
-                    }
+            
+            if (response.segments) {
+                const adjustedSegments = response.segments.map(segment => ({
+                    ...segment,
+                    start: segment.start + cumulativeOffset,
+                    end: segment.end + cumulativeOffset
+                }));
+                allSegments = allSegments.concat(adjustedSegments);
+                
+                if (adjustedSegments.length > 0) {
+                    cumulativeOffset += chunks[i].duration || chunkDuration;
                 }
+                
+                combinedText += response.text + ' ';
             }
         }
 
@@ -156,12 +240,8 @@ async function uploadAudio() {
 }
 
 function updateProgress(percent) {
-    const progress = document.getElementById('progress');
-    const progressText = document.getElementById('progressText');
-    if (progress && progressText) {
-        progress.style.width = `${percent}%`;
-        progressText.textContent = `${Math.round(percent)}%`;
-    }
+    document.getElementById('progress').style.width = `${percent}%`;
+    document.getElementById('progressText').textContent = `${Math.round(percent)}%`;
 }
 
 function handleError(error) {
@@ -175,32 +255,18 @@ function handleError(error) {
 
 function generateSRTFormat(result) {
     if (!result.segments || result.segments.length === 0) {
-        // אם אין segments, נחלק את הטקסט למשפטים
         if (transcriptionDataText) {
-            const sentences = transcriptionDataText.match(/[^.!?]+[.!?]+/g) || [transcriptionDataText];
-            const sentenceLength = 3; // אורך ממוצע של משפט בשניות
-            
-            transcriptionDataSRT = sentences.map((sentence, index) => {
-                const startTime = formatTimestamp(index * sentenceLength);
-                const endTime = formatTimestamp((index + 1) * sentenceLength);
-                return `${index + 1}\n${startTime} --> ${endTime}\n${sentence.trim()}\n`;
-            }).join('\n');
+            transcriptionDataSRT = `1\n00:00:00,000 --> ${formatTimestamp(30)}\n${transcriptionDataText}\n`;
         } else {
             transcriptionDataSRT = '';
         }
         return;
     }
 
-    // אם יש segments, נשתמש בהם
     transcriptionDataSRT = result.segments.map((segment, index) => {
-        const sentences = segment.text.match(/[^.!?]+[.!?]+/g) || [segment.text];
-        const timePerSentence = (segment.end - segment.start) / sentences.length;
-        
-        return sentences.map((sentence, sentenceIndex) => {
-            const startTime = formatTimestamp(segment.start + (sentenceIndex * timePerSentence));
-            const endTime = formatTimestamp(segment.start + ((sentenceIndex + 1) * timePerSentence));
-            return `${index + sentenceIndex + 1}\n${startTime} --> ${endTime}\n${sentence.trim()}\n`;
-        }).join('\n');
+        const startTime = formatTimestamp(segment.start);
+        const endTime = formatTimestamp(segment.end);
+        return `${index + 1}\n${startTime} --> ${endTime}\n${segment.text.trim()}\n`;
     }).join('\n');
 }
 
@@ -223,18 +289,15 @@ function showResults() {
     displayTranscription('text');
 }
 
-// Tab Management and Content Display
 function displayTranscription(format) {
     const contentId = format === 'text' ? 'textContent' : 'srtContent';
     const content = format === 'text' ? transcriptionDataText : transcriptionDataSRT;
     
-    // Hide all tab content
     document.querySelectorAll('.tabcontent').forEach(tab => {
         tab.style.display = 'none';
         tab.classList.remove('active');
     });
     
-    // Show selected tab and update content
     const selectedTab = document.getElementById(format + 'Tab');
     const contentElement = document.getElementById(contentId);
     
@@ -242,23 +305,19 @@ function displayTranscription(format) {
         selectedTab.style.display = 'block';
         selectedTab.classList.add('active');
         contentElement.textContent = content;
-        console.log(`Displaying ${format} content:`, content); // Debug log
     }
 }
 
 function openTab(evt, tabName) {
-    // Update tab buttons
     document.querySelectorAll('.tablinks').forEach(btn => {
         btn.classList.remove('active');
     });
     evt.currentTarget.classList.add('active');
     
-    // Display content
     const format = evt.currentTarget.getAttribute('data-format');
     displayTranscription(format);
 }
 
-// Download Functionality
 function downloadTranscription() {
     const activeTab = document.querySelector('.tablinks.active');
     if (!activeTab) {
@@ -285,7 +344,6 @@ function downloadTranscription() {
     URL.revokeObjectURL(url);
 }
 
-// Reset Process
 function restartProcess() {
     closeModal('modal4');
     document.getElementById('audioFile').value = '';
@@ -293,7 +351,6 @@ function restartProcess() {
     document.getElementById('uploadBtn').disabled = true;
     openModal('modal1');
     
-    // Reset state
     transcriptionDataText = '';
     transcriptionDataSRT = '';
     cumulativeOffset = 0;
