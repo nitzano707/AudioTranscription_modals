@@ -280,9 +280,9 @@ function displayTranscription(format) {
 
     setTimeout(() => {
         if (format === "text") {
-            transcriptionResult.textContent = transcriptionDataText;
+            transcriptionResult.innerHTML = transcriptionDataText;
         } else if (format === "srt") {
-            transcriptionResult.textContent = transcriptionDataSRT;
+            transcriptionResult.innerHTML = transcriptionDataSRT;
         }
 
         transcriptionResult.parentElement.style.display = "block";
