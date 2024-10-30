@@ -1,24 +1,40 @@
-// Constants and Global Variables
+// Constants
 const MAX_CHUNK_SIZE = 25 * 1024 * 1024;
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
+const MIN_RETRY_DELAY = 6000; // 6 seconds
+
+// Global Variables
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 let cumulativeOffset = 0;
+let isProcessing = false;
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
+    initializeUI();
+});
+
+function initializeUI() {
     const apiKey = localStorage.getItem('groqApiKey');
     document.getElementById('apiRequest').style.display = apiKey ? 'none' : 'block';
     document.getElementById('startProcessBtn').style.display = apiKey ? 'block' : 'none';
-    initializeTabs();
-});
-
-function initializeTabs() {
+    
     const textTab = document.getElementById('textTab');
     if (textTab) {
         textTab.style.display = 'block';
         document.querySelector("[data-format='text']")?.classList.add('active');
     }
+
+    setupFileUploadListener();
+}
+
+function setupFileUploadListener() {
+    const fileInput = document.getElementById('audioFile');
+    fileInput.addEventListener('change', function() {
+        const fileName = this.files[0]?.name || "לא נבחר קובץ";
+        document.getElementById('fileName').textContent = fileName;
+        document.getElementById('uploadBtn').disabled = !this.files[0];
+    });
 }
 
 // API Key Management
@@ -31,16 +47,12 @@ function saveApiKey() {
     }
 }
 
-// File Upload Management
+// File Management
 function triggerFileUpload() {
-    document.getElementById('audioFile').click();
+    if (!isProcessing) {
+        document.getElementById('audioFile').click();
+    }
 }
-
-document.getElementById('audioFile').addEventListener('change', function() {
-    const fileName = this.files[0]?.name || "לא נבחר קובץ";
-    document.getElementById('fileName').textContent = fileName;
-    document.getElementById('uploadBtn').disabled = !this.files[0];
-});
 
 // Modal Management
 function openModal(modalId) {
@@ -59,7 +71,7 @@ function closeModal(modalId) {
     }
 }
 
-// Audio Processing
+// File Processing
 async function splitFileIntoChunks(file) {
     if (file.size <= MAX_CHUNK_SIZE) {
         return [file];
@@ -71,68 +83,18 @@ async function splitFileIntoChunks(file) {
     while (start < file.size) {
         const end = Math.min(start + MAX_CHUNK_SIZE, file.size);
         const chunk = file.slice(start, end);
-        // יוצרים קובץ חדש עם הפורמט המקורי
-        const newFile = new File([chunk], `chunk_${chunks.length}.mp3`, {
+        const chunkFile = new File([chunk], `chunk_${chunks.length + 1}.${file.name.split('.').pop()}`, {
             type: file.type
         });
-        chunks.push(newFile);
+        chunks.push(chunkFile);
         start = end;
     }
 
     return chunks;
 }
 
-async function bufferToWavBlob(audioBuffer) {
-    const numChannels = audioBuffer.numberOfChannels;
-    const length = audioBuffer.length * numChannels * 2;
-    const buffer = new ArrayBuffer(44 + length);
-    const view = new DataView(buffer);
-
-    writeWavHeader(view, {
-        numChannels,
-        sampleRate: audioBuffer.sampleRate,
-        length
-    });
-
-    const channelsData = Array.from({ length: numChannels }, (_, i) =>
-        audioBuffer.getChannelData(i));
-
-    let offset = 44;
-    for (let i = 0; i < audioBuffer.length; i++) {
-        for (let channel = 0; channel < numChannels; channel++) {
-            const sample = Math.max(-1, Math.min(1, channelsData[channel][i]));
-            view.setInt16(offset, sample * 0x7fff, true);
-            offset += 2;
-        }
-    }
-
-    return new Blob([buffer], { type: 'audio/wav' });
-}
-
-function writeWavHeader(view, { numChannels, sampleRate, length }) {
-    const writeString = (offset, string) => {
-        for (let i = 0; i < string.length; i++) {
-            view.setUint8(offset + i, string.charCodeAt(i));
-        }
-    };
-
-    writeString(0, 'RIFF');
-    view.setUint32(4, 36 + length, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, numChannels, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * numChannels * 2, true);
-    view.setUint16(32, numChannels * 2, true);
-    view.setUint16(34, 16, true);
-    writeString(36, 'data');
-    view.setUint32(40, length, true);
-}
-
 // API Communication
-async function sendChunkToAPI(chunk, apiKey, retryDelay = 6000) {
+async function sendChunkToAPI(chunk, apiKey, retryCount = 0) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
@@ -148,20 +110,17 @@ async function sendChunkToAPI(chunk, apiKey, retryDelay = 6000) {
 
         if (response.status === 429) {
             const errorData = await response.json();
-            const waitTime = Math.ceil(retryDelay / 1000);
-            alert(`הגעת למגבלת השימוש. יש להמתין ${waitTime} שניות לפני הניסיון הבא.`);
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
-            return sendChunkToAPI(chunk, apiKey, retryDelay * 1.5);
+            const waitSeconds = Math.ceil((retryCount + 1) * MIN_RETRY_DELAY / 1000);
+            const waitTime = waitSeconds * 1000;
+
+            alert(`הגעת למגבלת השימוש. יש להמתין ${waitSeconds} שניות.`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            
+            return sendChunkToAPI(chunk, apiKey, retryCount + 1);
         }
 
         if (!response.ok) {
-            if (response.status === 401) {
-                localStorage.removeItem('groqApiKey');
-                throw new Error('Invalid API key');
-            }
-            const errorText = await response.text();
-            console.error('API Error Response:', errorText);
-            throw new Error(`API Error: ${response.status}`);
+            handleAPIError(response);
         }
 
         return await response.json();
@@ -171,8 +130,18 @@ async function sendChunkToAPI(chunk, apiKey, retryDelay = 6000) {
     }
 }
 
+function handleAPIError(response) {
+    if (response.status === 401) {
+        localStorage.removeItem('groqApiKey');
+        throw new Error('Invalid API key');
+    }
+    throw new Error(`API Error: ${response.status}`);
+}
+
 // Main Processing
 async function uploadAudio() {
+    if (isProcessing) return;
+
     const apiKey = localStorage.getItem('groqApiKey');
     const file = document.getElementById('audioFile').files[0];
     
@@ -181,6 +150,7 @@ async function uploadAudio() {
         return;
     }
 
+    isProcessing = true;
     openModal('modal3');
     resetTranscriptionData();
 
@@ -192,6 +162,7 @@ async function uploadAudio() {
         console.error('Processing Error:', error);
         handleError(error);
     } finally {
+        isProcessing = false;
         closeModal('modal3');
     }
 }
@@ -229,16 +200,11 @@ async function processChunks(chunks, apiKey) {
 
 // Progress and Error Handling
 function updateProgress(percent) {
-    const progress = document.getElementById('progress');
-    const progressText = document.getElementById('progressText');
-    if (progress && progressText) {
-        progress.style.width = `${percent}%`;
-        progressText.textContent = `${Math.round(percent)}%`;
-    }
+    document.getElementById('progress').style.width = `${percent}%`;
+    document.getElementById('progressText').textContent = `${Math.round(percent)}%`;
 }
 
 function handleError(error) {
-    console.error('Error details:', error);
     if (error.message.includes('Invalid API key')) {
         alert('שגיאה במפתח API. נא להזין מפתח חדש.');
         location.reload();
@@ -262,7 +228,9 @@ function generateSRTFormat(result) {
 }
 
 function formatTimestamp(seconds) {
-    if (typeof seconds !== 'number' || isNaN(seconds)) return '00:00:00,000';
+    if (typeof seconds !== 'number' || isNaN(seconds)) {
+        return '00:00:00,000';
+    }
     
     const date = new Date(seconds * 1000);
     return [
@@ -294,7 +262,6 @@ function displayTranscription(format) {
         selectedTab.style.display = 'block';
         selectedTab.classList.add('active');
         contentElement.textContent = content;
-        console.log(`Displaying ${format} content:`, content);
     }
 }
 
@@ -339,10 +306,12 @@ function resetTranscriptionData() {
 }
 
 function restartProcess() {
-    closeModal('modal4');
-    document.getElementById('audioFile').value = '';
-    document.getElementById('fileName').textContent = 'לא נבחר קובץ';
-    document.getElementById('uploadBtn').disabled = true;
-    openModal('modal1');
-    resetTranscriptionData();
+    if (!isProcessing) {
+        closeModal('modal4');
+        document.getElementById('audioFile').value = '';
+        document.getElementById('fileName').textContent = 'לא נבחר קובץ';
+        document.getElementById('uploadBtn').disabled = true;
+        openModal('modal1');
+        resetTranscriptionData();
+    }
 }
