@@ -207,22 +207,32 @@ function saveTranscriptions(data) {
 
 function displayTranscription(format) {
     const contentId = format === 'text' ? 'textContent' : 'srtContent';
-    const content = format === 'text' ? transcriptionDataText : transcriptionDataSRT;
+    const contentElement = document.getElementById(contentId);
+    const parentTab = document.getElementById(format + 'Tab');
     
-    // Hide all tab content
+    if (!contentElement || !parentTab) {
+        console.error('Elements not found:', contentId, format + 'Tab');
+        return;
+    }
+    
+    // הסתר את כל התוכן
     document.querySelectorAll('.tabcontent').forEach(tab => {
         tab.style.display = 'none';
     });
     
-    // Show selected tab and update content
-    const selectedTab = document.getElementById(format + 'Tab');
-    if (selectedTab) {
-        selectedTab.style.display = 'block';
-        const contentElement = document.getElementById(contentId);
-        if (contentElement) {
-            contentElement.textContent = content;
-        }
-    }
+    // הצג את הטאב הנבחר
+    parentTab.style.display = 'block';
+    
+    // עדכן את התוכן
+    const content = format === 'text' ? transcriptionDataText : transcriptionDataSRT;
+    console.log('Setting content:', content); // לבדיקה
+    contentElement.textContent = content;
+    
+    // וודא שהתוכן מוצג
+    window.requestAnimationFrame(() => {
+        parentTab.style.display = 'block';
+        contentElement.style.display = 'block';
+    });
 }
 
 function openTab(evt, tabName) {
