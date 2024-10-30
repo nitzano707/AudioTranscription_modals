@@ -132,7 +132,7 @@ function writeWavHeader(view, { numChannels, sampleRate, length }) {
 }
 
 // API Communication
-async function sendChunkToAPI(chunk, apiKey) {
+async function sendChunkToAPI(chunk, apiKey, retryDelay = 6000) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
@@ -145,6 +145,14 @@ async function sendChunkToAPI(chunk, apiKey) {
             headers: { 'Authorization': `Bearer ${apiKey}` },
             body: formData
         });
+
+        if (response.status === 429) {
+            const errorData = await response.json();
+            const waitTime = Math.ceil(retryDelay / 1000);
+            alert(`הגעת למגבלת השימוש. יש להמתין ${waitTime} שניות לפני הניסיון הבא.`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            return sendChunkToAPI(chunk, apiKey, retryDelay * 1.5);
+        }
 
         if (!response.ok) {
             if (response.status === 401) {
