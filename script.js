@@ -175,19 +175,32 @@ function handleError(error) {
 
 function generateSRTFormat(result) {
     if (!result.segments || result.segments.length === 0) {
-        // If no segments, create artificial segment from text
+        // אם אין segments, נחלק את הטקסט למשפטים
         if (transcriptionDataText) {
-            transcriptionDataSRT = `1\n00:00:00,000 --> 00:00:30,000\n${transcriptionDataText}\n`;
+            const sentences = transcriptionDataText.match(/[^.!?]+[.!?]+/g) || [transcriptionDataText];
+            const sentenceLength = 3; // אורך ממוצע של משפט בשניות
+            
+            transcriptionDataSRT = sentences.map((sentence, index) => {
+                const startTime = formatTimestamp(index * sentenceLength);
+                const endTime = formatTimestamp((index + 1) * sentenceLength);
+                return `${index + 1}\n${startTime} --> ${endTime}\n${sentence.trim()}\n`;
+            }).join('\n');
         } else {
             transcriptionDataSRT = '';
         }
         return;
     }
 
+    // אם יש segments, נשתמש בהם
     transcriptionDataSRT = result.segments.map((segment, index) => {
-        const startTime = formatTimestamp(segment.start);
-        const endTime = formatTimestamp(segment.end);
-        return `${index + 1}\n${startTime} --> ${endTime}\n${segment.text.trim()}\n`;
+        const sentences = segment.text.match(/[^.!?]+[.!?]+/g) || [segment.text];
+        const timePerSentence = (segment.end - segment.start) / sentences.length;
+        
+        return sentences.map((sentence, sentenceIndex) => {
+            const startTime = formatTimestamp(segment.start + (sentenceIndex * timePerSentence));
+            const endTime = formatTimestamp(segment.start + ((sentenceIndex + 1) * timePerSentence));
+            return `${index + sentenceIndex + 1}\n${startTime} --> ${endTime}\n${sentence.trim()}\n`;
+        }).join('\n');
     }).join('\n');
 }
 
