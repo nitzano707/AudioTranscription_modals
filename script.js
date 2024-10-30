@@ -210,6 +210,67 @@ function bufferToWaveBlob(buffer) {
     return new Blob([bufferData], { type: 'audio/wav' });
 }
 
+async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
+    const formData = new FormData();
+    formData.append('file', chunk);
+    formData.append('model', 'whisper-large-v3-turbo');
+    formData.append('response_format', 'json'); // שינוי לפורמט JSON
+    formData.append('language', defaultLanguage);
+
+    const apiKey = localStorage.getItem('groqApiKey');
+    if (!apiKey) {
+        alert('מפתח API חסר. נא להזין שוב.');
+        location.reload();
+        return;
+    }
+
+    try {
+        console.log(`Sending chunk ${currentChunk} of ${totalChunks} to the API...`);
+        const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log(`Received response for chunk ${currentChunk}:`, data);
+            if (data.segments) {
+                data.segments.forEach((segment, index) => {
+                    if (typeof segment.start === 'number' && typeof segment.end === 'number') {
+                        const adjustedStart = segment.start + cumulativeOffset;
+                        const adjustedEnd = segment.end + cumulativeOffset;
+
+                        const startTime = formatTimestamp(adjustedStart);
+                        const endTime = formatTimestamp(adjustedEnd);
+                        const text = segment.text.trim();
+
+                        transcriptionData.push({
+                            text: text,
+                            timestamp: `${startTime} --> ${endTime}`
+                        });
+                    }
+                });
+
+                cumulativeOffset += data.segments[data.segments.length - 1].end;
+            }
+        } else {
+            if (response.status === 401) {
+                alert('שגיאה במפתח API. נא להזין מפתח חדש.');
+                localStorage.removeItem('groqApiKey');
+                location.reload();
+                return;
+            }
+            const errorText = await response.text();
+            console.error(`Error for chunk ${currentChunk}:`, errorText);
+        }
+    } catch (error) {
+        console.error('Network error:', error);
+    }
+}
+
 function formatTimestamp(seconds) {
     if (typeof seconds !== 'number' || isNaN(seconds)) {
         console.error('Invalid seconds value for timestamp:', seconds);
@@ -339,7 +400,3 @@ function restartProcess() {
     document.getElementById('uploadBtn').disabled = true;
     openModal('modal1');
 }
-
-
-
-                                
