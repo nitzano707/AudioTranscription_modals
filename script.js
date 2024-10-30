@@ -1,52 +1,44 @@
 // Global variables
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
-const defaultLanguage = 'he';
-let maxChunkSizeMB = 25;
-let cumulativeOffset = 0;
+const MAX_CHUNK_SIZE = 25 * 1024 * 1024; // 25MB in bytes
+const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
-    
-    if (!apiKey) {
-        document.getElementById('apiRequest').style.display = 'block';
-    } else {
-        document.getElementById('apiRequest').style.display = 'none';
-        document.getElementById('startProcessBtn').style.display = 'block';
-    }
-    
+    document.getElementById('apiRequest').style.display = apiKey ? 'none' : 'block';
+    document.getElementById('startProcessBtn').style.display = apiKey ? 'block' : 'none';
     initializeTabs();
 });
 
 function initializeTabs() {
-    const textTab = document.getElementById('textTab');
-    const textButton = document.querySelector("button[data-format='text']");
-    
-    if (textTab && textButton) {
-        textTab.style.display = 'block';
-        textButton.classList.add('active');
-    }
+    document.getElementById('textTab').style.display = 'block';
+    document.querySelector("[data-format='text']").classList.add('active');
 }
 
+// API Key Management
 function saveApiKey() {
-    const apiKeyInput = document.getElementById('apiKeyInput').value;
-    if (apiKeyInput) {
-        localStorage.setItem('groqApiKey', apiKeyInput);
+    const apiKey = document.getElementById('apiKeyInput').value;
+    if (apiKey) {
+        localStorage.setItem('groqApiKey', apiKey);
         document.getElementById('apiRequest').style.display = 'none';
         document.getElementById('startProcessBtn').style.display = 'block';
     }
 }
 
+// File Upload Handling
 function triggerFileUpload() {
     document.getElementById('audioFile').click();
 }
 
 document.getElementById('audioFile').addEventListener('change', function() {
-    const fileName = this.files[0] ? this.files[0].name : "לא נבחר קובץ";
+    const fileName = this.files[0]?.name || "לא נבחר קובץ";
     document.getElementById('fileName').textContent = fileName;
     document.getElementById('uploadBtn').disabled = !this.files[0];
 });
 
+// Modal Management
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -63,6 +55,7 @@ function closeModal(modalId) {
     }
 }
 
+// Main Processing Function
 async function uploadAudio() {
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
@@ -70,203 +63,131 @@ async function uploadAudio() {
         return;
     }
 
-    const audioFile = document.getElementById('audioFile').files[0];
-    if (!audioFile) {
+    const file = document.getElementById('audioFile').files[0];
+    if (!file) {
         alert('אנא בחר קובץ להעלאה.');
         return;
     }
 
     openModal('modal3');
-    
     try {
-        const chunks = await splitAudioToChunks(audioFile);
-        await processChunks(chunks, audioFile.name);
-        showTranscriptionResults();
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('model', 'whisper-large-v3-turbo');
+        formData.append('response_format', 'json');
+        formData.append('language', 'he');
+
+        updateProgress(10);
+        
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${apiKey}` },
+            body: formData
+        });
+
+        updateProgress(50);
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                localStorage.removeItem('groqApiKey');
+                throw new Error('Invalid API key');
+            }
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        updateProgress(90);
+
+        if (result.text) {
+            transcriptionDataText = result.text;
+            generateSRTFormat(result);
+            showResults();
+        } else {
+            throw new Error('No transcription data received');
+        }
+
     } catch (error) {
-        console.error('Error during processing:', error);
-        alert('שגיאה בתהליך התמלול. נא לנסות שוב.');
+        console.error('Error:', error);
+        alert(error.message === 'Invalid API key' ? 
+            'שגיאה במפתח API. נא להזין מפתח חדש.' : 
+            'שגיאה בתהליך התמלול. נא לנסות שוב.');
+        
+        if (error.message === 'Invalid API key') {
+            location.reload();
+        }
+    } finally {
         closeModal('modal3');
     }
 }
 
-async function splitAudioToChunks(file) {
-    const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
-    return file.size <= maxChunkSizeBytes ? [file] : await splitLargeFile(file);
-}
-
-async function createChunk(audioBuffer, startTime, chunkDuration) {
-    const sampleRate = audioBuffer.sampleRate;
-    const numChannels = audioBuffer.numberOfChannels;
-    const frameCount = Math.floor(Math.min(chunkDuration, audioBuffer.duration - startTime) * sampleRate);
-    
-    const chunkBuffer = new AudioContext().createBuffer(numChannels, frameCount, sampleRate);
-    
-    for (let channel = 0; channel < numChannels; channel++) {
-        const originalData = audioBuffer.getChannelData(channel);
-        const chunkData = chunkBuffer.getChannelData(channel);
-        const startFrame = Math.floor(startTime * sampleRate);
-        
-        for (let i = 0; i < frameCount; i++) {
-            chunkData[i] = originalData[startFrame + i];
-        }
-    }
-    
-    return bufferToWaveBlob(chunkBuffer);
-}
-
-async function splitLargeFile(file) {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const arrayBuffer = await file.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    
-    const numberOfChunks = Math.ceil(file.size / (maxChunkSizeMB * 1024 * 1024));
-    const chunkDuration = audioBuffer.duration / numberOfChunks;
-    
-    let chunks = [];
-    let currentTime = 0;
-    
-    while (currentTime < audioBuffer.duration) {
-        const chunk = await createChunk(audioBuffer, currentTime, chunkDuration);
-        chunks.push(chunk);
-        currentTime += chunkDuration;
-    }
-    
-    return chunks;
-}
-
-async function processChunks(chunks, fileName) {
-    const transcriptionData = [];
-    
-    for (let i = 0; i < chunks.length; i++) {
-        updateProgress((i + 1) / chunks.length * 100);
-        
-        const response = await sendChunkToAPI(chunks[i]);
-        if (response.segments) {
-            processSegments(response.segments, transcriptionData);
-        }
-    }
-    
-    saveTranscriptions(transcriptionData);
-}
-
 function updateProgress(percent) {
-    const progress = document.getElementById('progress');
-    const progressText = document.getElementById('progressText');
-    if (progress && progressText) {
-        progress.style.width = `${percent}%`;
-        progressText.textContent = `${Math.round(percent)}%`;
-    }
+    document.getElementById('progress').style.width = `${percent}%`;
+    document.getElementById('progressText').textContent = `${Math.round(percent)}%`;
 }
 
-async function sendChunkToAPI(chunk) {
-    const formData = new FormData();
-    formData.append('file', chunk);
-    formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'json');
-    formData.append('language', defaultLanguage);
-
-    const apiKey = localStorage.getItem('groqApiKey');
-    const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}` },
-        body: formData
-    });
-
-    if (!response.ok) {
-        if (response.status === 401) {
-            localStorage.removeItem('groqApiKey');
-            location.reload();
-        }
-        throw new Error(`API Error: ${response.status}`);
+function generateSRTFormat(result) {
+    if (!result.segments) {
+        transcriptionDataSRT = '';
+        return;
     }
 
-    return await response.json();
+    transcriptionDataSRT = result.segments.map((segment, index) => {
+        const startTime = formatTimestamp(segment.start);
+        const endTime = formatTimestamp(segment.end);
+        return `${index + 1}\n${startTime} --> ${endTime}\n${segment.text.trim()}\n`;
+    }).join('\n');
 }
 
-function processSegments(segments, transcriptionData) {
-    segments.forEach(segment => {
-        if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-            transcriptionData.push({
-                text: segment.text.trim(),
-                timestamp: `${formatTimestamp(segment.start + cumulativeOffset)} --> ${formatTimestamp(segment.end + cumulativeOffset)}`
-            });
-        }
-    });
+function formatTimestamp(seconds) {
+    if (typeof seconds !== 'number' || isNaN(seconds)) {
+        return '00:00:00,000';
+    }
     
-    if (segments.length > 0) {
-        cumulativeOffset += segments[segments.length - 1].end;
-    }
+    const date = new Date(seconds * 1000);
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const secs = String(date.getUTCSeconds()).padStart(2, '0');
+    const millis = String(date.getUTCMilliseconds()).padStart(3, '0');
+    
+    return `${hours}:${minutes}:${secs},${millis}`;
 }
 
-function showTranscriptionResults() {
-    closeModal('modal3');
+function showResults() {
     openModal('modal4');
     displayTranscription('text');
 }
 
-function formatTimestamp(seconds) {
-    if (typeof seconds !== 'number' || isNaN(seconds)) return '00:00:00,000';
-    
-    const date = new Date(seconds * 1000);
-    return `${String(date.getUTCHours()).padStart(2, '0')}:${
-        String(date.getUTCMinutes()).padStart(2, '0')}:${
-        String(date.getUTCSeconds()).padStart(2, '0')},${
-        String(date.getUTCMilliseconds()).padStart(3, '0')}`;
-}
-
-function saveTranscriptions(data) {
-    transcriptionDataText = data.map(d => {
-        const text = d.text.trim();
-        return /[.?!]$/.test(text) ? text : text + " ";
-    }).join(" ").trim();
-
-    transcriptionDataSRT = data.map((d, index) => 
-        `${index + 1}\n${d.timestamp}\n${d.text.trim()}\n`
-    ).join("\n");
-}
-
+// Tab Management and Content Display
 function displayTranscription(format) {
     const contentId = format === 'text' ? 'textContent' : 'srtContent';
-    const contentElement = document.getElementById(contentId);
-    const parentTab = document.getElementById(format + 'Tab');
+    const content = format === 'text' ? transcriptionDataText : transcriptionDataSRT;
     
-    if (!contentElement || !parentTab) {
-        console.error('Elements not found:', contentId, format + 'Tab');
-        return;
-    }
-    
-    // הסתר את כל התוכן
     document.querySelectorAll('.tabcontent').forEach(tab => {
         tab.style.display = 'none';
+        tab.classList.remove('active');
     });
     
-    // הצג את הטאב הנבחר
-    parentTab.style.display = 'block';
+    const selectedTab = document.getElementById(format + 'Tab');
+    const contentElement = document.getElementById(contentId);
     
-    // עדכן את התוכן
-    const content = format === 'text' ? transcriptionDataText : transcriptionDataSRT;
-    console.log('Setting content:', content); // לבדיקה
-    contentElement.textContent = content;
-    
-    // וודא שהתוכן מוצג
-    window.requestAnimationFrame(() => {
-        parentTab.style.display = 'block';
-        contentElement.style.display = 'block';
-    });
+    if (selectedTab && contentElement) {
+        selectedTab.style.display = 'block';
+        selectedTab.classList.add('active');
+        contentElement.textContent = content;
+    }
 }
 
 function openTab(evt, tabName) {
-    // Update tab buttons
     document.querySelectorAll('.tablinks').forEach(btn => {
         btn.classList.remove('active');
     });
     evt.currentTarget.classList.add('active');
     
-    // Display content
     const format = evt.currentTarget.getAttribute('data-format');
     displayTranscription(format);
 }
 
+// Download Functionality
 function downloadTranscription() {
     const activeTab = document.querySelector('.tablinks.active');
     if (!activeTab) {
@@ -293,6 +214,7 @@ function downloadTranscription() {
     URL.revokeObjectURL(url);
 }
 
+// Reset Process
 function restartProcess() {
     closeModal('modal4');
     document.getElementById('audioFile').value = '';
@@ -300,8 +222,6 @@ function restartProcess() {
     document.getElementById('uploadBtn').disabled = true;
     openModal('modal1');
     
-    // Reset state
     transcriptionDataText = '';
     transcriptionDataSRT = '';
-    cumulativeOffset = 0;
 }
