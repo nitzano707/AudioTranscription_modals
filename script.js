@@ -1,7 +1,6 @@
 // Constants and Global Variables
-const MAX_CHUNK_SIZE = 25 * 1024 * 1024; // 25MB
+const MAX_CHUNK_SIZE = 25 * 1024 * 1024;
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
-const CHUNK_DURATION = 30; // seconds
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 let cumulativeOffset = 0;
@@ -60,17 +59,88 @@ function closeModal(modalId) {
     }
 }
 
-// File Processing
-async function processLargeFile(file) {
-    const chunkSize = MAX_CHUNK_SIZE;
-    const chunks = [];
-    
-    for (let start = 0; start < file.size; start += chunkSize) {
-        const chunk = file.slice(start, start + chunkSize);
-        chunks.push(chunk);
+// Audio Processing
+async function splitFileIntoChunks(file) {
+    if (file.size <= MAX_CHUNK_SIZE) {
+        return [new Blob([file], { type: file.type })];
     }
+
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
     
+    const chunks = [];
+    const chunkDuration = 30; // seconds
+    const samplesPerChunk = chunkDuration * audioBuffer.sampleRate;
+    
+    for (let offset = 0; offset < audioBuffer.length; offset += samplesPerChunk) {
+        const chunkLength = Math.min(samplesPerChunk, audioBuffer.length - offset);
+        const chunkBuffer = audioContext.createBuffer(
+            audioBuffer.numberOfChannels,
+            chunkLength,
+            audioBuffer.sampleRate
+        );
+
+        for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+            const channelData = audioBuffer.getChannelData(channel);
+            chunkBuffer.copyToChannel(
+                channelData.slice(offset, offset + chunkLength),
+                channel
+            );
+        }
+        
+        chunks.push(await bufferToWavBlob(chunkBuffer));
+    }
     return chunks;
+}
+
+async function bufferToWavBlob(audioBuffer) {
+    const numChannels = audioBuffer.numberOfChannels;
+    const length = audioBuffer.length * numChannels * 2;
+    const buffer = new ArrayBuffer(44 + length);
+    const view = new DataView(buffer);
+
+    writeWavHeader(view, {
+        numChannels,
+        sampleRate: audioBuffer.sampleRate,
+        length
+    });
+
+    const channelsData = Array.from({ length: numChannels }, (_, i) =>
+        audioBuffer.getChannelData(i));
+
+    let offset = 44;
+    for (let i = 0; i < audioBuffer.length; i++) {
+        for (let channel = 0; channel < numChannels; channel++) {
+            const sample = Math.max(-1, Math.min(1, channelsData[channel][i]));
+            view.setInt16(offset, sample * 0x7fff, true);
+            offset += 2;
+        }
+    }
+
+    return new Blob([buffer], { type: 'audio/wav' });
+}
+
+function writeWavHeader(view, { numChannels, sampleRate, length }) {
+    const writeString = (offset, string) => {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + length, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numChannels * 2, true);
+    view.setUint16(32, numChannels * 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, length, true);
 }
 
 // API Communication
@@ -93,6 +163,8 @@ async function sendChunkToAPI(chunk, apiKey) {
                 localStorage.removeItem('groqApiKey');
                 throw new Error('Invalid API key');
             }
+            const errorText = await response.text();
+            console.error('API Error Response:', errorText);
             throw new Error(`API Error: ${response.status}`);
         }
 
@@ -103,7 +175,7 @@ async function sendChunkToAPI(chunk, apiKey) {
     }
 }
 
-// Main Processing Function
+// Main Processing
 async function uploadAudio() {
     const apiKey = localStorage.getItem('groqApiKey');
     const file = document.getElementById('audioFile').files[0];
@@ -117,11 +189,11 @@ async function uploadAudio() {
     resetTranscriptionData();
 
     try {
-        const chunks = await processLargeFile(file);
+        const chunks = await splitFileIntoChunks(file);
         await processChunks(chunks, apiKey);
         showResults();
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Processing Error:', error);
         handleError(error);
     } finally {
         closeModal('modal3');
@@ -170,7 +242,8 @@ function updateProgress(percent) {
 }
 
 function handleError(error) {
-    if (error.message === 'Invalid API key') {
+    console.error('Error details:', error);
+    if (error.message.includes('Invalid API key')) {
         alert('שגיאה במפתח API. נא להזין מפתח חדש.');
         location.reload();
     } else {
