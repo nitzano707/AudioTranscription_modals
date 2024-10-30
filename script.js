@@ -81,6 +81,26 @@ async function transcribeChunk(chunk, apiKey) {
     return await response.json();
 }
 
+function showMessage(message, duration = 3000) {
+    const messageElement = document.createElement('div');
+    messageElement.textContent = message;
+    messageElement.style.position = 'fixed';
+    messageElement.style.top = '20px';
+    messageElement.style.left = '50%';
+    messageElement.style.transform = 'translateX(-50%)';
+    messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    messageElement.style.color = 'white';
+    messageElement.style.padding = '10px 20px';
+    messageElement.style.borderRadius = '5px';
+    messageElement.style.zIndex = '1000';
+    document.body.appendChild(messageElement);
+
+    setTimeout(() => {
+        document.body.removeChild(messageElement);
+    }, duration);
+}
+
+
 // Main Processing
 async function uploadAudio() {
     if (state.isProcessing) return;
