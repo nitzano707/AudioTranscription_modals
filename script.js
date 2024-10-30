@@ -62,35 +62,18 @@ function closeModal(modalId) {
 // Audio Processing
 async function splitFileIntoChunks(file) {
     if (file.size <= MAX_CHUNK_SIZE) {
-        return [new Blob([file], { type: file.type })];
+        return [file];
     }
 
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const arrayBuffer = await file.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    
     const chunks = [];
-    const chunkDuration = 30; // seconds
-    const samplesPerChunk = chunkDuration * audioBuffer.sampleRate;
+    let start = 0;
     
-    for (let offset = 0; offset < audioBuffer.length; offset += samplesPerChunk) {
-        const chunkLength = Math.min(samplesPerChunk, audioBuffer.length - offset);
-        const chunkBuffer = audioContext.createBuffer(
-            audioBuffer.numberOfChannels,
-            chunkLength,
-            audioBuffer.sampleRate
-        );
-
-        for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
-            const channelData = audioBuffer.getChannelData(channel);
-            chunkBuffer.copyToChannel(
-                channelData.slice(offset, offset + chunkLength),
-                channel
-            );
-        }
-        
-        chunks.push(await bufferToWavBlob(chunkBuffer));
+    while (start < file.size) {
+        const end = Math.min(start + MAX_CHUNK_SIZE, file.size);
+        chunks.push(file.slice(start, end, file.type));
+        start = end;
     }
+
     return chunks;
 }
 
