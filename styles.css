@@ -1,4 +1,4 @@
-/* CSS - עיצוב הממשק */
+/* General styles */
 body {
     font-family: Arial, sans-serif;
     text-align: center;
@@ -7,6 +7,7 @@ body {
     overflow-x: hidden;
 }
 
+/* Modal styles */
 .modal {
     display: none;
     position: fixed;
@@ -30,10 +31,15 @@ body {
     text-align: right;
     overflow-y: auto;
     max-height: 80vh;
-    z-index: 1001;
     min-height: 200px;
+    z-index: 1001;
 }
 
+.modal-body {
+    padding: 20px 0;
+}
+
+/* Close button */
 .close {
     position: absolute;
     top: 10px;
@@ -48,9 +54,9 @@ body {
 .close:focus {
     color: black;
     text-decoration: none;
-    cursor: pointer;
 }
 
+/* Buttons */
 button {
     padding: 10px 20px;
     font-size: 16px;
@@ -63,12 +69,6 @@ button {
     margin: 20px 0;
 }
 
-.button-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
-}
-
 button:hover {
     background-color: #e67e22;
 }
@@ -78,6 +78,13 @@ button:disabled {
     cursor: not-allowed;
 }
 
+.button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+/* Fixed buttons section */
 .fixed-buttons {
     position: sticky;
     top: 0;
@@ -94,8 +101,10 @@ button:disabled {
     margin: 0 10px;
 }
 
+/* API Request section */
 #apiRequest {
     margin-bottom: 20px;
+    padding: 20px;
 }
 
 #fileName {
@@ -105,6 +114,7 @@ button:disabled {
     font-size: 1rem;
 }
 
+/* Progress bar */
 .progress-bar {
     width: 80%;
     height: 25px;
@@ -129,10 +139,7 @@ button:disabled {
     color: #333;
 }
 
-.modal-open {
-    overflow: hidden;
-}
-
+/* Upload section */
 .upload-box {
     border: 2px dashed #ff8c00;
     border-radius: 10px;
@@ -148,22 +155,6 @@ button:disabled {
     border-color: #e67e22;
 }
 
-.drop-zone {
-    cursor: pointer;
-    text-align: center;
-}
-
-.upload-icon {
-    width: 50px;
-    height: 50px;
-    margin-bottom: 10px;
-}
-
-.upload-text {
-    font-size: 1rem;
-    color: #666;
-}
-
 .loading-gif {
     width: min(250px, 20vw);
     height: auto;
@@ -171,7 +162,7 @@ button:disabled {
     display: block;
 }
 
-/* עיצוב הכרטיסיות */
+/* Tabs */
 .tabs {
     display: flex;
     justify-content: space-around;
@@ -187,22 +178,21 @@ button:disabled {
     outline: none;
     cursor: pointer;
     padding: 14px 16px;
-    transition: background-color 0.3s, color 0.3s;
+    transition: 0.3s;
     font-size: 16px;
-    color: #fff;
+    color: white;
 }
 
 .tablinks:hover {
     background-color: #e67e22;
-    color: #fff;
 }
 
 .tablinks.active {
     background-color: #d35400;
-    color: white;
     border-radius: 5px;
 }
 
+/* Tab content */
 .tabcontent {
     display: none;
     padding: 20px;
@@ -213,15 +203,16 @@ button:disabled {
     min-height: 200px;
     width: 100%;
     box-sizing: border-box;
+    overflow-y: auto;
 }
 
 .tabcontent.active {
     display: block;
 }
 
-#textContent, 
+#textContent,
 #srtContent {
-    display: block !important;
+    display: block;
     width: 100%;
     min-height: 150px;
     padding: 15px;
@@ -236,9 +227,10 @@ button:disabled {
     line-height: 1.5;
     margin: 0;
     box-sizing: border-box;
+    text-align: right;
 }
 
-/* שינויי גלילה */
+/* Scrollbar styling */
 .tabcontent::-webkit-scrollbar {
     width: 8px;
 }
@@ -254,4 +246,9 @@ button:disabled {
 
 .tabcontent::-webkit-scrollbar-thumb:hover {
     background: #555;
+}
+
+/* Modal open state */
+.modal-open {
+    overflow: hidden;
 }
