@@ -81,11 +81,11 @@ async function uploadAudio() {
 
     // בדיקה אם סוג הקובץ הוא MP3 והגדלת גודל המקטע
     if (audioFile.type === 'audio/mpeg') {
-        maxChunkSizeMB = 3;
-        console.log("File is MP3, setting maxChunkSizeMB to 3");
+        maxChunkSizeMB = 20;
+        console.log("File is MP3, setting maxChunkSizeMB to 20");
     } else {
         maxChunkSizeMB = 25;
-        console.log("File is not MP3, using default maxChunkSizeMB of 253");
+        console.log("File is not MP3, using default maxChunkSizeMB of 25");
     }
 
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
