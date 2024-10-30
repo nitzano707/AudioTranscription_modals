@@ -78,7 +78,7 @@ async function sendChunkToAPI(chunk, apiKey) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'json');
+    formData.append('response_format', 'verbose_json'); // שינוי לפורמט מפורט
     formData.append('language', 'he');
 
     const response = await fetch(API_URL, {
