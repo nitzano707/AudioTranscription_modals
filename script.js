@@ -1,7 +1,8 @@
 /// Constants
 const MAX_CHUNK_SIZE = 24 * 1024 * 1024; // 24MB for splitting and uploading
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
-const WAIT_TIME_BETWEEN_CHUNKS = 10000; // 10 seconds wait between each chunk upload
+// const WAIT_TIME_BETWEEN_CHUNKS = 10000; // 10 seconds wait between each chunk upload
+const WAIT_TIME_BETWEEN_CHUNKS = 1000; // 1 seconds wait between each chunk upload
 
 // State Management
 let state = {
@@ -54,11 +55,15 @@ async function splitAudioFile(file) {
         const end = Math.min((i + 1) * chunkSize, file.size);
         const chunk = file.slice(start, end, file.type); // שמירה על סוג הקובץ המקורי
 
-        audioChunks.push(new File([chunk], `chunk_${i + 1}.${file.name.split('.').pop()}`, { type: file.type }));
+        // יצירת קובץ חדש על בסיס המקטע
+        const newFileName = `${file.name.split('.').slice(0, -1).join('.')}_chunk_${i + 1}.${file.name.split('.').pop()}`;
+        const newFile = new File([chunk], newFileName, { type: file.type });
+        audioChunks.push(newFile);
     }
 
     return audioChunks;
 }
+
 
 
 // API Communication
