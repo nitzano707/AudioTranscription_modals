@@ -1,5 +1,5 @@
 // Constants
-const MAX_CHUNK_SIZE = 3 * 1024 * 1024;  // 3MB
+const MAX_CHUNK_SIZE = 15 * 1024 * 1024;  // 15MB
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const RATE_LIMIT_PER_HOUR = 7200; // seconds
 const MINIMUM_CHUNK_SIZE = 1 * 1024 * 1024; // 1MB - for merging small chunks
@@ -58,33 +58,41 @@ function initializeUI() {
 
 function setupEventListeners() {
     const fileInput = document.getElementById('audioFile');
+    const restartBtn = document.getElementById('restartBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const showSRTButton = document.getElementById('showSRTButton');
+
     if (fileInput) {
         fileInput.addEventListener('change', handleFileSelection);
+    } else {
+        logger.debug('ERROR', 'audioFile element not found in the DOM.');
     }
 
-    const restartBtn = document.getElementById('restartBtn');
     if (restartBtn) {
         restartBtn.addEventListener('click', restartProcess);
+    } else {
+        logger.debug('ERROR', 'restartBtn element not found in the DOM.');
     }
 
-    const downloadBtn = document.getElementById('downloadBtn');
     if (downloadBtn) {
         downloadBtn.addEventListener('click', downloadTranscription);
+    } else {
+        logger.debug('ERROR', 'downloadBtn element not found in the DOM.');
     }
 
-    const showSRTButton = document.getElementById('showSRTButton');
     if (showSRTButton) {
         showSRTButton.addEventListener('click', () => {
             document.getElementById('srtContent').textContent = generateSRT();
             openTab(null, 'srtTab');
         });
+    } else {
+        logger.debug('ERROR', 'showSRTButton element not found in the DOM.');
     }
 
     document.querySelectorAll('.tablinks').forEach(tab => {
         tab.addEventListener('click', (e) => openTab(e, e.currentTarget.dataset.format));
     });
 }
-
 
 // File Management
 function triggerFileUpload() {
@@ -95,21 +103,24 @@ function triggerFileUpload() {
 
 function handleFileSelection(event) {
    const file = event.target.files[0];
-   const fileName = file ? file.name : "לא נבחר קובץ";
+   if (!file) {
+       logger.debug('ERROR', 'No file selected.');
+       return;
+   }
+
+   const fileName = file.name;
    document.getElementById('fileName').textContent = fileName;
    document.getElementById('uploadBtn').disabled = !file;
 
-   if (file) {
-       const avgTime = state.processing.averageTimeByType[file.type];
-       logger.debug('FILE_SELECTED', `Selected file: ${fileName}`, {
-           size: file.size,
-           type: file.type,
-           estimatedTime: avgTime
-       });
-       
-       if (avgTime) {
-           showMessage(`זמן עיבוד משוער: ${formatTime(avgTime)}`);
-       }
+   const avgTime = state.processing.averageTimeByType[file.type];
+   logger.debug('FILE_SELECTED', `Selected file: ${fileName}`, {
+       size: file.size,
+       type: file.type,
+       estimatedTime: avgTime
+   });
+   
+   if (avgTime) {
+       showMessage(`זמן עיבוד משוער: ${formatTime(avgTime)}`);
    }
 }
 
