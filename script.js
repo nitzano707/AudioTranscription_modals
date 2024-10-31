@@ -77,9 +77,10 @@ async function uploadAudio() {
         return;
     }
 
-    const maxChunkSizeMB = 3;
+    const maxChunkSizeMB = 15;
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
     let transcriptionData = [];
+    let totalTimeElapsed = 0; // משתנה לאגירת הזמן המצטבר של כל המקטעים
 
     try {
         console.log("Starting to split the audio file into chunks...");
@@ -96,7 +97,10 @@ async function uploadAudio() {
             document.getElementById('progress').style.width = `${progressPercent}%`;
             document.getElementById('progressText').textContent = `${progressPercent}%`;
 
-            await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks);
+            await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
+
+            // עדכון הזמן המצטבר לאחר עיבוד המקטע הנוכחי
+            totalTimeElapsed += chunks[i].duration; // chunks[i].duration הוא משך הזמן של המקטע בשניות
 
             await new Promise(resolve => setTimeout(resolve, 500));
         }
@@ -225,7 +229,7 @@ function bufferToWaveBlob(abuffer) {
     return new Blob([buffer], { type: "audio/wav" });
 }
 
-async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
+async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, totalTimeElapsed) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
@@ -253,11 +257,11 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             const data = await response.json();
             console.log(`Received response for chunk ${currentChunk}:`, data);
             if (data.segments) {
-                // יצירת SRT עבור כל משפט בנפרד
+                // יצירת SRT עבור כל משפט בנפרד עם עדכון הזמן המצטבר
                 data.segments.forEach((segment, index) => {
                     if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-                        const startTime = formatTimestamp(segment.start);
-                        const endTime = formatTimestamp(segment.end);
+                        const startTime = formatTimestamp(segment.start + totalTimeElapsed);
+                        const endTime = formatTimestamp(segment.end + totalTimeElapsed);
                         const text = segment.text.trim();
 
                         transcriptionData.push({
@@ -284,6 +288,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     } catch (error) {
         console.error('Network error:', error);
     }
+}"`
 }
 
 function formatTimestamp(seconds) {
