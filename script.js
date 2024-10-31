@@ -1,8 +1,6 @@
 // Constants
-const MAX_CHUNK_SIZE = 13 * 1024 * 1024;  // 3MB
+const MAX_CHUNK_SIZE = 5 * 1024 * 1024;  // 5MB
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
-const RATE_LIMIT_PER_HOUR = 7200; // seconds
-const MINIMUM_CHUNK_SIZE = 1 * 1024 * 1024; // 1MB - for merging small chunks
 const FILE_TYPES = {
    'audio/wav': { extension: 'wav', contentType: 'audio/wav' },
    'audio/mpeg': { extension: 'mp3', contentType: 'audio/mpeg' },
@@ -15,7 +13,6 @@ const state = {
    processing: {
        isActive: false,
        startTime: null,
-       averageTimeByType: {},
        processedChunks: 0,
        totalChunks: 0
    },
@@ -23,11 +20,6 @@ const state = {
        text: '',
        segments: [],
        format: 'text'
-   },
-   rateLimit: {
-       usedSeconds: 0,
-       lastCheck: null,
-       resetTime: null
    }
 };
 
@@ -50,7 +42,7 @@ function initializeUI() {
    const apiKey = localStorage.getItem('groqApiKey');
    document.getElementById('apiRequest').style.display = apiKey ? 'none' : 'block';
    document.getElementById('startProcessBtn').style.display = apiKey ? 'block' : 'none';
-   
+
    // Initialize tabs
    document.getElementById('textTab').style.display = 'block';
    document.getElementById('srtTab').style.display = 'none';
@@ -64,25 +56,14 @@ function setupEventListeners() {
         logger.debug('ERROR', 'audioFile element not found in the DOM.');
     }
 
-    // Event listeners for tab links
     document.querySelectorAll('.tablinks').forEach(tab => {
         tab.addEventListener('click', (e) => openTab(e, e.currentTarget.dataset.format));
     });
 
-    const restartBtn = document.querySelector('#modal4 button[onclick="restartProcess()"]');
-    const downloadBtn = document.querySelector('#modal4 button[onclick="downloadTranscription()"]');
-
-    if (restartBtn) {
-        restartBtn.addEventListener('click', restartProcess);
-    } else {
-        logger.debug('ERROR', 'restartBtn element not found in the DOM.');
-    }
-
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', downloadTranscription);
-    } else {
-        logger.debug('ERROR', 'downloadBtn element not found in the DOM.');
-    }
+    document.getElementById('uploadBtn').addEventListener('click', uploadAudio);
+    document.getElementById('startProcessBtn').addEventListener('click', () => openModal('modal1'));
+    document.getElementById('restartProcessBtn').addEventListener('click', restartProcess);
+    document.getElementById('downloadTranscriptionBtn').addEventListener('click', downloadTranscription);
 }
 
 // File Management
@@ -103,16 +84,10 @@ function handleFileSelection(event) {
    document.getElementById('fileName').textContent = fileName;
    document.getElementById('uploadBtn').disabled = !file;
 
-   const avgTime = state.processing.averageTimeByType[file.type];
    logger.debug('FILE_SELECTED', `Selected file: ${fileName}`, {
        size: file.size,
-       type: file.type,
-       estimatedTime: avgTime
+       type: file.type
    });
-   
-   if (avgTime) {
-       showMessage(`זמן עיבוד משוער: ${formatTime(avgTime)}`);
-   }
 }
 
 // Audio Processing
@@ -125,61 +100,29 @@ async function splitAudioFile(file) {
        const start = i * chunkSize;
        const end = Math.min((i + 1) * chunkSize, file.size);
 
-       let chunk = file.slice(start, end);
-
-       // Merge small chunks to avoid issues with small files
-       if (chunk.size < MINIMUM_CHUNK_SIZE && i > 0) {
-           // Merge with the previous chunk
-           const previousChunk = audioChunks.pop();
-           const combinedBuffer = await new Blob([previousChunk, chunk]).arrayBuffer();
-           chunk = new Blob([combinedBuffer], { type: file.type });
-       }
-
+       const chunk = file.slice(start, end);
        const chunkFile = new File([chunk], `chunk_${i + 1}.${file.name.split('.').pop()}`, {
            type: file.type
        });
 
        audioChunks.push(chunkFile);
 
-       // Log the creation of each chunk
        logger.debug('CHUNK_CREATED', `Created chunk ${i + 1}/${chunks}`, {
            chunkSize: chunkFile.size,
            chunkType: chunkFile.type,
-           chunkName: chunkFile.name,
-           headerBytes: await getChunkHeader(chunkFile)
+           chunkName: chunkFile.name
        });
    }
 
    logger.debug('SPLIT_AUDIO_COMPLETE', `Completed splitting audio file into ${audioChunks.length} chunks`, {
-       totalChunks: audioChunks.length,
-       chunkDetails: audioChunks.map((chunk, index) => ({
-           chunkIndex: index + 1,
-           chunkSize: chunk.size,
-           chunkType: chunk.type
-       }))
+       totalChunks: audioChunks.length
    });
 
    return audioChunks;
 }
 
-// Function to get header bytes of a chunk
-async function getChunkHeader(chunk) {
-   try {
-       const headerSize = FILE_TYPES[chunk.type]?.headerSize || 0;
-       if (headerSize === 0) return 'N/A';
-       const headerBuffer = await chunk.slice(0, headerSize).arrayBuffer();
-       return Array.from(new Uint8Array(headerBuffer))
-           .map(byte => byte.toString(16).padStart(2, '0'))
-           .join(' ');
-   } catch (error) {
-       logger.debug('HEADER_ERROR', `Error reading header for chunk: ${chunk.name}`, { error: error.message });
-       return 'Error reading header';
-   }
-}
-
 // API Communication
 async function transcribeChunk(chunk, apiKey) {
-   const startTime = Date.now();
    const formData = new FormData();
    formData.append('file', chunk, chunk.name);
    formData.append('model', 'whisper-large-v3-turbo');
@@ -203,31 +146,17 @@ async function transcribeChunk(chunk, apiKey) {
 
        if (!response.ok) {
            const errorText = await response.text();
-           logger.debug('TRANSCRIBE_ERROR', `HTTP error! status: ${response.status}, message: ${errorText}`, {
-               chunkName: chunk.name,
-               responseStatus: response.status,
-               responseHeaders: [...response.headers]
-           });
+           logger.debug('TRANSCRIBE_ERROR', `HTTP error! status: ${response.status}, message: ${errorText}`);
            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
        }
 
        const result = await response.json();
-       const processTime = Date.now() - startTime;
-
-       // Update processing statistics
-       state.processing.averageTimeByType[chunk.type] = 
-           (state.processing.averageTimeByType[chunk.type] || processTime) * 0.7 + processTime * 0.3;
 
        logger.debug('TRANSCRIBE_SUCCESS', 'Successfully transcribed chunk', {
            chunkName: chunk.name,
-           responseTime: processTime,
            transcriptionTextLength: result.text.length,
            transcriptionText: result.text
        });
-
-       // Append the transcribed text to the global transcription state
-       state.transcription.text += result.text + ' ';
-       state.transcription.segments.push(...result.segments);
 
        return result;
 
@@ -263,8 +192,11 @@ async function uploadAudio() {
        updateProgress(10);
 
        for (let i = 0; i < chunks.length; i++) {
-           showMessage(`מתמלל חלק ${i + 1} מתוך ${chunks.length}`);
-           await transcribeChunk(chunks[i], apiKey);
+           const result = await transcribeChunk(chunks[i], apiKey);
+
+           if (result.text) {
+               state.transcription.text += result.text + ' ';
+           }
 
            state.processing.processedChunks++;
            updateProgress(10 + ((i + 1) / chunks.length * 90));
@@ -275,12 +207,6 @@ async function uploadAudio() {
        }
 
        state.transcription.text = state.transcription.text.trim();
-       
-       // Log the complete transcription text
-       logger.debug('COMPLETE_TRANSCRIPTION', 'Completed transcription for all chunks', {
-           completeTranscription: state.transcription.text
-       });
-
        updateProgress(100);
        showResults();
 
@@ -308,7 +234,6 @@ function showMessage(message, duration = 3000) {
    if (duration > 0) {
        setTimeout(() => messageEl.remove(), duration);
    }
-   return messageEl;
 }
 
 function updateProgress(percent) {
@@ -324,41 +249,12 @@ function showResults() {
 }
 
 // Utility Functions
-function adjustSegments(segments, chunkIndex, totalChunks) {
-   const timeOffset = chunkIndex * 30;
-   return segments.map(seg => ({
-       ...seg,
-       start: seg.start + timeOffset,
-       end: seg.end + timeOffset
-   }));
-}
-
 function generateSRT() {
-   if (!state.transcription.segments.length) return state.transcription.text;
-   
-   return state.transcription.segments
-       .map((seg, i) => `${i + 1}\n${formatTime(seg.start)} --> ${formatTime(seg.end)}\n${seg.text}\n`)
-       .join('\n');
-}
-
-function formatTime(seconds) {
-   if (typeof seconds !== 'number') return '00:00:00,000';
-   const date = new Date(seconds * 1000);
-   return [
-       date.getUTCHours().toString().padStart(2, '0'),
-       date.getUTCMinutes().toString().padStart(2, '0'),
-       date.getUTCSeconds().toString().padStart(2, '0')
-   ].join(':') + ',' + date.getUTCMilliseconds().toString().padStart(3, '0');
+   return state.transcription.text;
 }
 
 function handleError(error) {
-   if (error.message.includes('401')) {
-       alert('שגיאה במפתח API. נא להזין מפתח חדש.');
-       localStorage.removeItem('groqApiKey');
-       location.reload();
-   } else {
-       alert('שגיאה בתהליך התמלול. נא לנסות שוב.');
-   }
+   alert('שגיאה בתהליך התמלול. נא לנסות שוב.');
 }
 
 // Modal & Tab Management
@@ -398,25 +294,18 @@ function openTab(evt, tabName) {
 
 // Restart Process
 function restartProcess() {
-   // Reset application state
    state.transcription.text = '';
-   state.transcription.segments = [];
    state.processing.isActive = false;
    state.processing.processedChunks = 0;
    state.processing.totalChunks = 0;
-   
-   // Update UI progress
+
    updateProgress(0);
-   
-   // Clear displayed transcription text
    document.getElementById('textContent').textContent = '';
    document.getElementById('srtContent').textContent = '';
 
-   // Close all open modals
-   closeModal('modal3'); // Transcription progress modal
-   closeModal('modal4'); // Results display modal
+   closeModal('modal3');
+   closeModal('modal4');
 
-   // Show reset message to user
    showMessage('התהליך אותחל בהצלחה', 3000);
 }
 
