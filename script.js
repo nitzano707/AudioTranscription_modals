@@ -259,11 +259,11 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             const data = await response.json();
             console.log(`Received response for chunk ${currentChunk}:`, data);
             if (data.segments) {
-                // יצירת SRT עבור כל משפט בנפרד עם עדכון הזמן המצטבר
+                // יצירת SRT עבור כל משפט בנפרד ללא עדכון הזמן המצטבר
                 data.segments.forEach((segment, index) => {
                     if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-                        const startTime = formatTimestamp(segment.start + totalTimeElapsed);
-                        const endTime = formatTimestamp(segment.end + totalTimeElapsed);
+                        const startTime = formatTimestamp(segment.start);
+                        const endTime = formatTimestamp(segment.end);
                         const text = segment.text.trim();
 
                         transcriptionData.push({
