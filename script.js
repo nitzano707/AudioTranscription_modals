@@ -100,7 +100,9 @@ async function uploadAudio() {
             await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
 
             // עדכון הזמן המצטבר לאחר עיבוד המקטע הנוכחי
-            totalTimeElapsed += chunks[i].duration; // chunks[i].duration הוא משך הזמן של המקטע בשניות
+            if (chunks[i].duration) {
+                totalTimeElapsed += chunks[i].duration; // chunks[i].duration הוא משך הזמן של המקטע בשניות
+            }
 
             await new Promise(resolve => setTimeout(resolve, 500));
         }
