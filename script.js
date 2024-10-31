@@ -3,10 +3,10 @@ const MAX_CHUNK_SIZE = 24 * 1024 * 1024;  // 24MB
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const RATE_LIMIT_PER_HOUR = 7200; // seconds
 const FILE_TYPES = {
-   'audio/wav': { headerSize: 44, extension: 'wav', contentType: 'audio/wav' },
-   'audio/mpeg': { headerSize: 10, extension: 'mp3', contentType: 'audio/mpeg' },
-   'video/mp4': { headerSize: 100, extension: 'mp4', contentType: 'video/mp4' },
-   'audio/x-m4a': { headerSize: 100, extension: 'm4a', contentType: 'audio/m4a' }
+   'audio/wav': { extension: 'wav', contentType: 'audio/wav' },
+   'audio/mpeg': { extension: 'mp3', contentType: 'audio/mpeg' },
+   'video/mp4': { extension: 'mp4', contentType: 'video/mp4' },
+   'audio/x-m4a': { extension: 'm4a', contentType: 'audio/m4a' }
 };
 
 // State Management
@@ -92,46 +92,26 @@ function handleFileSelection(event) {
 
 // Audio Processing
 async function splitAudioFile(file) {
-   const chunkSize = 24 * 1024 * 1024;
+   const chunkSize = MAX_CHUNK_SIZE;
    const chunks = Math.ceil(file.size / chunkSize);
    const audioChunks = [];
-   
-   // קריאת ה-header של הקובץ המקורי
-   const headerSize = FILE_TYPES[file.type]?.headerSize || 0;
-   const headerBuffer = await file.slice(0, headerSize).arrayBuffer();
-   const header = new Uint8Array(headerBuffer);
-
-   // לוג של הכותרת המקורית
-   logger.debug('HEADER_CONTENT_ORIGINAL', `Header content for original file`, {
-       headerBytes: Array.from(header).map(byte => byte.toString(16).padStart(2, '0')).join(' ')
-   });
 
    for (let i = 0; i < chunks; i++) {
-       const start = i === 0 ? 0 : (i * chunkSize);
+       const start = i * chunkSize;
        const end = Math.min((i + 1) * chunkSize, file.size);
-       
-       let chunk;
-       if (i === 0) {
-           chunk = file.slice(start, end);
-       } else {
-           const chunkData = await file.slice(start, end).arrayBuffer();
-           const combinedBuffer = new Uint8Array(header.length + chunkData.byteLength);
-           combinedBuffer.set(header);
-           combinedBuffer.set(new Uint8Array(chunkData), header.length);
-           chunk = new Blob([combinedBuffer], { type: file.type });
-       }
 
+       // No need to add header manually - simply slicing the chunk
+       const chunk = file.slice(start, end);
        const chunkFile = new File([chunk], `chunk_${i + 1}.${file.name.split('.').pop()}`, {
            type: file.type
        });
-       
+
        audioChunks.push(chunkFile);
-       
-       // לוג של כל חתיכה שנוצרת
+
+       // Log the creation of each chunk
        logger.debug('CHUNK_CREATED', `Created chunk ${i + 1}/${chunks}`, {
            chunkSize: chunkFile.size,
-           chunkType: chunkFile.type,
-           chunkHeaderBytes: Array.from(header).map(byte => byte.toString(16).padStart(2, '0')).join(' ')
+           chunkType: chunkFile.type
        });
    }
 
@@ -239,8 +219,7 @@ async function uploadAudio() {
    } catch (error) {
        logger.debug('PROCESS_ERROR', error.message);
        handleError(error);
-   } finally
-   {
+   } finally {
        state.processing.isActive = false;
        closeModal('modal3');
    }
