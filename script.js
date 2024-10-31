@@ -79,32 +79,41 @@ async function splitAudioFile(file) {
     const chunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
     const audioChunks = [];
 
-    // Initial progress update
-    updateProgress(5);
-    showMessage(`מתחיל בעיבוד הקובץ. צפויים ${chunks} חלקים`);
-
-    // Extract original file details
-    const originalType = file.type || 'audio/wav';  // Default to wav if type is empty
-    const originalExtension = file.name.split('.').pop().toLowerCase();
+    // קריאת ה-header של קובץ ה-WAV
+    let wavHeader = null;
+    if (file.type === 'audio/wav') {
+        const headerBuffer = await file.slice(0, 44).arrayBuffer();  // WAV header is typically 44 bytes
+        wavHeader = new Uint8Array(headerBuffer);
+    }
 
     for (let i = 0; i < chunks; i++) {
         const start = i * MAX_CHUNK_SIZE;
         const end = Math.min((i + 1) * MAX_CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
+        let chunk;
+
+        if (file.type === 'audio/wav' && i > 0) {
+            // עבור חלקים נוספים של WAV, נוסיף את ה-header
+            const dataChunk = await file.slice(start, end).arrayBuffer();
+            const combinedBuffer = new Uint8Array(wavHeader.length + dataChunk.byteLength);
+            combinedBuffer.set(wavHeader, 0);
+            combinedBuffer.set(new Uint8Array(dataChunk), wavHeader.length);
+            chunk = new Blob([combinedBuffer], { type: 'audio/wav' });
+        } else {
+            chunk = file.slice(start, end);
+        }
         
-        // Create a new file with original type and extension
+        const originalExtension = file.name.split('.').pop().toLowerCase();
         const chunkName = `chunk_${i + 1}.${originalExtension}`;
-        const chunkFile = new File([chunk], chunkName, { 
-            type: originalType,
-            lastModified: new Date().getTime()
-        });
         
-        audioChunks.push(chunkFile);
+        audioChunks.push(new File([chunk], chunkName, { 
+            type: file.type,
+            lastModified: new Date().getTime()
+        }));
         
         logDebug('CHUNK_CREATED', `Created chunk ${i + 1}/${chunks}`, {
             chunkSize: chunk.size,
             chunkName: chunkName,
-            chunkType: chunkFile.type
+            chunkType: file.type
         });
     }
 
