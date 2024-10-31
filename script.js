@@ -1,7 +1,8 @@
 // Constants
-const MAX_CHUNK_SIZE = 3 * 1024 * 1024;  // 3MB
+const MAX_CHUNK_SIZE = 15 * 1024 * 1024;  // 15MB
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const RATE_LIMIT_PER_HOUR = 7200; // seconds
+const MINIMUM_CHUNK_SIZE = 1 * 1024 * 1024; // 1MB - for merging small chunks
 const FILE_TYPES = {
    'audio/wav': { extension: 'wav', contentType: 'audio/wav' },
    'audio/mpeg': { extension: 'mp3', contentType: 'audio/mpeg' },
@@ -100,8 +101,16 @@ async function splitAudioFile(file) {
        const start = i * chunkSize;
        const end = Math.min((i + 1) * chunkSize, file.size);
 
-       // No need to add header manually - simply slicing the chunk
-       const chunk = file.slice(start, end);
+       let chunk = file.slice(start, end);
+
+       // Merge small chunks to avoid issues with small files
+       if (chunk.size < MINIMUM_CHUNK_SIZE && i > 0) {
+           // Merge with the previous chunk
+           const previousChunk = audioChunks.pop();
+           const combinedBuffer = await new Blob([previousChunk, chunk]).arrayBuffer();
+           chunk = new Blob([combinedBuffer], { type: file.type });
+       }
+
        const chunkFile = new File([chunk], `chunk_${i + 1}.${file.name.split('.').pop()}`, {
            type: file.type
        });
@@ -127,7 +136,6 @@ async function splitAudioFile(file) {
    return audioChunks;
 }
 
-// API Communication
 // API Communication
 async function transcribeChunk(chunk, apiKey) {
    const startTime = Date.now();
@@ -183,7 +191,6 @@ async function transcribeChunk(chunk, apiKey) {
    }
 }
 
-
 // Main Process
 async function uploadAudio() {
    if (state.processing.isActive) return;
@@ -219,6 +226,12 @@ async function uploadAudio() {
        }
 
        state.transcription.text = state.transcription.text.trim();
+       
+       // Log the complete transcription text
+       logger.debug('COMPLETE_TRANSCRIPTION', 'Completed transcription for all chunks', {
+           completeTranscription: state.transcription.text
+       });
+
        updateProgress(100);
        showResults();
 
@@ -340,4 +353,26 @@ function saveApiKey() {
        localStorage.setItem('groqApiKey', apiKey);
        initializeUI();
    }
+}
+
+// Restart Process
+function restartProcess() {
+   state.transcription.text = '';
+   state.transcription.segments = [];
+   state.processing.isActive = false;
+   state.processing.processedChunks = 0;
+   state.processing.totalChunks = 0;
+   updateProgress(0);
+   document.getElementById('textContent').textContent = '';
+   document.getElementById('srtContent').textContent = '';
+   showMessage('התהליך אותחל בהצלחה', 3000);
+}
+
+// Download Transcription
+function downloadTranscription() {
+   const blob = new Blob([state.transcription.text], { type: 'text/plain;charset=utf-8' });
+   const link = document.createElement('a');
+   link.href = URL.createObjectURL(blob);
+   link.download = `transcription_${new Date().toISOString()}.txt`;
+   link.click();
 }
