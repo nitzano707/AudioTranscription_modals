@@ -2,6 +2,8 @@
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
+let const maxChunkSizeMB = 5 * 1024 * 1024; // 5 MB לכל מקטע
+  
 
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
@@ -77,8 +79,7 @@ async function uploadAudio() {
         return;
     }
 
-    const maxChunkSizeMB = 5;
-    const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
+   
     let transcriptionData = [];
 
     try {
