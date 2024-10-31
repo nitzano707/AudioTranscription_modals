@@ -128,6 +128,15 @@ async function splitAudioFile(file) {
        });
    }
 
+   logger.debug('SPLIT_AUDIO_COMPLETE', `Completed splitting audio file into ${audioChunks.length} chunks`, {
+       totalChunks: audioChunks.length,
+       chunkDetails: audioChunks.map((chunk, index) => ({
+           chunkIndex: index + 1,
+           chunkSize: chunk.size,
+           chunkType: chunk.type
+       }))
+   });
+
    return audioChunks;
 }
 
@@ -139,6 +148,12 @@ async function transcribeChunk(chunk, apiKey, retryCount = 0) {
    formData.append('model', 'whisper-large-v3-turbo');
    formData.append('response_format', 'verbose_json');
    formData.append('language', 'he');
+
+   logger.debug('TRANSCRIBE_REQUEST', 'Sending transcription request for chunk', {
+       chunkName: chunk.name,
+       chunkSize: chunk.size,
+       chunkType: chunk.type
+   });
 
    try {
        const response = await fetch(API_URL, {
@@ -170,6 +185,12 @@ async function transcribeChunk(chunk, apiKey, retryCount = 0) {
        // Update processing statistics
        state.processing.averageTimeByType[chunk.type] = 
            (state.processing.averageTimeByType[chunk.type] || processTime) * 0.7 + processTime * 0.3;
+
+       logger.debug('TRANSCRIBE_SUCCESS', 'Successfully transcribed chunk', {
+           chunkName: chunk.name,
+           responseTime: processTime,
+           transcriptionTextLength: result.text.length
+       });
 
        return result;
 
