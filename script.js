@@ -288,7 +288,6 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     } catch (error) {
         console.error('Network error:', error);
     }
-}"`
 }
 
 function formatTimestamp(seconds) {
