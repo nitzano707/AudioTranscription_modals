@@ -1,5 +1,5 @@
 // Constants
-const MAX_CHUNK_SIZE = 15 * 1024 * 1024;  // 15MB
+const MAX_CHUNK_SIZE = 13 * 1024 * 1024;  // 3MB
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const RATE_LIMIT_PER_HOUR = 7200; // seconds
 const MINIMUM_CHUNK_SIZE = 1 * 1024 * 1024; // 1MB - for merging small chunks
@@ -68,6 +68,21 @@ function setupEventListeners() {
     document.querySelectorAll('.tablinks').forEach(tab => {
         tab.addEventListener('click', (e) => openTab(e, e.currentTarget.dataset.format));
     });
+
+    const restartBtn = document.querySelector('#modal4 button[onclick="restartProcess()"]');
+    const downloadBtn = document.querySelector('#modal4 button[onclick="downloadTranscription()"]');
+
+    if (restartBtn) {
+        restartBtn.addEventListener('click', restartProcess);
+    } else {
+        logger.debug('ERROR', 'restartBtn element not found in the DOM.');
+    }
+
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadTranscription);
+    } else {
+        logger.debug('ERROR', 'downloadBtn element not found in the DOM.');
+    }
 }
 
 // File Management
@@ -129,7 +144,9 @@ async function splitAudioFile(file) {
        // Log the creation of each chunk
        logger.debug('CHUNK_CREATED', `Created chunk ${i + 1}/${chunks}`, {
            chunkSize: chunkFile.size,
-           chunkType: chunkFile.type
+           chunkType: chunkFile.type,
+           chunkName: chunkFile.name,
+           headerBytes: await getChunkHeader(chunkFile)
        });
    }
 
@@ -143,6 +160,21 @@ async function splitAudioFile(file) {
    });
 
    return audioChunks;
+}
+
+// Function to get header bytes of a chunk
+async function getChunkHeader(chunk) {
+   try {
+       const headerSize = FILE_TYPES[chunk.type]?.headerSize || 0;
+       if (headerSize === 0) return 'N/A';
+       const headerBuffer = await chunk.slice(0, headerSize).arrayBuffer();
+       return Array.from(new Uint8Array(headerBuffer))
+           .map(byte => byte.toString(16).padStart(2, '0'))
+           .join(' ');
+   } catch (error) {
+       logger.debug('HEADER_ERROR', `Error reading header for chunk: ${chunk.name}`, { error: error.message });
+       return 'Error reading header';
+   }
 }
 
 // API Communication
@@ -171,7 +203,11 @@ async function transcribeChunk(chunk, apiKey) {
 
        if (!response.ok) {
            const errorText = await response.text();
-           logger.debug('TRANSCRIBE_ERROR', `HTTP error! status: ${response.status}, message: ${errorText}`);
+           logger.debug('TRANSCRIBE_ERROR', `HTTP error! status: ${response.status}, message: ${errorText}`, {
+               chunkName: chunk.name,
+               responseStatus: response.status,
+               responseHeaders: [...response.headers]
+           });
            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
        }
 
@@ -196,7 +232,10 @@ async function transcribeChunk(chunk, apiKey) {
        return result;
 
    } catch (error) {
-       logger.debug('TRANSCRIBE_ERROR', error.message);
+       logger.debug('TRANSCRIBE_ERROR', error.message, {
+           chunkName: chunk.name,
+           chunkContentType: chunk.type
+       });
        throw error;
    }
 }
@@ -328,7 +367,6 @@ function openModal(modalId) {
    if (modal) {
        modal.style.display = 'block';
        document.body.classList.add('modal-open');
-       setupModalEventListeners(modalId);
    }
 }
 
@@ -338,26 +376,6 @@ function closeModal(modalId) {
        modal.style.display = 'none';
        document.body.classList.remove('modal-open');
    }
-}
-
-// Event listeners setup for modal buttons
-function setupModalEventListeners(modalId) {
-    if (modalId === 'modal4') {
-        const restartBtn = document.querySelector('#modal4 button[onclick="restartProcess()"]');
-        const downloadBtn = document.querySelector('#modal4 button[onclick="downloadTranscription()"]');
-
-        if (restartBtn) {
-            restartBtn.addEventListener('click', restartProcess);
-        } else {
-            logger.debug('ERROR', 'restartBtn element not found in the DOM.');
-        }
-
-        if (downloadBtn) {
-            downloadBtn.addEventListener('click', downloadTranscription);
-        } else {
-            logger.debug('ERROR', 'downloadBtn element not found in the DOM.');
-        }
-    }
 }
 
 function openTab(evt, tabName) {
