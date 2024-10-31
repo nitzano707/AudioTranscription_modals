@@ -2,6 +2,8 @@
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
+let accumulatedTime = 0; // משתנה לצבירת זמן
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
@@ -256,8 +258,8 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                 // יצירת SRT עבור כל משפט בנפרד
                 data.segments.forEach((segment, index) => {
                     if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-                        const startTime = formatTimestamp(segment.start);
-                        const endTime = formatTimestamp(segment.end);
+                        const startTime = formatTimestamp(segment.start + accumulatedTime);
+                        const endTime = formatTimestamp(segment.end + accumulatedTime);
                         const text = segment.text.trim();
 
                         transcriptionData.push({
@@ -268,6 +270,12 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                         console.warn(`Invalid timestamp for segment ${index}:`, segment);
                     }
                 });
+
+                // עדכן את accumulatedTime עם משך המקטע האחרון
+                const lastSegment = data.segments[data.segments.length - 1];
+                if (lastSegment && typeof lastSegment.end === 'number') {
+                    accumulatedTime += lastSegment.end;
+                }
             } else {
                 console.warn(`Missing segments in response for chunk ${currentChunk}`);
             }
@@ -285,6 +293,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
         console.error('Network error:', error);
     }
 }
+
 
 function formatTimestamp(seconds) {
     if (typeof seconds !== 'number' || isNaN(seconds)) {
