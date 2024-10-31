@@ -83,20 +83,28 @@ async function splitAudioFile(file) {
     updateProgress(5);
     showMessage(`מתחיל בעיבוד הקובץ. צפויים ${chunks} חלקים`);
 
+    // Extract original file details
+    const originalType = file.type || 'audio/wav';  // Default to wav if type is empty
+    const originalExtension = file.name.split('.').pop().toLowerCase();
+
     for (let i = 0; i < chunks; i++) {
         const start = i * MAX_CHUNK_SIZE;
         const end = Math.min((i + 1) * MAX_CHUNK_SIZE, file.size);
         const chunk = file.slice(start, end);
         
-        // Keep original file format
-        const originalExtension = file.name.split('.').pop().toLowerCase();
+        // Create a new file with original type and extension
         const chunkName = `chunk_${i + 1}.${originalExtension}`;
+        const chunkFile = new File([chunk], chunkName, { 
+            type: originalType,
+            lastModified: new Date().getTime()
+        });
         
-        audioChunks.push(new File([chunk], chunkName, { type: file.type }));
+        audioChunks.push(chunkFile);
         
         logDebug('CHUNK_CREATED', `Created chunk ${i + 1}/${chunks}`, {
             chunkSize: chunk.size,
-            chunkName: chunkName
+            chunkName: chunkName,
+            chunkType: chunkFile.type
         });
     }
 
