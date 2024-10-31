@@ -101,6 +101,11 @@ async function splitAudioFile(file) {
    const headerBuffer = await file.slice(0, headerSize).arrayBuffer();
    const header = new Uint8Array(headerBuffer);
 
+   // לוג של הכותרת המקורית
+   logger.debug('HEADER_CONTENT_ORIGINAL', `Header content for original file`, {
+       headerBytes: Array.from(header).map(byte => byte.toString(16).padStart(2, '0')).join(' ')
+   });
+
    for (let i = 0; i < chunks; i++) {
        const start = i === 0 ? 0 : (i * chunkSize);
        const end = Math.min((i + 1) * chunkSize, file.size);
@@ -122,9 +127,11 @@ async function splitAudioFile(file) {
        
        audioChunks.push(chunkFile);
        
+       // לוג של כל חתיכה שנוצרת
        logger.debug('CHUNK_CREATED', `Created chunk ${i + 1}/${chunks}`, {
            chunkSize: chunkFile.size,
-           chunkType: chunkFile.type
+           chunkType: chunkFile.type,
+           chunkHeaderBytes: Array.from(header).map(byte => byte.toString(16).padStart(2, '0')).join(' ')
        });
    }
 
@@ -358,6 +365,7 @@ function openTab(evt, tabName) {
        state.transcription.format = evt.currentTarget.dataset.format;
    }
 }
+
 
 function saveApiKey() {
    const apiKey = document.getElementById('apiKeyInput').value.trim();
