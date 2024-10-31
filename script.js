@@ -58,37 +58,13 @@ function initializeUI() {
 
 function setupEventListeners() {
     const fileInput = document.getElementById('audioFile');
-    const restartBtn = document.getElementById('restartBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const showSRTButton = document.getElementById('showSRTButton');
-
     if (fileInput) {
         fileInput.addEventListener('change', handleFileSelection);
     } else {
         logger.debug('ERROR', 'audioFile element not found in the DOM.');
     }
 
-    if (restartBtn) {
-        restartBtn.addEventListener('click', restartProcess);
-    } else {
-        logger.debug('ERROR', 'restartBtn element not found in the DOM.');
-    }
-
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', downloadTranscription);
-    } else {
-        logger.debug('ERROR', 'downloadBtn element not found in the DOM.');
-    }
-
-    if (showSRTButton) {
-        showSRTButton.addEventListener('click', () => {
-            document.getElementById('srtContent').textContent = generateSRT();
-            openTab(null, 'srtTab');
-        });
-    } else {
-        logger.debug('ERROR', 'showSRTButton element not found in the DOM.');
-    }
-
+    // Event listeners for tab links
     document.querySelectorAll('.tablinks').forEach(tab => {
         tab.addEventListener('click', (e) => openTab(e, e.currentTarget.dataset.format));
     });
@@ -266,11 +242,6 @@ async function uploadAudio() {
            completeTranscription: state.transcription.text
        });
 
-       // Log average processing time by type
-       logger.debug('AVERAGE_TIME_BY_TYPE', 'Average processing time by type', {
-           averageTimes: state.processing.averageTimeByType
-       });
-
        updateProgress(100);
        showResults();
 
@@ -357,6 +328,7 @@ function openModal(modalId) {
    if (modal) {
        modal.style.display = 'block';
        document.body.classList.add('modal-open');
+       setupModalEventListeners(modalId);
    }
 }
 
@@ -366,6 +338,26 @@ function closeModal(modalId) {
        modal.style.display = 'none';
        document.body.classList.remove('modal-open');
    }
+}
+
+// Event listeners setup for modal buttons
+function setupModalEventListeners(modalId) {
+    if (modalId === 'modal4') {
+        const restartBtn = document.querySelector('#modal4 button[onclick="restartProcess()"]');
+        const downloadBtn = document.querySelector('#modal4 button[onclick="downloadTranscription()"]');
+
+        if (restartBtn) {
+            restartBtn.addEventListener('click', restartProcess);
+        } else {
+            logger.debug('ERROR', 'restartBtn element not found in the DOM.');
+        }
+
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', downloadTranscription);
+        } else {
+            logger.debug('ERROR', 'downloadBtn element not found in the DOM.');
+        }
+    }
 }
 
 function openTab(evt, tabName) {
@@ -386,35 +378,27 @@ function openTab(evt, tabName) {
    }
 }
 
-function saveApiKey() {
-   const apiKey = document.getElementById('apiKeyInput').value.trim();
-   if (apiKey) {
-       localStorage.setItem('groqApiKey', apiKey);
-       initializeUI();
-   }
-}
-
 // Restart Process
 function restartProcess() {
-   // אתחול המצב הגלובלי של האפליקציה
+   // Reset application state
    state.transcription.text = '';
    state.transcription.segments = [];
    state.processing.isActive = false;
    state.processing.processedChunks = 0;
    state.processing.totalChunks = 0;
    
-   // עדכון ההתקדמות בממשק
+   // Update UI progress
    updateProgress(0);
    
-   // ניקוי טקסט התמלול המוצג
+   // Clear displayed transcription text
    document.getElementById('textContent').textContent = '';
    document.getElementById('srtContent').textContent = '';
 
-   // סגירת כל המודאלים הפתוחים
-   closeModal('modal3'); // מודאל התקדמות התמלול
-   closeModal('modal4'); // מודאל הצגת התוצאות
+   // Close all open modals
+   closeModal('modal3'); // Transcription progress modal
+   closeModal('modal4'); // Results display modal
 
-   // הצגת הודעת אתחול למשתמש
+   // Show reset message to user
    showMessage('התהליך אותחל בהצלחה', 3000);
 }
 
@@ -425,4 +409,13 @@ function downloadTranscription() {
    link.href = URL.createObjectURL(blob);
    link.download = `transcription_${new Date().toISOString()}.txt`;
    link.click();
+}
+
+// Save API Key
+function saveApiKey() {
+   const apiKey = document.getElementById('apiKeyInput').value.trim();
+   if (apiKey) {
+       localStorage.setItem('groqApiKey', apiKey);
+       initializeUI();
+   }
 }
