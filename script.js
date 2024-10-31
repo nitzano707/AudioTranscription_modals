@@ -1,5 +1,5 @@
 // Constants
-const MAX_CHUNK_SIZE = 24 * 1024 * 1024;  // 24MB
+const MAX_CHUNK_SIZE = 3 * 1024 * 1024;  // 3MB
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const RATE_LIMIT_PER_HOUR = 7200; // seconds
 const FILE_TYPES = {
