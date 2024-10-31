@@ -1,5 +1,5 @@
 // Constants
-const MAX_CHUNK_SIZE = 15 * 1024 * 1024;  // 15MB
+const MAX_CHUNK_SIZE = 3 * 1024 * 1024;  // 3MB
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const RATE_LIMIT_PER_HOUR = 7200; // seconds
 const MINIMUM_CHUNK_SIZE = 1 * 1024 * 1024; // 1MB - for merging small chunks
@@ -60,7 +60,13 @@ function setupEventListeners() {
    const fileInput = document.getElementById('audioFile');
    fileInput.addEventListener('change', handleFileSelection);
    document.querySelectorAll('.tablinks').forEach(tab => {
-       tab.addEventListener('click', (e) => state.transcription.format = e.currentTarget.dataset.format);
+       tab.addEventListener('click', (e) => openTab(e, e.currentTarget.dataset.format));
+   });
+   document.getElementById('restartBtn').addEventListener('click', restartProcess);
+   document.getElementById('downloadBtn').addEventListener('click', downloadTranscription);
+   document.getElementById('showSRTButton').addEventListener('click', () => {
+       document.getElementById('srtContent').textContent = generateSRT();
+       openTab(null, 'srtTab');
    });
 }
 
@@ -177,11 +183,12 @@ async function transcribeChunk(chunk, apiKey) {
            chunkName: chunk.name,
            responseTime: processTime,
            transcriptionTextLength: result.text.length,
-           transcriptionText: result.text  // Adding transcription text for each chunk to the log
+           transcriptionText: result.text
        });
 
        // Append the transcribed text to the global transcription state
        state.transcription.text += result.text + ' ';
+       state.transcription.segments.push(...result.segments);
 
        return result;
 
@@ -230,6 +237,11 @@ async function uploadAudio() {
        // Log the complete transcription text
        logger.debug('COMPLETE_TRANSCRIPTION', 'Completed transcription for all chunks', {
            completeTranscription: state.transcription.text
+       });
+
+       // Log average processing time by type
+       logger.debug('AVERAGE_TIME_BY_TYPE', 'Average processing time by type', {
+           averageTimes: state.processing.averageTimeByType
        });
 
        updateProgress(100);
@@ -357,14 +369,25 @@ function saveApiKey() {
 
 // Restart Process
 function restartProcess() {
+   // אתחול המצב הגלובלי של האפליקציה
    state.transcription.text = '';
    state.transcription.segments = [];
    state.processing.isActive = false;
    state.processing.processedChunks = 0;
    state.processing.totalChunks = 0;
+   
+   // עדכון ההתקדמות בממשק
    updateProgress(0);
+   
+   // ניקוי טקסט התמלול המוצג
    document.getElementById('textContent').textContent = '';
    document.getElementById('srtContent').textContent = '';
+
+   // סגירת כל המודאלים הפתוחים
+   closeModal('modal3'); // מודאל התקדמות התמלול
+   closeModal('modal4'); // מודאל הצגת התוצאות
+
+   // הצגת הודעת אתחול למשתמש
    showMessage('התהליך אותחל בהצלחה', 3000);
 }
 
