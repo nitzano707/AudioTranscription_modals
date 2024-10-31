@@ -57,18 +57,34 @@ function initializeUI() {
 }
 
 function setupEventListeners() {
-   const fileInput = document.getElementById('audioFile');
-   fileInput.addEventListener('change', handleFileSelection);
-   document.querySelectorAll('.tablinks').forEach(tab => {
-       tab.addEventListener('click', (e) => openTab(e, e.currentTarget.dataset.format));
-   });
-   document.getElementById('restartBtn').addEventListener('click', restartProcess);
-   document.getElementById('downloadBtn').addEventListener('click', downloadTranscription);
-   document.getElementById('showSRTButton').addEventListener('click', () => {
-       document.getElementById('srtContent').textContent = generateSRT();
-       openTab(null, 'srtTab');
-   });
+    const fileInput = document.getElementById('audioFile');
+    if (fileInput) {
+        fileInput.addEventListener('change', handleFileSelection);
+    }
+
+    const restartBtn = document.getElementById('restartBtn');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', restartProcess);
+    }
+
+    const downloadBtn = document.getElementById('downloadBtn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadTranscription);
+    }
+
+    const showSRTButton = document.getElementById('showSRTButton');
+    if (showSRTButton) {
+        showSRTButton.addEventListener('click', () => {
+            document.getElementById('srtContent').textContent = generateSRT();
+            openTab(null, 'srtTab');
+        });
+    }
+
+    document.querySelectorAll('.tablinks').forEach(tab => {
+        tab.addEventListener('click', (e) => openTab(e, e.currentTarget.dataset.format));
+    });
 }
+
 
 // File Management
 function triggerFileUpload() {
