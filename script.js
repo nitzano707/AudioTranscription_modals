@@ -3,10 +3,10 @@ const MAX_CHUNK_SIZE = 24 * 1024 * 1024;  // 24MB
 const API_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const RATE_LIMIT_PER_HOUR = 7200; // seconds
 const FILE_TYPES = {
-   'audio/wav': { headerSize: 44, extension: 'wav' },
-   'audio/mpeg': { headerSize: 10, extension: 'mp3' },
-   'video/mp4': { headerSize: 100, extension: 'mp4' },
-   'audio/x-m4a': { headerSize: 100, extension: 'm4a' }
+   'audio/wav': { headerSize: 44, extension: 'wav', contentType: 'audio/wav' },
+   'audio/mpeg': { headerSize: 10, extension: 'mp3', contentType: 'audio/mpeg' },
+   'video/mp4': { headerSize: 100, extension: 'mp4', contentType: 'video/mp4' },
+   'audio/x-m4a': { headerSize: 100, extension: 'm4a', contentType: 'audio/m4a' }
 };
 
 // State Management
@@ -151,7 +151,7 @@ async function splitAudioFile(file) {
 async function transcribeChunk(chunk, apiKey, retryCount = 0) {
    const startTime = Date.now();
    const formData = new FormData();
-   formData.append('file', chunk);
+   formData.append('file', chunk, chunk.name);
    formData.append('model', 'whisper-large-v3-turbo');
    formData.append('response_format', 'verbose_json');
    formData.append('language', 'he');
@@ -165,7 +165,10 @@ async function transcribeChunk(chunk, apiKey, retryCount = 0) {
    try {
        const response = await fetch(API_URL, {
            method: 'POST',
-           headers: { 'Authorization': `Bearer ${apiKey}` },
+           headers: { 
+               'Authorization': `Bearer ${apiKey}`,
+               'Content-Type': FILE_TYPES[chunk.type]?.contentType || 'application/octet-stream'
+           },
            body: formData
        });
 
@@ -363,6 +366,14 @@ function openTab(evt, tabName) {
    if (evt?.currentTarget) {
        evt.currentTarget.classList.add('active');
        state.transcription.format = evt.currentTarget.dataset.format;
+   }
+}
+
+function saveApiKey() {
+   const apiKey = document.getElementById('apiKeyInput').value.trim();
+   if (apiKey) {
+       localStorage.setItem('groqApiKey', apiKey);
+       initializeUI();
    }
 }
 
