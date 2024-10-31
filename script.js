@@ -92,32 +92,15 @@ function handleFileSelection(event) {
 
 // Audio Processing
 async function splitAudioFile(file) {
-   if (file.size <= MAX_CHUNK_SIZE) {
-       return [file];
-   }
-
-   const fileInfo = FILE_TYPES[file.type] || FILE_TYPES['audio/wav'];
-   const chunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
-   const headerBuffer = await file.slice(0, fileInfo.headerSize).arrayBuffer();
-   const header = new Uint8Array(headerBuffer);
+   const chunkSize = 24 * 1024 * 1024;
+   const chunks = Math.ceil(file.size / chunkSize);
    const audioChunks = [];
 
    for (let i = 0; i < chunks; i++) {
-       const start = i === 0 ? 0 : (i * MAX_CHUNK_SIZE);
-       const end = Math.min((i + 1) * MAX_CHUNK_SIZE, file.size);
-       let chunk;
-
-       if (i === 0) {
-           chunk = file.slice(start, end);
-       } else {
-           const chunkData = await file.slice(start, end).arrayBuffer();
-           const combinedBuffer = new Uint8Array(header.length + chunkData.byteLength);
-           combinedBuffer.set(header);
-           combinedBuffer.set(new Uint8Array(chunkData), header.length);
-           chunk = new Blob([combinedBuffer], { type: file.type });
-       }
-
-       audioChunks.push(new File([chunk], `chunk_${i + 1}.${fileInfo.extension}`, { type: file.type }));
+       const start = i * chunkSize;
+       const end = Math.min((i + 1) * chunkSize, file.size);
+       const chunk = file.slice(start, end);
+       audioChunks.push(new File([chunk], `chunk_${i + 1}.${file.name.split('.').pop()}`, { type: file.type }));
        logger.debug('CHUNK_CREATED', `Created chunk ${i + 1}/${chunks}`);
    }
 
@@ -152,7 +135,9 @@ async function transcribeChunk(chunk, apiKey, retryCount = 0) {
        }
 
        if (!response.ok) {
-           throw new Error(`HTTP error! status: ${response.status}`);
+           const errorText = await response.text();
+           logger.debug('TRANSCRIBE_ERROR', `HTTP error! status: ${response.status}, message: ${errorText}`);
+           throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
        }
 
        const result = await response.json();
