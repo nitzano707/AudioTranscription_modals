@@ -13,6 +13,15 @@ let state = {
     currentFormat: 'text' // Default format
 };
 
+// Debug Logger
+function logDebug(stage, message, data = null) {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [${stage}] ${message}`);
+    if (data) {
+        console.log('Data:', data);
+    }
+}
+
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
     initializeUI();
@@ -47,6 +56,12 @@ function handleFileSelection(event) {
     const fileName = file ? file.name : "לא נבחר קובץ";
     document.getElementById('fileName').textContent = fileName;
     document.getElementById('uploadBtn').disabled = !file;
+    
+    logDebug('FILE_SELECTED', `File selected by user`, {
+        name: fileName,
+        size: file?.size,
+        type: file?.type
+    });
 }
 
 function triggerFileUpload() {
@@ -56,14 +71,33 @@ function triggerFileUpload() {
 }
 
 async function splitAudioFile(file) {
+    logDebug('FILE_SPLIT', `Starting to split file: ${file.name}`, {
+        size: file.size,
+        type: file.type
+    });
+
     const chunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
     const audioChunks = [];
+
+    // Initial progress update
+    updateProgress(5);
+    showMessage(`מתחיל בעיבוד הקובץ. צפויים ${chunks} חלקים`);
 
     for (let i = 0; i < chunks; i++) {
         const start = i * MAX_CHUNK_SIZE;
         const end = Math.min((i + 1) * MAX_CHUNK_SIZE, file.size);
         const chunk = file.slice(start, end);
-        audioChunks.push(new File([chunk], `chunk_${i + 1}.wav`, { type: 'audio/wav' }));
+        
+        // Keep original file format
+        const originalExtension = file.name.split('.').pop().toLowerCase();
+        const chunkName = `chunk_${i + 1}.${originalExtension}`;
+        
+        audioChunks.push(new File([chunk], chunkName, { type: file.type }));
+        
+        logDebug('CHUNK_CREATED', `Created chunk ${i + 1}/${chunks}`, {
+            chunkSize: chunk.size,
+            chunkName: chunkName
+        });
     }
 
     return audioChunks;
@@ -71,6 +105,11 @@ async function splitAudioFile(file) {
 
 // API Communication
 async function transcribeChunk(chunk, apiKey) {
+    logDebug('TRANSCRIBE_START', `Starting transcription for chunk: ${chunk.name}`, {
+        chunkSize: chunk.size,
+        chunkType: chunk.type
+    });
+
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
@@ -88,12 +127,23 @@ async function transcribeChunk(chunk, apiKey) {
 
         if (!response.ok) {
             const errorText = await response.text();
+            logDebug('API_ERROR', `API returned error`, {
+                status: response.status,
+                errorText: errorText
+            });
             throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
 
-        return await response.json();
+        const result = await response.json();
+        logDebug('TRANSCRIBE_SUCCESS', `Successfully transcribed chunk`, {
+            textLength: result.text?.length || 0
+        });
+        return result;
+
     } catch (error) {
-        console.error('Transcription error:', error);
+        logDebug('TRANSCRIBE_ERROR', `Error during transcription`, {
+            error: error.message
+        });
         throw error;
     }
 }
@@ -105,6 +155,11 @@ function downloadTranscription() {
     const fileExtension = format === 'text' ? 'txt' : 'srt';
     const fileName = `transcription_${new Date().toISOString()}.${fileExtension}`;
     
+    logDebug('DOWNLOAD_START', `Starting download`, {
+        format: format,
+        fileName: fileName
+    });
+
     // Create blob and download
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -119,6 +174,7 @@ function downloadTranscription() {
     URL.revokeObjectURL(url);
     
     showMessage('הקובץ הורד בהצלחה!');
+    logDebug('DOWNLOAD_COMPLETE', `File download completed`);
 }
 
 function generateSRTContent() {
@@ -161,7 +217,14 @@ async function uploadAudio() {
     const apiKey = localStorage.getItem('groqApiKey');
     const file = document.getElementById('audioFile').files[0];
 
+    logDebug('UPLOAD_START', `Starting upload process`, {
+        fileName: file?.name,
+        fileSize: file?.size,
+        fileType: file?.type
+    });
+
     if (!apiKey || !file) {
+        logDebug('VALIDATION_ERROR', `Missing API key or file`);
         alert(!apiKey ? 'מפתח API חסר. נא להזין מחדש.' : 'אנא בחר קובץ להעלאה.');
         return;
     }
@@ -172,10 +235,18 @@ async function uploadAudio() {
 
     try {
         const chunks = await splitAudioFile(file);
+        logDebug('CHUNKS_CREATED', `File split complete`, {
+            numberOfChunks: chunks.length
+        });
+        
+        // Update progress after file splitting
+        updateProgress(10);
         
         for (let i = 0; i < chunks.length; i++) {
-            updateProgress((i / chunks.length) * 100);
-            showMessage(`מתמלל חלק ${i + 1} מתוך ${chunks.length}...`, 0);
+            const chunkProgress = (i / chunks.length) * 80; // 80% for processing chunks
+            updateProgress(10 + chunkProgress);
+            
+            showMessage(`מתמלל חלק ${i + 1} מתוך ${chunks.length}...`);
             
             const result = await transcribeChunk(chunks[i], apiKey);
             
@@ -191,9 +262,18 @@ async function uploadAudio() {
         }
 
         state.transcriptionText = state.transcriptionText.trim();
+        logDebug('PROCESS_COMPLETE', `Transcription complete`, {
+            finalTextLength: state.transcriptionText.length,
+            numberOfSegments: state.segments.length
+        });
+        
+        updateProgress(100);
         showResults();
 
     } catch (error) {
+        logDebug('PROCESS_ERROR', `Error in upload process`, {
+            error: error.message
+        });
         console.error('Processing error:', error);
         handleError(error);
     } finally {
@@ -320,5 +400,6 @@ function saveApiKey() {
         localStorage.setItem('groqApiKey', apiKey);
         document.getElementById('apiRequest').style.display = 'none';
         document.getElementById('startProcessBtn').style.display = 'block';
+        logDebug('API_KEY_SAVED', 'API key saved successfully');
     }
 }
