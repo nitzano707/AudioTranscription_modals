@@ -128,6 +128,7 @@ async function splitAudioFile(file) {
 }
 
 // API Communication
+// API Communication
 async function transcribeChunk(chunk, apiKey) {
    const startTime = Date.now();
    const formData = new FormData();
@@ -159,7 +160,7 @@ async function transcribeChunk(chunk, apiKey) {
 
        const result = await response.json();
        const processTime = Date.now() - startTime;
-       
+
        // Update processing statistics
        state.processing.averageTimeByType[chunk.type] = 
            (state.processing.averageTimeByType[chunk.type] || processTime) * 0.7 + processTime * 0.3;
@@ -167,8 +168,12 @@ async function transcribeChunk(chunk, apiKey) {
        logger.debug('TRANSCRIBE_SUCCESS', 'Successfully transcribed chunk', {
            chunkName: chunk.name,
            responseTime: processTime,
-           transcriptionTextLength: result.text.length
+           transcriptionTextLength: result.text.length,
+           transcriptionText: result.text  // Adding transcription text for each chunk to the log
        });
+
+       // Append the transcribed text to the global transcription state
+       state.transcription.text += result.text + ' ';
 
        return result;
 
@@ -177,6 +182,7 @@ async function transcribeChunk(chunk, apiKey) {
        throw error;
    }
 }
+
 
 // Main Process
 async function uploadAudio() {
