@@ -164,13 +164,12 @@ async function transcribeChunk(chunk, apiKey, retryCount = 0) {
 
    try {
        const response = await fetch(API_URL, {
-           method: 'POST',
-           headers: { 
-               'Authorization': `Bearer ${apiKey}`,
-               'Content-Type': FILE_TYPES[chunk.type]?.contentType || 'application/octet-stream'
-           },
-           body: formData
-       });
+    method: 'POST',
+    headers: {
+        'Authorization': `Bearer ${apiKey}`
+    },
+    body: formData
+});
 
        if (response.status === 429 && retryCount < 3) {
            const data = await response.json();
