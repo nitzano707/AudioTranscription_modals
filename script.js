@@ -95,13 +95,37 @@ async function splitAudioFile(file) {
    const chunkSize = 24 * 1024 * 1024;
    const chunks = Math.ceil(file.size / chunkSize);
    const audioChunks = [];
+   
+   // קריאת ה-header של הקובץ המקורי
+   const headerSize = FILE_TYPES[file.type]?.headerSize || 0;
+   const headerBuffer = await file.slice(0, headerSize).arrayBuffer();
+   const header = new Uint8Array(headerBuffer);
 
    for (let i = 0; i < chunks; i++) {
-       const start = i * chunkSize;
+       const start = i === 0 ? 0 : (i * chunkSize);
        const end = Math.min((i + 1) * chunkSize, file.size);
-       const chunk = file.slice(start, end);
-       audioChunks.push(new File([chunk], `chunk_${i + 1}.${file.name.split('.').pop()}`, { type: file.type }));
-       logger.debug('CHUNK_CREATED', `Created chunk ${i + 1}/${chunks}`);
+       
+       let chunk;
+       if (i === 0) {
+           chunk = file.slice(start, end);
+       } else {
+           const chunkData = await file.slice(start, end).arrayBuffer();
+           const combinedBuffer = new Uint8Array(header.length + chunkData.byteLength);
+           combinedBuffer.set(header);
+           combinedBuffer.set(new Uint8Array(chunkData), header.length);
+           chunk = new Blob([combinedBuffer], { type: file.type });
+       }
+
+       const chunkFile = new File([chunk], `chunk_${i + 1}.${file.name.split('.').pop()}`, {
+           type: file.type
+       });
+       
+       audioChunks.push(chunkFile);
+       
+       logger.debug('CHUNK_CREATED', `Created chunk ${i + 1}/${chunks}`, {
+           chunkSize: chunkFile.size,
+           chunkType: chunkFile.type
+       });
    }
 
    return audioChunks;
