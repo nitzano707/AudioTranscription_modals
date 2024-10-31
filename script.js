@@ -13,6 +13,15 @@ let state = {
    currentFormat: 'text' // Default format
 };
 
+// Debug Logger
+function logDebug(stage, message, data = null) {
+   const timestamp = new Date().toISOString();
+   console.log(`[${timestamp}] [${stage}] ${message}`);
+   if (data) {
+       console.log('Data:', data);
+   }
+}
+
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
    initializeUI();
@@ -33,7 +42,6 @@ function setupEventListeners() {
    const fileInput = document.getElementById('audioFile');
    fileInput.addEventListener('change', handleFileSelection);
 
-   // Add tab change listeners
    document.querySelectorAll('.tablinks').forEach(tab => {
        tab.addEventListener('click', (event) => {
            state.currentFormat = event.currentTarget.getAttribute('data-format');
@@ -61,114 +69,42 @@ function triggerFileUpload() {
    }
 }
 
-// Audio Processing Functions
 async function splitAudioFile(file) {
-   logDebug('FILE_SPLIT', `Starting to split file: ${file.name}`, {
+   logDebug('FILE_SPLIT', `Starting to process file: ${file.name}`, {
        size: file.size,
        type: file.type
    });
 
-   try {
-       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-       const arrayBuffer = await file.arrayBuffer();
-       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+   // אם הקובץ קטן מ-24MB, נחזיר אותו כמו שהוא
+   if (file.size <= MAX_CHUNK_SIZE) {
+       logDebug('FILE_PROCESS', 'File is smaller than 24MB, no splitting needed');
+       return [file];
+   }
 
-       const sampleRate = audioBuffer.sampleRate;
-       const numChannels = audioBuffer.numberOfChannels;
-       const chunkDuration = MAX_CHUNK_SIZE / (sampleRate * numChannels * 2);
-       let currentTime = 0;
-       const chunks = [];
+   // עבור קבצים גדולים, נבצע חלוקה
+   const chunks = Math.ceil(file.size / MAX_CHUNK_SIZE);
+   const audioChunks = [];
 
-       updateProgress(5); // Initial progress
-       showMessage(`מתחיל בעיבוד הקובץ...`);
-
-       while (currentTime < audioBuffer.duration) {
-           const end = Math.min(currentTime + chunkDuration, audioBuffer.duration);
-           const frameCount = Math.floor((end - currentTime) * sampleRate);
-
-           const chunkBuffer = audioContext.createBuffer(numChannels, frameCount, sampleRate);
-
-           for (let channel = 0; channel < numChannels; channel++) {
-               const originalChannelData = audioBuffer.getChannelData(channel);
-               const chunkChannelData = chunkBuffer.getChannelData(channel);
-
-               for (let i = 0; i < frameCount; i++) {
-                   chunkChannelData[i] = originalChannelData[Math.floor(currentTime * sampleRate) + i];
-               }
-           }
-
-           const blob = bufferToWaveBlob(chunkBuffer);
-           chunks.push(new File([blob], `chunk_${chunks.length + 1}.wav`, { type: 'audio/wav' }));
-           
-           logDebug('CHUNK_CREATED', `Created chunk ${chunks.length}`, {
-               chunkSize: blob.size,
-               currentTime: currentTime,
-               endTime: end
-           });
-
-           currentTime = end;
-       }
-
-       logDebug('CHUNKS_CREATED', `File split complete`, {
-           numberOfChunks: chunks.length
+   for (let i = 0; i < chunks; i++) {
+       const start = i * MAX_CHUNK_SIZE;
+       const end = Math.min((i + 1) * MAX_CHUNK_SIZE, file.size);
+       const chunk = file.slice(start, end);
+       
+       const chunkFile = new File([chunk], `chunk_${i + 1}.${file.name.split('.').pop()}`, { 
+           type: file.type
        });
-
-       return chunks;
-   } catch (error) {
-       logDebug('SPLIT_ERROR', `Error splitting file`, { error: error.message });
-       throw error;
-   }
-}
-
-function bufferToWaveBlob(audioBuffer) {
-   const numOfChan = audioBuffer.numberOfChannels;
-   const length = audioBuffer.length * numOfChan * 2 + 44;
-   const buffer = new ArrayBuffer(length);
-   const view = new DataView(buffer);
-   const channels = [];
-   let offset = 0;
-   let pos = 0;
-
-   // Write WAV header
-   function setUint16(data) {
-       view.setUint16(pos, data, true);
-       pos += 2;
+       
+       audioChunks.push(chunkFile);
+       
+       logDebug('CHUNK_CREATED', `Created chunk ${i + 1}/${chunks}`, {
+           chunkSize: chunkFile.size,
+           chunkName: chunkFile.name,
+           chunkType: chunkFile.type
+       });
    }
 
-   function setUint32(data) {
-       view.setUint32(pos, data, true);
-       pos += 4;
-   }
-
-   setUint32(0x46464952); // "RIFF"
-   setUint32(length - 8); // file length - 8
-   setUint32(0x45564157); // "WAVE"
-   setUint32(0x20746d66); // "fmt " chunk
-   setUint32(16); // length = 16
-   setUint16(1); // PCM (uncompressed)
-   setUint16(numOfChan);
-   setUint32(audioBuffer.sampleRate);
-   setUint32(audioBuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-   setUint16(numOfChan * 2); // block-align
-   setUint16(16); // 16-bit
-   setUint32(0x61746164); // "data" chunk
-   setUint32(length - pos - 4); // chunk length
-
-   // Write audio data
-   for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
-       channels.push(audioBuffer.getChannelData(i));
-   }
-
-   while (pos < length) {
-       for (let i = 0; i < numOfChan; i++) {
-           const sample = Math.max(-1, Math.min(1, channels[i][offset]));
-           view.setInt16(pos, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
-           pos += 2;
-       }
-       offset++;
-   }
-
-   return new Blob([buffer], { type: "audio/wav" });
+   logDebug('CHUNKS_CREATED', `Split complete: created ${chunks} chunks`);
+   return audioChunks;
 }
 
 // API Communication
@@ -238,35 +174,47 @@ async function uploadAudio() {
    state.isProcessing = true;
    resetState();
    openModal('modal3');
+   updateProgress(0);
 
    try {
        const chunks = await splitAudioFile(file);
-       
-       for (let i = 0; i < chunks.length; i++) {
-           const chunkProgress = (i / chunks.length) * 80; // 80% for processing chunks
-           updateProgress(10 + chunkProgress); // 10% initial + chunk progress
+       updateProgress(10);
+
+       if (chunks.length > 1) {
+           showMessage(`מתחיל בתמלול ${chunks.length} מקטעים...`);
            
-           showMessage(`מתמלל חלק ${i + 1} מתוך ${chunks.length}...`);
-           
-           const result = await transcribeChunk(chunks[i], apiKey);
-           
-           if (result.text) {
-               state.transcriptionText += result.text + ' ';
-               if (result.segments) {
-                   const adjustedSegments = adjustSegmentTimings(result.segments, i, chunks.length);
-                   state.segments.push(...adjustedSegments);
+           for (let i = 0; i < chunks.length; i++) {
+               const progressPercent = (i / chunks.length) * 90;
+               updateProgress(10 + progressPercent);
+               
+               showMessage(`מתמלל מקטע ${i + 1} מתוך ${chunks.length}`);
+               
+               const result = await transcribeChunk(chunks[i], apiKey);
+               if (result.text) {
+                   state.transcriptionText += result.text + ' ';
+                   if (result.segments) {
+                       const adjustedSegments = adjustSegmentTimings(result.segments, i, chunks.length);
+                       state.segments.push(...adjustedSegments);
+                   }
+               }
+
+               if (i < chunks.length - 1) {
+                   await new Promise(resolve => setTimeout(resolve, WAIT_TIME_BETWEEN_CHUNKS));
                }
            }
-
-           await new Promise(resolve => setTimeout(resolve, WAIT_TIME_BETWEEN_CHUNKS));
+       } else {
+           showMessage(`מתמלל את הקובץ...`);
+           const result = await transcribeChunk(chunks[0], apiKey);
+           if (result.text) {
+               state.transcriptionText = result.text;
+               if (result.segments) {
+                   state.segments = result.segments;
+               }
+           }
+           updateProgress(90);
        }
 
        state.transcriptionText = state.transcriptionText.trim();
-       logDebug('PROCESS_COMPLETE', `Transcription complete`, {
-           finalTextLength: state.transcriptionText.length,
-           numberOfSegments: state.segments.length
-       });
-       
        updateProgress(100);
        showResults();
 
@@ -283,7 +231,7 @@ async function uploadAudio() {
 }
 
 function adjustSegmentTimings(segments, chunkIndex, totalChunks) {
-   const chunkDuration = 30; // Approximate chunk duration in seconds
+   const chunkDuration = 30;
    const timeOffset = chunkIndex * chunkDuration;
    
    return segments.map(segment => ({
@@ -337,7 +285,6 @@ function updateProgress(percent) {
 }
 
 function handleError(error) {
-   console.error('Error details:', error);
    if (error.message.includes('401')) {
        alert('שגיאה במפתח API. נא להזין מפתח חדש.');
        localStorage.removeItem('groqApiKey');
@@ -369,7 +316,7 @@ function openTab(evt, tabName) {
    }
 }
 
-// Results and Download Functions
+// Results and Download
 function showResults() {
    openModal('modal4');
    const textContent = document.getElementById('textContent');
@@ -435,7 +382,7 @@ function formatTimestamp(seconds) {
    ].join(':') + ',' + String(date.getUTCMilliseconds()).padStart(3, '0');
 }
 
-// State Management Functions
+// State Reset and API Key
 function resetState() {
    state = {
        isProcessing: state.isProcessing,
@@ -459,7 +406,6 @@ function restartProcess() {
    }
 }
 
-// API Key Management
 function saveApiKey() {
    const apiKey = document.getElementById('apiKeyInput').value.trim();
    if (apiKey) {
@@ -467,14 +413,5 @@ function saveApiKey() {
        document.getElementById('apiRequest').style.display = 'none';
        document.getElementById('startProcessBtn').style.display = 'block';
        logDebug('API_KEY_SAVED', 'API key saved successfully');
-   }
-}
-
-// Debug Logger
-function logDebug(stage, message, data = null) {
-   const timestamp = new Date().toISOString();
-   console.log(`[${timestamp}] [${stage}] ${message}`);
-   if (data) {
-       console.log('Data:', data);
    }
 }
