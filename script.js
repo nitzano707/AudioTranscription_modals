@@ -148,7 +148,7 @@ async function splitAudioFile(file) {
 }
 
 // API Communication
-async function transcribeChunk(chunk, apiKey, retryCount = 0) {
+async function transcribeChunk(chunk, apiKey) {
    const startTime = Date.now();
    const formData = new FormData();
    formData.append('file', chunk, chunk.name);
@@ -164,23 +164,12 @@ async function transcribeChunk(chunk, apiKey, retryCount = 0) {
 
    try {
        const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-        'Authorization': `Bearer ${apiKey}`
-    },
-    body: formData
-});
-
-       if (response.status === 429 && retryCount < 3) {
-           const data = await response.json();
-           const waitTimeMatch = data.error.message.match(/try again in (\d+)m([\d.]+)s/);
-           if (waitTimeMatch) {
-               const waitTime = (parseInt(waitTimeMatch[1]) * 60 + parseFloat(waitTimeMatch[2])) * 1000;
-               showMessage(`הגענו למגבלת שימוש. ממתין ${formatTime(waitTime)}...`);
-               await new Promise(resolve => setTimeout(resolve, waitTime));
-               return transcribeChunk(chunk, apiKey, retryCount + 1);
-           }
-       }
+           method: 'POST',
+           headers: { 
+               'Authorization': `Bearer ${apiKey}`
+           },
+           body: formData
+       });
 
        if (!response.ok) {
            const errorText = await response.text();
@@ -233,22 +222,13 @@ async function uploadAudio() {
 
        for (let i = 0; i < chunks.length; i++) {
            showMessage(`מתמלל חלק ${i + 1} מתוך ${chunks.length}`);
-           const result = await transcribeChunk(chunks[i], apiKey);
-
-           if (result.text) {
-               state.transcription.text += result.text + ' ';
-               if (result.segments) {
-                   state.transcription.segments.push(
-                       ...adjustSegments(result.segments, i, chunks.length)
-                   );
-               }
-           }
+           await transcribeChunk(chunks[i], apiKey);
 
            state.processing.processedChunks++;
            updateProgress(10 + ((i + 1) / chunks.length * 90));
 
            if (i < chunks.length - 1) {
-               await new Promise(resolve => setTimeout(resolve, 1000));
+               await new Promise(resolve => setTimeout(resolve, 500));
            }
        }
 
@@ -259,7 +239,8 @@ async function uploadAudio() {
    } catch (error) {
        logger.debug('PROCESS_ERROR', error.message);
        handleError(error);
-   } finally {
+   } finally
+   {
        state.processing.isActive = false;
        closeModal('modal3');
    }
@@ -374,47 +355,4 @@ function saveApiKey() {
        localStorage.setItem('groqApiKey', apiKey);
        initializeUI();
    }
-}
-
-
-function saveApiKey() {
-   const apiKey = document.getElementById('apiKeyInput').value.trim();
-   if (apiKey) {
-       localStorage.setItem('groqApiKey', apiKey);
-       document.getElementById('apiRequest').style.display = 'none';
-       document.getElementById('startProcessBtn').style.display = 'block';
-       logger.debug('API_KEY_SAVED', 'API key saved successfully');
-   }
-}
-
-function restartProcess() {
-   if (!state.processing.isActive) {
-       closeModal('modal4');
-       document.getElementById('audioFile').value = '';
-       document.getElementById('fileName').textContent = 'לא נבחר קובץ';
-       document.getElementById('uploadBtn').disabled = true;
-       openModal('modal1');
-       state.transcription = { text: '', segments: [], format: 'text' };
-       state.processing.processedChunks = 0;
-       updateProgress(0);
-   }
-}
-
-function downloadTranscription() {
-   const format = state.transcription.format;
-   const content = format === 'text' ? state.transcription.text : generateSRT();
-   const fileName = `transcription_${new Date().toISOString()}.${format === 'text' ? 'txt' : 'srt'}`;
-   
-   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-   const url = URL.createObjectURL(blob);
-   const link = document.createElement('a');
-   link.href = url;
-   link.download = fileName;
-   
-   document.body.appendChild(link);
-   link.click();
-   document.body.removeChild(link);
-   URL.revokeObjectURL(url);
-   
-   showMessage('הקובץ הורד בהצלחה!');
 }
