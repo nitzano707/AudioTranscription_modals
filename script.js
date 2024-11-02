@@ -81,7 +81,7 @@ async function uploadAudio() {
     const processingStartTime = Date.now();
     console.log(`[PROCESSING_START] File Type: ${fileType}, Size: ${fileSizeInMB}MB, Start Time: ${new Date(processingStartTime).toISOString()}`);
 
-    const maxChunkSizeMB = 3;
+    const maxChunkSizeMB = 24;
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
     let transcriptionData = [];
     let totalTimeElapsed = 0;
