@@ -2,6 +2,8 @@
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
+const maxChunkSizeMB = 24;
+const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
 
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
@@ -81,8 +83,7 @@ async function uploadAudio() {
     const processingStartTime = Date.now();
     console.log(`[PROCESSING_START] File Type: ${fileType}, Size: ${fileSizeInMB}MB, Start Time: ${new Date(processingStartTime).toISOString()}`);
 
-    const maxChunkSizeMB = 24;
-    const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
+    
     let transcriptionData = [];
     let totalTimeElapsed = 0;
 
@@ -149,36 +150,13 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
         return [file];
     }
 
-    const fileType = file.name.split('.').pop().toLowerCase();
-    console.log(`Processing file of type: ${fileType}`);
-
-    // אם זה לא MP3, נמיר אותו ל-MP3 לפני החלוקה
-    let processedFile = file;
-    if (fileType !== 'mp3') {
-        try {
-            console.log(`Converting ${fileType.toUpperCase()} to MP3 before splitting...`);
-            processedFile = await convertToMp3(file);
-            console.log('Conversion to MP3 completed');
-        } catch (error) {
-            console.error(`Error converting ${fileType} to MP3:`, error);
-            throw error;
-        }
-    }
-
     const chunks = [];
     let start = 0;
 
-    while (start < processedFile.size) {
-        const end = Math.min(start + maxChunkSizeBytes, processedFile.size);
-        const chunk = processedFile.slice(start, end);
-        const chunkFile = new File(
-            [chunk], 
-            `chunk_${chunks.length + 1}.mp3`,  // תמיד נשמור כ-MP3
-            { type: 'audio/mp3' }
-        );
-        
-        console.log(`Created chunk ${chunks.length + 1}, Size: ${(chunkFile.size / (1024 * 1024)).toFixed(2)}MB`);
-        chunks.push(chunkFile);
+    while (start < file.size) {
+        const end = Math.min(start + maxChunkSizeBytes, file.size);
+        const chunk = file.slice(start, end);
+        chunks.push(new File([chunk], `chunk_${chunks.length + 1}.${file.name.split('.').pop()}`, { type: file.type }));
         start = end;
     }
 
@@ -233,7 +211,7 @@ async function convertToMp3(file) {
 async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, totalTimeElapsed) {
     const formData = new FormData();
     formData.append('file', chunk);
-    formData.append('model', 'whisper-large-v3-turbo');
+    formData.append('model', 'whisper-large-v3');
     formData.append('response_format', 'verbose_json');
     formData.append('language', defaultLanguage);
 
