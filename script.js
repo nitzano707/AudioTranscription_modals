@@ -3,15 +3,10 @@ let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
 
-const maxChunkSizeMB = 2; // גודל מקטע מקסימלי במגה-בייט (כפי שנלקח מקובץ good.txt)
-const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
-let segmentCounter = 1; // מספר רציף של מקטעים
-let cumulativeTime = 0; // זמן מצטבר לכל המקטעים
-
-// הסתרת אזור הזנת API או הצגת אזור העלאת קובץ וכפתור התחל תהליך
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
 
+    // הסתרת אזור הזנת API או הצגת אזור העלאת קובץ וכפתור התחל תהליך
     if (!apiKey) {
         document.getElementById('apiRequest').style.display = 'block';
     } else {
@@ -19,12 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('startProcessBtn').style.display = 'block';
     }
 
+    // הגדרת ברירת המחדל להצגת תמלול כטקסט
     document.getElementById('textTab').style.display = 'block';
     document.querySelector("button[onclick*='textTab']").classList.add('active');
     displayTranscription('text');
 });
 
-// פונקציה לשמירת מפתח ה-API
 function saveApiKey() {
     const apiKeyInput = document.getElementById('apiKeyInput').value;
     if (apiKeyInput) {
@@ -34,7 +29,35 @@ function saveApiKey() {
     }
 }
 
-// העלאת קובץ אודיו והתחלת תהליך פיצול ותמלול
+function triggerFileUpload() {
+    const audioFileInput = document.getElementById('audioFile');
+    audioFileInput.click();
+}
+
+document.getElementById('audioFile').addEventListener('change', function () {
+    const fileName = this.files[0] ? this.files[0].name : "לא נבחר קובץ";
+    document.getElementById('fileName').textContent = fileName;
+
+    const uploadBtn = document.getElementById('uploadBtn');
+    if (this.files[0]) {
+        uploadBtn.disabled = false;
+    } else {
+        uploadBtn.disabled = true;
+    }
+});
+
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = 'block';
+    document.body.classList.add('modal-open');
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+}
+
 async function uploadAudio() {
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
@@ -43,6 +66,8 @@ async function uploadAudio() {
     }
 
     openModal('modal3');
+    console.log("Progress modal opened.");
+
     const audioFile = document.getElementById('audioFile').files[0];
     if (!audioFile) {
         alert('אנא בחר קובץ להעלאה.');
@@ -50,20 +75,29 @@ async function uploadAudio() {
         return;
     }
 
+    const maxChunkSizeMB = 3;
+    const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
+    let transcriptionData = [];
+    let totalTimeElapsed = 0;
+
     try {
         console.log("Starting to split the audio file into chunks...");
-        const chunks = splitAudioBySize(audioFile);
+        const chunks = await splitAudioToChunksBySize(audioFile, maxChunkSizeBytes);
         const totalChunks = chunks.length;
         console.log(`Total chunks created: ${totalChunks}`);
 
-        let transcriptionData = [];
         for (let i = 0; i < totalChunks; i++) {
-            console.log("Uploading chunk", i + 1, "of", totalChunks);
-            document.getElementById('progress').style.width = `${Math.round(((i + 1) / totalChunks) * 100)}%`;
-            document.getElementById('progressText').textContent = `${Math.round(((i + 1) / totalChunks) * 100)}%`;
+            console.log("Processing chunk", i + 1, "of", totalChunks);
 
-            const transcription = await processAudioChunk(chunks[i], i + 1);
-            transcriptionData.push(...transcription);
+            const progressPercent = Math.round(((i + 1) / totalChunks) * 100);
+            document.getElementById('progress').style.width = `${progressPercent}%`;
+            document.getElementById('progressText').textContent = `${progressPercent}%`;
+
+            await processAudioChunk(chunks[i], transcriptionData, i + 1, totalChunks, totalTimeElapsed);
+
+            if (chunks[i].duration) {
+                totalTimeElapsed += chunks[i].duration;
+            }
 
             await new Promise(resolve => setTimeout(resolve, 500));
         }
@@ -71,6 +105,7 @@ async function uploadAudio() {
         saveTranscriptions(transcriptionData, audioFile.name);
         console.log("All chunks processed, saving transcriptions.");
         displayTranscription('text');
+        console.log("Displaying transcription.");
 
         closeModal('modal3');
         openModal('modal4');
@@ -81,23 +116,26 @@ async function uploadAudio() {
     }
 }
 
-// פונקציה לפיצול קובץ האודיו למקטעים בהתאם למגבלה
-function splitAudioBySize(audioFile) {
+async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
+    // אם הקובץ קטן מהגודל המרבי, החזר אותו במקטע אחד
+    if (file.size <= maxChunkSizeBytes) {
+        return [file];
+    }
+
     const chunks = [];
     let start = 0;
 
-    while (start < audioFile.size) {
-        const end = Math.min(start + maxChunkSizeBytes, audioFile.size);
-        const chunk = audioFile.slice(start, end);
-        chunks.push(new File([chunk], `chunk_${chunks.length + 1}.${audioFile.name.split('.').pop()}`, { type: audioFile.type }));
+    while (start < file.size) {
+        const end = Math.min(start + maxChunkSizeBytes, file.size);
+        const chunk = file.slice(start, end);
+        chunks.push(new File([chunk], `chunk_${chunks.length + 1}.${file.name.split('.').pop()}`, { type: file.type }));
         start = end;
     }
 
     return chunks;
 }
 
-// פונקציה לעיבוד מקטע אודיו בודד
-async function processAudioChunk(chunk, chunkNumber) {
+async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, totalTimeElapsed) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
@@ -108,11 +146,11 @@ async function processAudioChunk(chunk, chunkNumber) {
     if (!apiKey) {
         alert('מפתח API חסר. נא להזין שוב.');
         location.reload();
-        return [];
+        return;
     }
 
     try {
-        console.log(`Sending chunk ${chunkNumber} to the API...`);
+        console.log(`Sending chunk ${currentChunk} of ${totalChunks} to the API...`);
         const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
             method: 'POST',
             headers: {
@@ -123,46 +161,61 @@ async function processAudioChunk(chunk, chunkNumber) {
 
         if (response.ok) {
             const data = await response.json();
-            console.log(`Received response for chunk ${chunkNumber}:`, data);
-            return formatTranscription(data);
+            console.log(`Received response for chunk ${currentChunk}:`, data);
+            
+            if (data.segments) {
+                data.segments.forEach((segment, index) => {
+                    if (typeof segment.start === 'number' && typeof segment.end === 'number') {
+                        const startTime = formatTimestamp(segment.start + totalTimeElapsed);
+                        const endTime = formatTimestamp(segment.end + totalTimeElapsed);
+                        const text = segment.text.trim();
+
+                        transcriptionData.push({
+                            text: text,
+                            timestamp: `${startTime} --> ${endTime}`
+                        });
+                    } else {
+                        console.warn(`Invalid timestamp for segment ${index}:`, segment);
+                    }
+                });
+            } else {
+                console.warn(`Missing segments in response for chunk ${currentChunk}`);
+            }
         } else {
             if (response.status === 401) {
                 alert('שגיאה במפתח API. נא להזין מפתח חדש.');
                 localStorage.removeItem('groqApiKey');
                 location.reload();
-                return [];
+                return;
             }
             const errorText = await response.text();
-            throw new Error(`Error for chunk ${chunkNumber}: ${errorText}`);
+            console.error(`Error for chunk ${currentChunk}:`, errorText);
         }
     } catch (error) {
-        console.error(`Failed to upload chunk ${chunkNumber}:`, error);
-        alert(`Failed to upload chunk ${chunkNumber}: ${error.message}`);
-        return [];
+        console.error('Network error:', error);
     }
 }
 
-// פונקציה לעיצוב תמלול
-function formatTranscription(transcription) {
-    const segments = transcription.segments;
-    let formattedTranscription = [];
+function formatTimestamp(seconds) {
+    if (typeof seconds !== 'number' || isNaN(seconds)) {
+        console.error('Invalid seconds value for timestamp:', seconds);
+        return '00:00:00,000';
+    }
+    const date = new Date(seconds * 1000);
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const secs = String(date.getUTCSeconds()).padStart(2, '0');
+    const millis = String(date.getUTCMilliseconds()).padStart(3, '0');
 
-    segments.forEach((segment) => {
-        const { start, end, text } = segment;
-        formattedTranscription.push({
-            text: text.trim(),
-            timestamp: `${formatTimestamp(cumulativeTime + start)} --> ${formatTimestamp(cumulativeTime + end)}`
-        });
-        segmentCounter++;
-    });
-
-    cumulativeTime += transcription.duration;
-    return formattedTranscription;
+    return `${hours}:${minutes}:${secs},${millis}`;
 }
 
-// פונקציה לשמירת התמלולים
+function cleanText(text) {
+    return text.replace(/\s+/g, ' ').trim();
+}
+
 function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.map((d) => {
+    transcriptionDataText = data.map((d, index) => {
         if (/[.?!]$/.test(d.text.trim())) {
             return cleanText(d.text);
         } else {
@@ -177,23 +230,6 @@ function saveTranscriptions(data, audioFileName) {
     console.log("Transcription data saved successfully:", transcriptionDataText);
 }
 
-// פונקציה לעיצוב חותמות זמן
-function formatTimestamp(seconds) {
-    const date = new Date(seconds * 1000);
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const secs = String(date.getUTCSeconds()).padStart(2, '0');
-    const millis = String(date.getUTCMilliseconds()).padStart(3, '0');
-
-    return `${hours}:${minutes}:${secs},${millis}`;
-}
-
-// פונקציה לניקוי טקסט
-function cleanText(text) {
-    return text.replace(/\s+/g, ' ').trim();
-}
-
-// פונקציה להצגת התמלול בפורמט המבוקש
 function displayTranscription(format) {
     console.log("Displaying transcription in format:", format);
     let transcriptionResult;
@@ -208,7 +244,6 @@ function displayTranscription(format) {
         return;
     }
 
-    // ווידוא שהכרטיסיה הרלוונטית מוצגת
     const tabcontent = document.getElementsByClassName("tabcontent");
     for (let i = 0; i < tabcontent.length; i++) {
         tabcontent[i].style.display = "none";
@@ -224,27 +259,62 @@ function displayTranscription(format) {
     console.log("Transcription displayed successfully.");
 }
 
-// פונקציה לפתיחת מודאל
-function openModal(modalId) {
-    const modal = document.getElementById(modalId);
-    modal.style.display = 'block';
-    document.body.classList.add('modal-open');
+function openTab(evt, tabName) {
+    const tabcontent = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    const tablinks = document.getElementsByClassName("tablinks");
+    for (let i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+    
+    const format = evt.currentTarget.getAttribute('data-format');
+    displayTranscription(format);
 }
 
-// פונקציה לסגירת מודאל
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
+function downloadTranscription() {
+    const activeTab = document.querySelector(".tablinks.active");
+    if (!activeTab) {
+        alert('לא נבחר פורמט להורדה. נא לבחור פורמט תמלול.');
+        return;
+    }
+    const format = activeTab.getAttribute('data-format');
+    let blob, fileName;
+
+    if (format === "text") {
+        if (!transcriptionDataText) {
+            alert('אין תמלול להורדה.');
+            return;
+        }
+        blob = new Blob([transcriptionDataText], { type: 'text/plain' });
+        fileName = 'transcription.txt';
+    } else if (format === "srt") {
+        if (!transcriptionDataSRT) {
+            alert('אין תמלול להורדה.');
+            return;
+        }
+        blob = new Blob([transcriptionDataSRT], { type: 'text/plain' });
+        fileName = 'transcription.srt';
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
-// פונקציה לאיפוס התהליך
 function restartProcess() {
-    // סגירה של כל המודאלים הפעילים
-    closeModal('modal4');  // סגור את המודאל האחרון
-    closeModal('modal3');  // סגור את modal3 כדי שלא יישאר פתוח
+    closeModal('modal4');
+    closeModal('modal3');
     document.getElementById('audioFile').value = "";
     document.getElementById('fileName').textContent = "לא נבחר קובץ";
     document.getElementById('uploadBtn').disabled = true;
-    openModal('modal1'); // פתח את modal1 להתחלה מחדש
+    openModal('modal1');
 }
