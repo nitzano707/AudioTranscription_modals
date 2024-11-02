@@ -77,7 +77,7 @@ async function uploadAudio() {
         return;
     }
 
-    const maxChunkSizeMB = 24; // גודל מקטע מרבי במגה-בייט
+    const maxChunkSizeMB = 10; // גודל מקטע מרבי במגה-בייט
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
     let transcriptionData = [];
     let totalTimeElapsed = 0; // משתנה לאגירת הזמן המצטבר של כל המקטעים
