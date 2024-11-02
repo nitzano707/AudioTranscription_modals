@@ -149,24 +149,85 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
         return [file];
     }
 
-    console.log(`Splitting file: ${file.name}, Total size: ${(file.size / (1024 * 1024)).toFixed(2)}MB into ${maxChunkSizeBytes / (1024 * 1024)}MB chunks`);
-    
+    const fileType = file.name.split('.').pop().toLowerCase();
+    console.log(`Processing file of type: ${fileType}`);
+
+    // אם זה לא MP3, נמיר אותו ל-MP3 לפני החלוקה
+    let processedFile = file;
+    if (fileType !== 'mp3') {
+        try {
+            console.log(`Converting ${fileType.toUpperCase()} to MP3 before splitting...`);
+            processedFile = await convertToMp3(file);
+            console.log('Conversion to MP3 completed');
+        } catch (error) {
+            console.error(`Error converting ${fileType} to MP3:`, error);
+            throw error;
+        }
+    }
+
     const chunks = [];
     let start = 0;
 
-    while (start < file.size) {
-        const end = Math.min(start + maxChunkSizeBytes, file.size);
-        const chunk = file.slice(start, end);
-        const chunkFile = new File([chunk], `chunk_${chunks.length + 1}.${file.name.split('.').pop()}`, { 
-            type: file.type 
-        });
+    while (start < processedFile.size) {
+        const end = Math.min(start + maxChunkSizeBytes, processedFile.size);
+        const chunk = processedFile.slice(start, end);
+        const chunkFile = new File(
+            [chunk], 
+            `chunk_${chunks.length + 1}.mp3`,  // תמיד נשמור כ-MP3
+            { type: 'audio/mp3' }
+        );
         
-        console.log(`Created chunk ${chunks.length + 1}, Size: ${(chunkFile.size / (1024 * 1024)).toFixed(2)}MB, Type: ${chunkFile.type}`);
+        console.log(`Created chunk ${chunks.length + 1}, Size: ${(chunkFile.size / (1024 * 1024)).toFixed(2)}MB`);
         chunks.push(chunkFile);
         start = end;
     }
 
     return chunks;
+}
+
+async function convertToMp3(file) {
+    return new Promise((resolve, reject) => {
+        // יצירת אלמנט אודיו זמני
+        const audio = document.createElement('audio');
+        audio.style.display = 'none';
+        document.body.appendChild(audio);
+
+        // יצירת URL לקובץ
+        const fileURL = URL.createObjectURL(file);
+        audio.src = fileURL;
+
+        // הגדרת MediaRecorder להקלטה בפורמט MP3
+        audio.onloadedmetadata = () => {
+            const stream = audio.captureStream();
+            const mediaRecorder = new MediaRecorder(stream, {
+                mimeType: 'audio/mp3'
+            });
+
+            const chunks = [];
+            mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                URL.revokeObjectURL(fileURL);
+                document.body.removeChild(audio);
+                
+                const blob = new Blob(chunks, { type: 'audio/mp3' });
+                const mp3File = new File([blob], file.name.replace(/\.[^/.]+$/, '.mp3'), {
+                    type: 'audio/mp3'
+                });
+                resolve(mp3File);
+            };
+
+            audio.onplay = () => mediaRecorder.start();
+            audio.onended = () => mediaRecorder.stop();
+
+            audio.play();
+        };
+
+        audio.onerror = (error) => {
+            URL.revokeObjectURL(fileURL);
+            document.body.removeChild(audio);
+            reject(error);
+        };
+    });
 }
 
 async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, totalTimeElapsed) {
