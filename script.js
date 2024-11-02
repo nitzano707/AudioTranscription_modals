@@ -3,8 +3,7 @@
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
-const maxChunkSizeMB = 4;
-const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
@@ -80,9 +79,30 @@ async function uploadAudio() {
         return;
     }
 
-    
+    // הגדרת גודל מקטע מקסימלי בהתאם לסוג הקובץ
+    let maxChunkSizeMB;
+    switch (audioFile.type) {
+        case 'audio/wav':
+            maxChunkSizeMB = 24;
+            break;
+        case 'audio/mp3':
+            maxChunkSizeMB = 4;
+            break;
+        case 'audio/m4a':
+            maxChunkSizeMB = 4;
+            break;
+        case 'video/mp4':
+        case 'audio/mp4':
+            maxChunkSizeMB = 20;
+            break;
+        default:
+            maxChunkSizeMB = 3; // ערך ברירת מחדל
+    }
+    const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
+
     let transcriptionData = [];
     let totalTimeElapsed = 0; // משתנה לאגירת הזמן המצטבר של כל המקטעים
+    
 
     try {
         console.log("Starting to split the audio file into chunks...");
