@@ -225,7 +225,7 @@ function bufferToWaveBlob(abuffer) {
 async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, totalTimeElapsed) {
     const formData = new FormData();
     formData.append('file', chunk);
-    formData.append('model', 'whisper-large-v3-turbo');
+    formData.append('model', 'whisper-large-v3');
     formData.append('response_format', 'verbose_json'); 
     formData.append('language', defaultLanguage); 
 
