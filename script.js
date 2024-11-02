@@ -157,21 +157,15 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
     while (start < file.size) {
         const end = Math.min(start + maxChunkSizeBytes, file.size);
         const chunk = file.slice(start, end);
+        const chunkFile = new File([chunk], `chunk_${chunks.length + 1}.${file.name.split('.').pop()}`, { 
+            type: file.type 
+        });
         
-        // יצירת קובץ חדש עם אותו סוג ושם מתאים למספר המקטע
-        const chunkFile = new File(
-            [chunk], 
-            `chunk_${chunks.length + 1}.${file.name.split('.').pop()}`, 
-            { type: file.type }
-        );
-        
-        console.log(`Created chunk ${chunks.length + 1}, Size: ${(chunkFile.size / (1024 * 1024)).toFixed(2)}MB`);
-        
+        console.log(`Created chunk ${chunks.length + 1}, Size: ${(chunkFile.size / (1024 * 1024)).toFixed(2)}MB, Type: ${chunkFile.type}`);
         chunks.push(chunkFile);
         start = end;
     }
 
-    console.log(`Split complete. Created ${chunks.length} chunks`);
     return chunks;
 }
 
