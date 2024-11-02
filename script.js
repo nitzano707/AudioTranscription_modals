@@ -1,23 +1,30 @@
 // משתנים גלובליים לאחסון התמלול בפורמטים שונים
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
+let transcriptionResult = { segments: [] };
 const defaultLanguage = 'he'; // שפת ברירת מחדל - עברית
-const maxChunkSizeMB = 8; // גודל מקטע מרבי במגה-בייט
-const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
+const maxChunkSizeBytes = 24 * 1024 * 1024;
+let apiKey = localStorage.getItem('groqApiKey');
+let audioSource = null; // מקור האודיו
 
 document.addEventListener('DOMContentLoaded', () => {
-    const apiKey = localStorage.getItem('groqApiKey');
-    document.getElementById(apiKey ? 'startProcessBtn' : 'apiRequest').style.display = 'block';
-    document.getElementById('textTab').style.display = 'block';
+    if (!apiKey) {
+        showPopup('apiKeyPopup');
+    } else {
+        document.getElementById('startProcessBtn').style.display = 'block';
+    }
     displayTranscription('text');
 });
 
 function saveApiKey() {
-    const apiKeyInput = document.getElementById('apiKeyInput').value;
-    if (apiKeyInput) {
-        localStorage.setItem('groqApiKey', apiKeyInput);
-        document.getElementById('apiRequest').style.display = 'none';
-        document.getElementById('startProcessBtn').style.display = 'block';
+    const inputApiKey = document.getElementById('apiKeyInput').value.trim();
+    if (inputApiKey) {
+        localStorage.setItem('groqApiKey', inputApiKey);
+        apiKey = inputApiKey;
+        showMessage('ה-API Key נשמר בהצלחה!');
+        document.getElementById('apiKeyPopup').style.display = 'none';
+    } else {
+        showMessage('אנא הזן API Key תקין');
     }
 }
 
@@ -33,180 +40,173 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 async function uploadAudio() {
     console.log("User initiated upload:", new Date().toISOString());
-    const apiKey = localStorage.getItem('groqApiKey');
-    if (!apiKey) return alert('מפתח API חסר. נא להזין מחדש.');
 
-    openModal('modal3'); // הצגת מודאל התקדמות
-    const audioFile = document.getElementById('audioFile').files[0];
+    openModal('modal3');
+    let audioFile = document.getElementById('audioFile').files[0];
     if (!audioFile) return alert('אנא בחר קובץ להעלאה.');
 
-    // המרה ל-WAV עבור MP3 או M4A
-    if (audioFile.type === 'audio/mp3' || audioFile.type === 'audio/m4a') {
-        console.log("Converting file to WAV format...");
-        audioFile = await convertToWav(audioFile);
-        console.log("File converted to WAV format:", new Date().toISOString());
-    }
+    showMessage('מתחיל תמלול...', 0);
+    document.getElementById('loader').style.display = 'block';
+    document.getElementById('transcribeButton').disabled = true;
 
-    console.log("Starting file split:", new Date().toISOString());
-    const chunks = await splitAudioToChunksBySize(audioFile, maxChunkSizeBytes);
-    console.log("File split completed:", new Date().toISOString());
-
-    let transcriptionData = [];
-    let totalTimeElapsed = 0;
-
-    for (let i = 0; i < chunks.length; i++) {
-        console.log(`Uploading chunk ${i + 1} of ${chunks.length}:`, new Date().toISOString());
-        await processAudioChunk(chunks[i], transcriptionData, i + 1, chunks.length, totalTimeElapsed);
-        totalTimeElapsed += chunks[i].duration || 0;
-        await new Promise(resolve => setTimeout(resolve, 500));
-    }
-
-    saveTranscriptions(transcriptionData);
-    displayTranscription('text');
-    closeModal('modal3');
-    openModal('modal4');
-    console.log("Final transcription displayed to user:", new Date().toISOString());
-}
-
-async function convertToWav(file) {
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const arrayBuffer = await file.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    const wavBlob = bufferToWaveBlob(audioBuffer);
-    return new File([wavBlob], `${file.name.split('.')[0]}.wav`, { type: 'audio/wav' });
-}
-
-async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
-    if (file.size <= maxChunkSizeBytes) return [file];
-
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const arrayBuffer = await file.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-    const sampleRate = audioBuffer.sampleRate;
-    const numChannels = audioBuffer.numberOfChannels;
-    const chunkDuration = audioBuffer.duration / Math.ceil(file.size / maxChunkSizeBytes);
-    let currentTime = 0;
-    const chunks = [];
-
-    while (currentTime < audioBuffer.duration) {
-        const end = Math.min(currentTime + chunkDuration, audioBuffer.duration);
-        const frameCount = Math.floor((end - currentTime) * sampleRate);
-        const chunkBuffer = audioContext.createBuffer(numChannels, frameCount, sampleRate);
-
-        for (let channel = 0; channel < numChannels; channel++) {
-            chunkBuffer.copyToChannel(audioBuffer.getChannelData(channel).slice(currentTime * sampleRate, end * sampleRate), channel);
+    try {
+        if (audioFile.size > maxChunkSizeBytes) {
+            const audioChunks = await splitAudioFile(audioFile);
+            transcriptionResult = { segments: [] };
+            for (let i = 0; i < audioChunks.length; i++) {
+                showMessage(`מתמלל חלק ${i + 1} מתוך ${audioChunks.length}...`, 0);
+                const chunkResult = await transcribeChunk(audioChunks[i]);
+                transcriptionResult.segments = transcriptionResult.segments.concat(chunkResult.segments);
+            }
+        } else {
+            transcriptionResult = await transcribeChunk(audioFile);
         }
-
-        chunks.push(bufferToWaveBlob(chunkBuffer));
-        currentTime = end;
+        updateTranscription();
+        showTab('srt');
+        showMessage('התמלול הושלם בהצלחה!');
+    } catch (error) {
+        console.error('שגיאה בתמלול:', error);
+        showMessage('אירעה שגיאה בתמלול. אנא בדוק את ה-API Key שלך ונסה שוב.');
+        localStorage.removeItem('groqApiKey');
+        apiKey = null;
+    } finally {
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('transcribeButton').disabled = false;
     }
-    return chunks;
 }
 
-function bufferToWaveBlob(abuffer) {
-    const numOfChan = abuffer.numberOfChannels;
-    const length = abuffer.length * numOfChan * 2 + 44;
-    const buffer = new ArrayBuffer(length);
-    const view = new DataView(buffer);
-    let pos = 0;
-
-    function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
-    function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
-
-    setUint32(0x46464952); // "RIFF"
-    setUint32(length - 8); // file length - 8
-    setUint32(0x45564157); // "WAVE"
-    setUint32(0x20746d66); // "fmt " chunk
-    setUint32(16);         // PCM format
-    setUint16(1);          // format (PCM)
-    setUint16(numOfChan);
-    setUint32(abuffer.sampleRate);
-    setUint32(abuffer.sampleRate * 2 * numOfChan);
-    setUint16(numOfChan * 2);
-    setUint16(16);
-
-    setUint32(0x61746164); // "data" chunk
-    setUint32(length - pos - 4);
-
-    for (let i = 0; i < abuffer.numberOfChannels; i++) {
-        const channelData = abuffer.getChannelData(i);
-        for (let j = 0; j < channelData.length; j++) {
-            const sample = Math.max(-1, Math.min(1, channelData[j]));
-            view.setInt16(pos, sample < 0 ? sample * 32768 : sample * 32767, true);
-            pos += 2;
-        }
-    }
-
-    return new Blob([buffer], { type: "audio/wav" });
-}
-
-async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, totalTimeElapsed) {
+async function transcribeChunk(chunk) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'verbose_json'); 
-    formData.append('language', defaultLanguage); 
+    formData.append('response_format', 'verbose_json');
+    formData.append('language', defaultLanguage);
 
-    const apiKey = localStorage.getItem('groqApiKey');
-    if (!apiKey) return alert('מפתח API חסר. נא להזין שוב.');
+    const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: formData
+    });
 
-    try {
-        const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${apiKey}` },
-            body: formData
-        });
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
 
-        if (response.ok) {
-            const data = await response.json();
-            data.segments.forEach(segment => {
-                if (segment.start !== undefined && segment.end !== undefined) {
-                    transcriptionData.push({
-                        text: segment.text.trim(),
-                        timestamp: `${formatTimestamp(segment.start + totalTimeElapsed)} --> ${formatTimestamp(segment.end + totalTimeElapsed)}`
-                    });
-                }
+    return await response.json();
+}
+
+async function splitAudioFile(file) {
+    const chunks = Math.ceil(file.size / maxChunkSizeBytes);
+    const audioChunks = [];
+
+    for (let i = 0; i < chunks; i++) {
+        const start = i * maxChunkSizeBytes;
+        const end = Math.min((i + 1) * maxChunkSizeBytes, file.size);
+        const chunk = file.slice(start, end);
+        audioChunks.push(new File([chunk], `chunk_${i + 1}.${file.name.split('.').pop()}`, { type: file.type }));
+    }
+
+    return audioChunks;
+}
+
+function updateTranscription() {
+    if (!transcriptionResult) {
+        console.log('אין תוצאות תמלול זמינות');
+        return;
+    }
+
+    const wordsPerSubtitle = parseInt(document.getElementById('wordsPerSubtitle').value) || 8;
+    
+    if (transcriptionResult.segments && transcriptionResult.segments.length > 0) {
+        let srtFormat = '';
+        let plainText = '';
+        let subtitleIndex = 1;
+        transcriptionResult.segments.forEach((segment) => {
+            const subtitles = splitIntoSubtitles(segment.text, segment.start, segment.end, wordsPerSubtitle);
+            subtitles.forEach((subtitle) => {
+                srtFormat += `${subtitleIndex}\n`;
+                srtFormat += `${formatTime(subtitle.start)} --> ${formatTime(subtitle.end)}\n`;
+                srtFormat += `${subtitle.text}\n\n`;
+                plainText += subtitle.text + ' ';
+                subtitleIndex++;
             });
-        } else {
-            console.error(`Error for chunk ${currentChunk}: ${response.statusText}`);
-        }
-    } catch (error) {
-        console.error('Network error:', error);
+        });
+        document.getElementById('srtTranscription').innerHTML = `<pre>${srtFormat}</pre>`;
+        document.getElementById('plainTextTranscription').textContent = plainText.trim();
+        
+        document.getElementById('srtContent').style.display = 'block';
+        document.getElementById('plainTextContent').style.display = 'none';
+        showTab('srt');
+    } else {
+        document.getElementById('srtTranscription').innerHTML = '<p>לא התקבל תמלול או שהתמלול ריק</p>';
+        document.getElementById('plainTextTranscription').textContent = 'לא התקבל תמלול או שהתמלול ריק';
     }
 }
 
-function formatTimestamp(seconds) {
+function formatTime(seconds) {
     const date = new Date(seconds * 1000);
-    return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}:${String(date.getUTCSeconds()).padStart(2, '0')},${String(date.getUTCMilliseconds()).padStart(3, '0')}`;
+    const hours = date.getUTCHours().toString().padStart(2, '0');
+    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+    const secs = date.getUTCSeconds().toString().padStart(2, '0');
+    const ms = date.getUTCMilliseconds().toString().padStart(3, '0');
+    return `${hours}:${minutes}:${secs},${ms}`;
 }
 
-function saveTranscriptions(data) {
-    transcriptionDataText = data.map(d => d.text).join(" ").trim();
-    transcriptionDataSRT = data.map((d, i) => `${i + 1}\n${d.timestamp}\n${d.text}`).join("\n\n");
+function splitIntoSubtitles(text, startTime, endTime, maxWords) {
+    const words = text.split(' ');
+    const subtitles = [];
+    let currentSubtitle = { text: '', start: startTime };
+    let wordCount = 0;
+
+    words.forEach((word, index) => {
+        currentSubtitle.text += word + ' ';
+        wordCount++;
+
+        if (wordCount === maxWords || index === words.length - 1) {
+            const progress = (index + 1) / words.length;
+            currentSubtitle.end = startTime + (endTime - startTime) * progress;
+            subtitles.push({...currentSubtitle, text: currentSubtitle.text.trim()});
+
+            if (index < words.length - 1) {
+                currentSubtitle = { text: '', start: currentSubtitle.end };
+                wordCount = 0;
+            }
+        }
+    });
+
+    return subtitles;
 }
 
-function displayTranscription(format) {
-    const transcriptionResult = document.getElementById(format === "text" ? 'textContent' : 'srtContent');
-    transcriptionResult.textContent = format === "text" ? transcriptionDataText : transcriptionDataSRT;
-    transcriptionResult.parentElement.style.display = "block";
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+    document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+    
+    document.getElementById(`${tabName}Content`).style.display = 'block';
+    document.querySelector(`.tab-button[onclick="showTab('${tabName}')"]`).classList.add('active');
 }
 
-function openModal(modalId) {
-    document.getElementById(modalId).style.display = 'block';
-    document.body.classList.add('modal-open');
+function showPopup(popupId) {
+    document.getElementById(popupId).style.display = 'flex';
 }
 
-function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
-    document.body.classList.remove('modal-open');
-}
+function showMessage(message, duration = 3000) {
+    const messageElement = document.createElement('div');
+    messageElement.textContent = message;
+    messageElement.style.position = 'fixed';
+    messageElement.style.top = '20px';
+    messageElement.style.left = '50%';
+    messageElement.style.transform = 'translateX(-50%)';
+    messageElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    messageElement.style.color = 'white';
+    messageElement.style.padding = '10px 20px';
+    messageElement.style.borderRadius = '5px';
+    messageElement.style.zIndex = '1000';
+    document.body.appendChild(messageElement);
 
-function restartProcess() {
-    closeModal('modal4');
-    closeModal('modal3');
-    document.getElementById('audioFile').value = "";
-    document.getElementById('fileName').textContent = "לא נבחר קובץ";
-    document.getElementById('uploadBtn').disabled = true;
-    openModal('modal1');
+    setTimeout(() => {
+        document.body.removeChild(messageElement);
+    }, duration);
 }
