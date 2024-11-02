@@ -19,6 +19,20 @@ document.addEventListener('DOMContentLoaded', () => {
     displayTranscription('text');
 });
 
+// פונקציה לפתיחת מודאל
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = 'block';
+    document.body.classList.add('modal-open');
+}
+
+// פונקציה לסגירת מודאל
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+}
+
 // שמירת API Key
 function saveApiKey() {
     const inputApiKey = document.getElementById('apiKeyInput').value.trim();
@@ -88,12 +102,6 @@ async function transcribeChunk(chunk) {
 async function uploadAudio() {
     if (!apiKey) {
         alert('מפתח API חסר. נא להזין מחדש.');
-        return;
-    }
-
-    const audioFile = document.getElementById('audioFile').files[0];
-    if (!audioFile) {
-        alert('אנא בחר קובץ להעלאה.');
         return;
     }
 
