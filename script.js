@@ -65,7 +65,7 @@ async function uploadAudio() {
         return;
     }
 
-    openModal('modal3'); // הצגת מודאל התקדמות עם אייקון טעינה
+    openModal('modal3');
     console.log("Progress modal opened.");
 
     const audioFile = document.getElementById('audioFile').files[0];
@@ -75,10 +75,16 @@ async function uploadAudio() {
         return;
     }
 
+    // לוג התחלת עיבוד
+    const fileType = audioFile.name.split('.').pop().toLowerCase();
+    const fileSizeInMB = (audioFile.size / (1024 * 1024)).toFixed(2);
+    const processingStartTime = Date.now();
+    console.log(`[PROCESSING_START] File Type: ${fileType}, Size: ${fileSizeInMB}MB, Start Time: ${new Date(processingStartTime).toISOString()}`);
+
     const maxChunkSizeMB = 3;
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
     let transcriptionData = [];
-    let totalTimeElapsed = 0; // משתנה לאגירת הזמן המצטבר של כל המקטעים
+    let totalTimeElapsed = 0;
 
     try {
         console.log("Starting to split the audio file into chunks...");
@@ -94,7 +100,6 @@ async function uploadAudio() {
             document.getElementById('progress').style.width = `${progressPercent}%`;
             document.getElementById('progressText').textContent = `${progressPercent}%`;
 
-            // קבלת משך הזמן של המקטע הנוכחי ועדכון הזמן המצטבר
             const chunkDuration = await processAudioChunk(chunks[i], transcriptionData, i + 1, totalChunks, totalTimeElapsed);
             
             if (typeof chunkDuration === 'number' && chunkDuration > 0) {
@@ -105,7 +110,6 @@ async function uploadAudio() {
                 console.warn(`Invalid chunk duration received for chunk ${i + 1}: ${chunkDuration}`);
             }
 
-            // המתנה קצרה בין המקטעים
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
@@ -121,12 +125,19 @@ async function uploadAudio() {
         displayTranscription('text');
         console.log("Displaying transcription.");
 
-        // סגירת מודאל התקדמות ופתיחת מודאל התמלול
+        // לוג סיום עיבוד
+        const processingEndTime = Date.now();
+        const totalProcessingTime = processingEndTime - processingStartTime;
+        console.log(`[PROCESSING_END] File Type: ${fileType}, Size: ${fileSizeInMB}MB, Total Time: ${totalProcessingTime}ms (${(totalProcessingTime/1000).toFixed(2)} seconds), Speed: ${(fileSizeInMB/(totalProcessingTime/1000)).toFixed(2)}MB/s`);
+
         closeModal('modal3');
         openModal('modal4');
 
     } catch (error) {
         console.error('Error during audio processing:', error);
+        // לוג שגיאה
+        const processingEndTime = Date.now();
+        console.log(`[PROCESSING_ERROR] File Type: ${fileType}, Size: ${fileSizeInMB}MB, Time Until Error: ${processingEndTime - processingStartTime}ms`);
         alert('שגיאה במהלך התמלול. נא לנסות שוב.');
         closeModal('modal3');
     }
