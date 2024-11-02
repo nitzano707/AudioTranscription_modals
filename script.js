@@ -107,6 +107,7 @@ async function transcribeChunk(chunk) {
 }
 
 // פונקציה עיקרית לתמלול קובץ האודיו
+// פונקציה עיקרית לתמלול קובץ האודיו עם טיפול בשגיאות עבור כל מקטע
 async function uploadAudio() {
     if (!apiKey) {
         alert('מפתח API חסר. נא להזין מחדש.');
@@ -133,8 +134,14 @@ async function uploadAudio() {
             document.getElementById('progress').style.width = `${progressPercent}%`;
             document.getElementById('progressText').textContent = `${progressPercent}%`;
 
-            const chunkResult = await transcribeChunk(audioChunks[i]);
-            allSegments = allSegments.concat(chunkResult.segments);
+            try {
+                const chunkResult = await transcribeChunk(audioChunks[i]);
+                allSegments = allSegments.concat(chunkResult.segments);
+            } catch (error) {
+                console.error(`שגיאה בתמלול מקטע ${i + 1}:`, error);
+                alert(`שגיאה בתמלול מקטע ${i + 1}. הקטע יידלג.`);
+                continue; // דילוג על המקטע במקרה של שגיאה
+            }
         }
 
         saveTranscriptions(allSegments);
@@ -142,11 +149,12 @@ async function uploadAudio() {
         openModal('modal4'); // הצגת מודאל עם תמלול סופי
         alert('התמלול הושלם בהצלחה!');
     } catch (error) {
-        console.error('שגיאה בתמלול:', error);
-        alert('שגיאה בתמלול. נא לבדוק את ה-API Key ולנסות שוב.');
+        console.error('שגיאה במהלך עיבוד הקובץ:', error);
+        alert('שגיאה בתהליך התמלול. נא לנסות שוב.');
         closeModal('modal3');
     }
 }
+
 
 // פונקציה לעיצוב חותמות זמן בפורמט SRT
 function formatTimestamp(seconds) {
