@@ -1,3 +1,4 @@
+// עובד עד מגבלה של 3MB
 // משתנים גלובליים לאחסון התמלול בפורמטים שונים
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
