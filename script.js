@@ -65,7 +65,7 @@ async function uploadAudio() {
         return;
     }
 
-    openModal('modal3');
+    openModal('modal3'); // הצגת מודאל התקדמות עם אייקון טעינה
     console.log("Progress modal opened.");
 
     const audioFile = document.getElementById('audioFile').files[0];
@@ -78,7 +78,7 @@ async function uploadAudio() {
     const maxChunkSizeMB = 3;
     const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
     let transcriptionData = [];
-    let totalTimeElapsed = 0;
+    let totalTimeElapsed = 0; // משתנה לאגירת הזמן המצטבר של כל המקטעים
 
     try {
         console.log("Starting to split the audio file into chunks...");
@@ -87,28 +87,44 @@ async function uploadAudio() {
         console.log(`Total chunks created: ${totalChunks}`);
 
         for (let i = 0; i < totalChunks; i++) {
-            console.log("Processing chunk", i + 1, "of", totalChunks);
+            console.log(`Processing chunk ${i + 1} of ${totalChunks}`);
+            console.log(`Current total time elapsed: ${totalTimeElapsed}`);
 
             const progressPercent = Math.round(((i + 1) / totalChunks) * 100);
             document.getElementById('progress').style.width = `${progressPercent}%`;
             document.getElementById('progressText').textContent = `${progressPercent}%`;
 
-            await processAudioChunk(chunks[i], transcriptionData, i + 1, totalChunks, totalTimeElapsed);
-
-            if (chunks[i].duration) {
-                totalTimeElapsed += chunks[i].duration;
+            // קבלת משך הזמן של המקטע הנוכחי ועדכון הזמן המצטבר
+            const chunkDuration = await processAudioChunk(chunks[i], transcriptionData, i + 1, totalChunks, totalTimeElapsed);
+            
+            if (typeof chunkDuration === 'number' && chunkDuration > 0) {
+                totalTimeElapsed += chunkDuration;
+                console.log(`Chunk ${i + 1} duration: ${chunkDuration}`);
+                console.log(`Updated total time elapsed: ${totalTimeElapsed}`);
+            } else {
+                console.warn(`Invalid chunk duration received for chunk ${i + 1}: ${chunkDuration}`);
             }
 
+            // המתנה קצרה בין המקטעים
             await new Promise(resolve => setTimeout(resolve, 500));
         }
+
+        // מיון התמלול לפי חותמות זמן לוודא סדר נכון
+        transcriptionData.sort((a, b) => {
+            const timeA = a.timestamp.split(' -->')[0].trim();
+            const timeB = b.timestamp.split(' -->')[0].trim();
+            return timeA.localeCompare(timeB);
+        });
 
         saveTranscriptions(transcriptionData, audioFile.name);
         console.log("All chunks processed, saving transcriptions.");
         displayTranscription('text');
         console.log("Displaying transcription.");
 
+        // סגירת מודאל התקדמות ופתיחת מודאל התמלול
         closeModal('modal3');
         openModal('modal4');
+
     } catch (error) {
         console.error('Error during audio processing:', error);
         alert('שגיאה במהלך התמלול. נא לנסות שוב.');
@@ -164,10 +180,22 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             console.log(`Received response for chunk ${currentChunk}:`, data);
             
             if (data.segments) {
+                // מחשב את משך הזמן של המקטע הנוכחי
+                const chunkDuration = data.duration || 0;
+                console.log(`Chunk ${currentChunk} duration:`, chunkDuration);
+                console.log(`Total time before this chunk:`, totalTimeElapsed);
+
                 data.segments.forEach((segment, index) => {
                     if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-                        const startTime = formatTimestamp(segment.start + totalTimeElapsed);
-                        const endTime = formatTimestamp(segment.end + totalTimeElapsed);
+                        // מוסיף את הזמן המצטבר לחותמות הזמן
+                        const adjustedStart = segment.start + totalTimeElapsed;
+                        const adjustedEnd = segment.end + totalTimeElapsed;
+                        
+                        console.log(`Segment ${index} original times:`, segment.start, segment.end);
+                        console.log(`Segment ${index} adjusted times:`, adjustedStart, adjustedEnd);
+
+                        const startTime = formatTimestamp(adjustedStart);
+                        const endTime = formatTimestamp(adjustedEnd);
                         const text = segment.text.trim();
 
                         transcriptionData.push({
@@ -178,21 +206,27 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                         console.warn(`Invalid timestamp for segment ${index}:`, segment);
                     }
                 });
+
+                // עדכון הזמן המצטבר עם משך הזמן של המקטע הנוכחי
+                return chunkDuration;
             } else {
                 console.warn(`Missing segments in response for chunk ${currentChunk}`);
+                return 0;
             }
         } else {
             if (response.status === 401) {
                 alert('שגיאה במפתח API. נא להזין מפתח חדש.');
                 localStorage.removeItem('groqApiKey');
                 location.reload();
-                return;
+                return 0;
             }
             const errorText = await response.text();
             console.error(`Error for chunk ${currentChunk}:`, errorText);
+            return 0;
         }
     } catch (error) {
         console.error('Network error:', error);
+        return 0;
     }
 }
 
