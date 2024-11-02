@@ -3,7 +3,7 @@ let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
 
-const maxChunkSizeMB = 3; // משתנה גלובלי להגדרת גודל המקטע המקסימלי של קובץ האודיו במגה-בייט
+const maxChunkSizeMB = 2; // גודל מקטע מקסימלי במגה-בייט (כפי שנלקח מקובץ good.txt)
 const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
 let segmentCounter = 1; // מספר רציף של מקטעים
 let cumulativeTime = 0; // זמן מצטבר לכל המקטעים
@@ -236,4 +236,15 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     modal.style.display = 'none';
     document.body.classList.remove('modal-open');
+}
+
+// פונקציה לאיפוס התהליך
+function restartProcess() {
+    // סגירה של כל המודאלים הפעילים
+    closeModal('modal4');  // סגור את המודאל האחרון
+    closeModal('modal3');  // סגור את modal3 כדי שלא יישאר פתוח
+    document.getElementById('audioFile').value = "";
+    document.getElementById('fileName').textContent = "לא נבחר קובץ";
+    document.getElementById('uploadBtn').disabled = true;
+    openModal('modal1'); // פתח את modal1 להתחלה מחדש
 }
