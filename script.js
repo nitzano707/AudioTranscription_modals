@@ -2,7 +2,7 @@
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
-const maxChunkSizeMB = 24;
+const maxChunkSizeMB = 5;
 const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
 
 document.addEventListener('DOMContentLoaded', () => {
