@@ -209,12 +209,12 @@ function bufferToWaveBlob(abuffer) {
     return new Blob([buffer], { type: "audio/wav" });
 }
 
-async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
+async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, lastEndTime) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'verbose_json'); // שימוש בפורמט JSON מפורט לקבלת חותמות זמן
-    formData.append('language', defaultLanguage); // שימוש בשפת ברירת מחדל
+    formData.append('response_format', 'verbose_json');
+    formData.append('language', defaultLanguage);
 
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
@@ -237,19 +237,22 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             const data = await response.json();
             console.log(`Received response for chunk ${currentChunk}:`, data);
             if (data.segments) {
-                // יצירת SRT עבור כל משפט בנפרד לפי חותמות הזמן המדויקות מה-API
-                data.segments.forEach((segment, index) => {
+                data.segments.forEach((segment) => {
                     if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-                        const startTime = formatTimestamp(segment.start);
-                        const endTime = formatTimestamp(segment.end);
+                        // הוספת lastEndTime רק לחותמת הזמן ההתחלתית של המקטע הראשון
+                        const startTime = formatTimestamp(segment.start + lastEndTime);
+                        const endTime = formatTimestamp(segment.end + lastEndTime);
                         const text = segment.text.trim();
 
                         transcriptionData.push({
                             text: text,
                             timestamp: `${startTime} --> ${endTime}`
                         });
+
+                        // עדכון lastEndTime לזמן הסיום של המקטע הנוכחי לשימוש במקטע הבא
+                        lastEndTime = segment.end + lastEndTime;
                     } else {
-                        console.warn(`Invalid timestamp for segment ${index}:`, segment);
+                        console.warn(`Invalid timestamp for segment:`, segment);
                     }
                 });
             } else {
@@ -269,6 +272,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
         console.error('Network error:', error);
     }
 }
+
 
 
 
