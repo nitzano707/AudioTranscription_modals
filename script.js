@@ -87,18 +87,17 @@ async function uploadAudio() {
 }
 
 async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
-    // בדיקה האם הקובץ קטן מהגודל המרבי, במקרה כזה אין צורך בפיצול
+    // אם הקובץ קטן מהמגבלה, אין צורך לפצל
     if (file.size <= maxChunkSizeBytes) {
         return [file];
     }
 
-    // בדיקת סוג הקובץ והתאמת הפונקציה הנכונה
-    const fileType = file.type || ''; // במקרים מסוימים type יכול להיות ריק
+    const fileType = file.type || '';
 
     if (fileType.includes('wav')) {
         return splitWavFile(file, maxChunkSizeBytes);
     } else if (fileType.includes('mp3')) {
-        return splitMp3File(file, maxChunkSizeBytes);
+        return await splitMp3File(file, maxChunkSizeBytes);
     } else {
         throw new Error('פורמט קובץ לא נתמך לפיצול. אנא השתמש בקובץ בפורמט MP3 או WAV.');
     }
@@ -138,7 +137,8 @@ async function splitWavFile(file, maxChunkSizeBytes) {
     return chunks;
 }
 
-function splitMp3File(file, maxChunkSizeBytes) {
+
+async function splitMp3File(file, maxChunkSizeBytes) {
     const chunks = [];
     const totalChunks = Math.ceil(file.size / maxChunkSizeBytes);
 
@@ -150,6 +150,7 @@ function splitMp3File(file, maxChunkSizeBytes) {
 
     return chunks;
 }
+    
 
 function bufferToWaveBlob(abuffer) {
     const numOfChan = abuffer.numberOfChannels;
