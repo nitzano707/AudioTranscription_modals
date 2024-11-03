@@ -263,23 +263,33 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 }
 
 function formatTimestamp(seconds) {
+    if (typeof seconds !== 'number' || isNaN(seconds)) {
+        return '00:00:00,000'; // ערך ברירת מחדל במקרה של שגיאה
+    }
+
     const date = new Date(seconds * 1000);
     const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
     const secs = String(date.getUTCSeconds()).padStart(2, '0');
     const millis = String(date.getUTCMilliseconds()).padStart(3, '0');
+
     return `${hours}:${minutes}:${secs},${millis}`;
 }
 
 function saveTranscriptions(data, audioFileName) {
-    let lastEndTime = 0; // חותמת הזמן האחרונה בסוף המקטע הקודם
+    let lastEndTime = 0; // משתנה לשמירת הזמן המצטבר של כל המקטעים
 
     transcriptionDataText = data.map(d => cleanText(d.text)).join("").trim();
-    transcriptionDataSRT = data.map((d, index) => {
-        const startTime = formatTimestamp(d.start + lastEndTime); // התחלת המקטע לפי הזמן המצטבר
-        const endTime = formatTimestamp(d.end + lastEndTime); // סיום המקטע לפי הזמן המצטבר
 
-        lastEndTime = d.end + lastEndTime; // עדכון הזמן המצטבר לסוף המקטע הנוכחי
+    transcriptionDataSRT = data.map((d, index) => {
+        // אם start ו-end מוגדרים ונכונים, נשתמש בהם, אחרת נשמור על lastEndTime
+        const startTime = typeof d.start === 'number' ? formatTimestamp(d.start + lastEndTime) : formatTimestamp(lastEndTime);
+        const endTime = typeof d.end === 'number' ? formatTimestamp(d.end + lastEndTime) : formatTimestamp(lastEndTime);
+
+        // עדכון lastEndTime לסוף המקטע הנוכחי אם הזמן של המקטע מוגדר
+        if (typeof d.end === 'number') {
+            lastEndTime += d.end;
+        }
 
         return `${index + 1}\n${startTime} --> ${endTime}\n${cleanText(d.text)}\n`;
     }).join("\n\n");
