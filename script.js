@@ -1,5 +1,5 @@
 // משתנים גלובליים
-const MAX_SEGMENT_SIZE_MB = 5; // גודל מקטע מקסימלי ב-MB
+const MAX_SEGMENT_SIZE_MB = 24; // גודל מקטע מקסימלי ב-MB
 
 // משתנים לאחסון התמלול בפורמטים שונים
 let transcriptionDataText = '';
@@ -299,4 +299,69 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     modal.style.display = 'none';
     document.body.classList.remove('modal-open');
+}
+
+// פונקציה לבחירת כרטיסיה לתצוגת התמלול (טקסט או SRT)
+function openTab(evt, tabName) {
+    const tabcontent = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    const tablinks = document.getElementsByClassName("tablinks");
+    for (let i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+
+    // עדכון התמלול בהתאם לכרטיסיה שנבחרה
+    const format = evt.currentTarget.getAttribute('data-format');
+    displayTranscription(format);
+}
+
+// פונקציה להורדת תמלול
+function downloadTranscription() {
+    const activeTab = document.querySelector(".tablinks.active");
+    if (!activeTab) {
+        alert('לא נבחר פורמט להורדה. נא לבחור פורמט מתמלול.');
+        return;
+    }
+    const format = activeTab.getAttribute('data-format');
+    let blob, fileName;
+
+    if (format === "text") {
+        if (!transcriptionDataText) {
+            alert('אין תמלול להורדה.');
+            return;
+        }
+        blob = new Blob([transcriptionDataText], { type: 'text/plain' });
+        fileName = 'transcription.txt';
+    } else if (format === "srt") {
+        if (!transcriptionDataSRT) {
+            alert('אין תמלול להורדה.');
+            return;
+        }
+        blob = new Blob([transcriptionDataSRT], { type: 'text/plain' });
+        fileName = 'transcription.srt';
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// פונקציה לאיפוס תהליך ההעלאה והתמלול
+function restartProcess() {
+    // סגירה של כל המודלים הפעילים
+    closeModal('modal4');  // סגירת מודל התמלול
+    closeModal('modal3');  // סגירת מודל ההתקדמות
+    document.getElementById('audioFile').value = "";
+    document.getElementById('fileName').textContent = "לא נבחר קובץ";
+    document.getElementById('uploadBtn').disabled = true;
+    openModal('modal1'); // פתיחת מודל ההתחלה
 }
