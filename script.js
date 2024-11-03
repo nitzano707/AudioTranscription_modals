@@ -6,6 +6,9 @@ let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
 
+// המשתנה global שנצבר עם הזמן המצטבר הכולל בכל מקטע
+let totalElapsedTime = 0;
+
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
@@ -209,11 +212,11 @@ function bufferToWaveBlob(abuffer) {
     return new Blob([buffer], { type: "audio/wav" });
 }
 
-async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, lastEndTime) {
+async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'verbose_json');
+    formData.append('response_format', 'verbose_json'); 
     formData.append('language', defaultLanguage);
 
     const apiKey = localStorage.getItem('groqApiKey');
@@ -236,25 +239,28 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
         if (response.ok) {
             const data = await response.json();
             console.log(`Received response for chunk ${currentChunk}:`, data);
+
             if (data.segments) {
                 data.segments.forEach((segment) => {
                     if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-                        // הוספת lastEndTime רק לחותמת הזמן ההתחלתית של המקטע הראשון
-                        const startTime = formatTimestamp(segment.start + lastEndTime);
-                        const endTime = formatTimestamp(segment.end + lastEndTime);
+                        const startTime = formatTimestamp(segment.start + totalElapsedTime);
+                        const endTime = formatTimestamp(segment.end + totalElapsedTime);
                         const text = segment.text.trim();
 
                         transcriptionData.push({
                             text: text,
                             timestamp: `${startTime} --> ${endTime}`
                         });
-
-                        // עדכון lastEndTime לזמן הסיום של המקטע הנוכחי לשימוש במקטע הבא
-                        lastEndTime = segment.end + lastEndTime;
                     } else {
                         console.warn(`Invalid timestamp for segment:`, segment);
                     }
                 });
+
+                // עדכון totalElapsedTime לפי זמן הסיום של המקטע האחרון
+                const lastSegment = data.segments[data.segments.length - 1];
+                if (lastSegment && typeof lastSegment.end === 'number') {
+                    totalElapsedTime += lastSegment.end;
+                }
             } else {
                 console.warn(`Missing segments in response for chunk ${currentChunk}`);
             }
@@ -276,16 +282,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 
 
 
-function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.map((d) => cleanText(d.text)).join("").trim();
 
-    // יצירת קובץ SRT עבור כל משפט בנפרד
-    transcriptionDataSRT = data.map((d, index) => {
-        return `${index + 1}\n${d.timestamp}\n${cleanText(d.text)}\n`;
-    }).join("\n\n");
-
-    console.log("Transcription data saved successfully:", transcriptionDataText);
-}
 
 function formatTimestamp(seconds) {
     if (typeof seconds !== 'number' || isNaN(seconds)) {
@@ -301,6 +298,16 @@ function formatTimestamp(seconds) {
     return `${hours}:${minutes}:${secs},${millis}`;
 }
 
+function saveTranscriptions(data, audioFileName) {
+    transcriptionDataText = data.map(d => cleanText(d.text)).join(" ").trim();
+    transcriptionDataSRT = data.map((d, index) => {
+        return `${index + 1}\n${d.timestamp}\n${cleanText(d.text)}\n`;
+    }).join("\n\n");
+}
+
+function cleanText(text) {
+    return text.replace(/\s+/g, ' ').trim();
+}
 
 function displayTranscription(format) {
     let transcriptionResult;
