@@ -1,22 +1,19 @@
-// עובד עד מגבלה של 3MB
-// משתנים גלובליים לאחסון התמלול בפורמטים שונים
+// משתנים גלובליים
+const MAX_SEGMENT_SIZE_MB = 5; // גודל מקטע מקסימלי ב-MB
+
+// משתנים לאחסון התמלול בפורמטים שונים
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
 
-
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
-
-    // הסתרת אזור הזנת API או הצגת אזור העלאת קובץ וכפתור התחל תהליך
     if (!apiKey) {
         document.getElementById('apiRequest').style.display = 'block';
     } else {
         document.getElementById('apiRequest').style.display = 'none';
         document.getElementById('startProcessBtn').style.display = 'block';
     }
-
-    // הגדרת ברירת המחדל להצגת תמלול כטקסט
     document.getElementById('textTab').style.display = 'block';
     document.querySelector("button[onclick*='textTab']").classList.add('active');
     displayTranscription('text');
@@ -32,35 +29,14 @@ function saveApiKey() {
 }
 
 function triggerFileUpload() {
-    const audioFileInput = document.getElementById('audioFile');
-    audioFileInput.click();
+    document.getElementById('audioFile').click();
 }
 
-// מאזין לאירוע שינוי ברכיב העלאת הקובץ
 document.getElementById('audioFile').addEventListener('change', function () {
     const fileName = this.files[0] ? this.files[0].name : "לא נבחר קובץ";
     document.getElementById('fileName').textContent = fileName;
-
-    // עדכון מצב כפתור "הבא"
-    const uploadBtn = document.getElementById('uploadBtn');
-    if (this.files[0]) {
-        uploadBtn.disabled = false;
-    } else {
-        uploadBtn.disabled = true;
-    }
+    document.getElementById('uploadBtn').disabled = !this.files[0];
 });
-
-function openModal(modalId) {
-    const modal = document.getElementById(modalId);
-    modal.style.display = 'block';
-    document.body.classList.add('modal-open');
-}
-
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
-}
 
 async function uploadAudio() {
     const apiKey = localStorage.getItem('groqApiKey');
@@ -68,10 +44,7 @@ async function uploadAudio() {
         alert('מפתח API חסר. נא להזין מחדש.');
         return;
     }
-
-    openModal('modal3'); // הצגת מודאל התקדמות עם אייקון טעינה
-    console.log("Progress modal opened.");
-
+    openModal('modal3');
     const audioFile = document.getElementById('audioFile').files[0];
     if (!audioFile) {
         alert('אנא בחר קובץ להעלאה.');
@@ -79,30 +52,9 @@ async function uploadAudio() {
         return;
     }
 
-    // הגדרת גודל מקטע מקסימלי בהתאם לסוג הקובץ
-    let maxChunkSizeMB;
-    switch (audioFile.type) {
-        case 'audio/wav':
-            maxChunkSizeMB = 24;
-            break;
-        case 'audio/mp3':
-            maxChunkSizeMB = 4;
-            break;
-        case 'audio/m4a':
-            maxChunkSizeMB = 4;
-            break;
-        case 'video/mp4':
-        case 'audio/mp4':
-            maxChunkSizeMB = 20;
-            break;
-        default:
-            maxChunkSizeMB = 3; // ערך ברירת מחדל
-    }
-    const maxChunkSizeBytes = maxChunkSizeMB * 1024 * 1024;
-
+    const maxChunkSizeBytes = MAX_SEGMENT_SIZE_MB * 1024 * 1024;
     let transcriptionData = [];
-    let totalTimeElapsed = 0; // משתנה לאגירת הזמן המצטבר של כל המקטעים
-    
+    let totalTimeElapsed = 0;
 
     try {
         console.log("Starting to split the audio file into chunks...");
@@ -112,31 +64,21 @@ async function uploadAudio() {
 
         for (let i = 0; i < totalChunks; i++) {
             const chunkFile = new File([chunks[i]], `chunk_${i + 1}.${audioFile.name.split('.').pop()}`, { type: audioFile.type });
-
-            console.log("Uploading chunk", i + 1, "of", totalChunks);
-
             const progressPercent = Math.round(((i + 1) / totalChunks) * 100);
             document.getElementById('progress').style.width = `${progressPercent}%`;
             document.getElementById('progressText').textContent = `${progressPercent}%`;
 
             await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
-
-            // עדכון הזמן המצטבר לאחר עיבוד המקטע הנוכחי
             if (chunks[i].duration) {
-                totalTimeElapsed += chunks[i].duration; // chunks[i].duration הוא משך הזמן של המקטע בשניות
+                totalTimeElapsed += chunks[i].duration;
             }
-
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
         saveTranscriptions(transcriptionData, audioFile.name);
-        console.log("All chunks processed, saving transcriptions.");
         displayTranscription('text');
-        console.log("Displaying transcription.");
-
-        // סגירת מודאל התקדמות ופתיחת מודאל התמלול
-        closeModal('modal3'); // סגירת מודאל ההתקדמות
-        openModal('modal4');  // פתיחת מודאל הצגת התמלול
+        closeModal('modal3');
+        openModal('modal4');
     } catch (error) {
         console.error('Error during audio processing:', error);
         alert('שגיאה במהלך התמלול. נא לנסות שוב.');
@@ -145,49 +87,39 @@ async function uploadAudio() {
 }
 
 async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
-    // אם הקובץ קטן מהגודל המרבי, החזר אותו במקטע אחד
     if (file.size <= maxChunkSizeBytes) {
         return [file];
     }
 
+    if (file.type === 'audio/wav') {
+        return splitWavFile(file, maxChunkSizeBytes);
+    } else if (file.type === 'audio/mp3') {
+        return splitMp3File(file, maxChunkSizeBytes);
+    } else {
+        throw new Error('פורמט קובץ לא נתמך לפיצול.');
+    }
+}
+
+async function splitWavFile(file, maxChunkSizeBytes) {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const arrayBuffer = await file.arrayBuffer();
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
     const sampleRate = audioBuffer.sampleRate;
     const numChannels = audioBuffer.numberOfChannels;
     const totalSizeBytes = file.size;
-
-    // חשב את מספר המקטעים הדרוש כך שכל מקטע לא יעלה על maxChunkSizeBytes
     const numberOfChunks = Math.ceil(totalSizeBytes / maxChunkSizeBytes);
-
-    // חשב את משך הזמן לכל מקטע באופן פרופורציונלי
     const chunkDuration = audioBuffer.duration / numberOfChunks;
-    if (chunkDuration <= 0) {
-        console.error("Invalid chunk duration:", chunkDuration);
-        throw new Error("Chunk duration must be greater than 0.");
-    }
-
     let currentTime = 0;
     const chunks = [];
 
     while (currentTime < audioBuffer.duration) {
         const end = Math.min(currentTime + chunkDuration, audioBuffer.duration);
         const frameCount = Math.floor((end - currentTime) * sampleRate);
-
-        // בדיקה אם מספר הפריימים תקין
-        if (frameCount <= 0) {
-            console.warn("Skipping chunk with invalid frame count:", frameCount);
-            currentTime = end;
-            continue;
-        }
-
         const chunkBuffer = audioContext.createBuffer(numChannels, frameCount, sampleRate);
 
         for (let channel = 0; channel < numChannels; channel++) {
             const originalChannelData = audioBuffer.getChannelData(channel);
             const chunkChannelData = chunkBuffer.getChannelData(channel);
-
             for (let i = 0; i < frameCount; i++) {
                 chunkChannelData[i] = originalChannelData[Math.floor(currentTime * sampleRate) + i];
             }
@@ -196,6 +128,19 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
         const blob = bufferToWaveBlob(chunkBuffer);
         chunks.push(blob);
         currentTime = end;
+    }
+
+    return chunks;
+}
+
+function splitMp3File(file, maxChunkSizeBytes) {
+    const chunks = [];
+    const totalChunks = Math.ceil(file.size / maxChunkSizeBytes);
+
+    for (let i = 0; i < totalChunks; i++) {
+        const start = i * maxChunkSizeBytes;
+        const end = Math.min((i + 1) * maxChunkSizeBytes, file.size);
+        chunks.push(file.slice(start, end));
     }
 
     return chunks;
@@ -256,8 +201,8 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'verbose_json'); // שימוש בפורמט JSON מפורט לקבלת חותמות זמן
-    formData.append('language', defaultLanguage); // שימוש בשפת ברירת מחדל
+    formData.append('response_format', 'verbose_json');
+    formData.append('language', defaultLanguage);
 
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
@@ -278,25 +223,17 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 
         if (response.ok) {
             const data = await response.json();
-            console.log(`Received response for chunk ${currentChunk}:`, data);
             if (data.segments) {
-                // יצירת SRT עבור כל משפט בנפרד עם עדכון הזמן המצטבר
                 data.segments.forEach((segment, index) => {
-                    if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-                        const startTime = formatTimestamp(segment.start + totalTimeElapsed);
-                        const endTime = formatTimestamp(segment.end + totalTimeElapsed);
-                        const text = segment.text.trim();
+                    const startTime = formatTimestamp(segment.start + totalTimeElapsed);
+                    const endTime = formatTimestamp(segment.end + totalTimeElapsed);
+                    const text = segment.text.trim();
 
-                        transcriptionData.push({
-                            text: text,
-                            timestamp: `${startTime} --> ${endTime}`
-                        });
-                    } else {
-                        console.warn(`Invalid timestamp for segment ${index}:`, segment);
-                    }
+                    transcriptionData.push({
+                        text: text,
+                        timestamp: `${startTime} --> ${endTime}`
+                    });
                 });
-            } else {
-                console.warn(`Missing segments in response for chunk ${currentChunk}`);
             }
         } else {
             if (response.status === 401) {
@@ -314,43 +251,22 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 }
 
 function formatTimestamp(seconds) {
-    if (typeof seconds !== 'number' || isNaN(seconds)) {
-        console.error('Invalid seconds value for timestamp:', seconds);
-        return '00:00:00,000';
-    }
     const date = new Date(seconds * 1000);
     const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
     const secs = String(date.getUTCSeconds()).padStart(2, '0');
     const millis = String(date.getUTCMilliseconds()).padStart(3, '0');
-
     return `${hours}:${minutes}:${secs},${millis}`;
 }
 
-function cleanText(text) {
-    return text.replace(/\s+/g, ' ').trim();
-}
-
 function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.map((d, index) => {
-        // בדיקה אם יש סימן פיסוק בסוף המקטע, במידה ואין נוסיף רווח
-        if (/[.?!]$/.test(d.text.trim())) {
-            return cleanText(d.text);
-        } else {
-            return cleanText(d.text) + " ";
-        }
-    }).join("").trim();
-
-    // יצירת קובץ SRT עבור כל משפט בנפרד
+    transcriptionDataText = data.map(d => cleanText(d.text)).join("").trim();
     transcriptionDataSRT = data.map((d, index) => {
         return `${index + 1}\n${d.timestamp}\n${cleanText(d.text)}\n`;
     }).join("\n\n");
-
-    console.log("Transcription data saved successfully:", transcriptionDataText);
 }
 
 function displayTranscription(format) {
-    console.log("Displaying transcription in format:", format);
     let transcriptionResult;
     if (format === "text") {
         transcriptionResult = document.getElementById('textContent');
@@ -358,85 +274,29 @@ function displayTranscription(format) {
         transcriptionResult = document.getElementById('srtContent');
     }
 
-    if (!transcriptionResult) {
-        console.error('Invalid tab name or element not found:', format);
-        return;
-    }
+    if (!transcriptionResult) return;
 
-    // ווידוא שהכרטיסיה הרלוונטית מוצגת
     const tabcontent = document.getElementsByClassName("tabcontent");
     for (let i = 0; i < tabcontent.length; i++) {
         tabcontent[i].style.display = "none";
     }
 
-    if (format === "text") {
-        transcriptionResult.textContent = transcriptionDataText;
-    } else if (format === "srt") {
-        transcriptionResult.textContent = transcriptionDataSRT;
-    }
-
+    transcriptionResult.textContent = (format === "text") ? transcriptionDataText : transcriptionDataSRT;
     transcriptionResult.parentElement.style.display = "block";
-    console.log("Transcription displayed successfully.");
 }
 
-function openTab(evt, tabName) {
-    const tabcontent = document.getElementsByClassName("tabcontent");
-    for (let i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
-    }
-    const tablinks = document.getElementsByClassName("tablinks");
-    for (let i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
-    document.getElementById(tabName).style.display = "block";
-    evt.currentTarget.className += " active";
-    
-    // עדכון התמלול בהתאם לכרטיסיה שנבחרה
-    const format = evt.currentTarget.getAttribute('data-format');
-    displayTranscription(format);
+function cleanText(text) {
+    return text.replace(/\s+/g, ' ').trim();
 }
 
-function downloadTranscription() {
-    const activeTab = document.querySelector(".tablinks.active");
-    if (!activeTab) {
-        alert('לא נבחר פורמט להורדה. נא לבחור פורמט מתמלול.');
-        return;
-    }
-    const format = activeTab.getAttribute('data-format');
-    let blob, fileName;
-
-    if (format === "text") {
-        if (!transcriptionDataText) {
-            alert('אין תמלול להורדה.');
-            return;
-        }
-        blob = new Blob([transcriptionDataText], { type: 'text/plain' });
-        fileName = 'transcription.txt';
-    } else if (format === "srt") {
-        if (!transcriptionDataSRT) {
-            alert('אין תמלול להורדה.');
-            return;
-        }
-        blob = new Blob([transcriptionDataSRT], { type: 'text/plain' });
-        fileName = 'transcription.srt';
-    }
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = 'block';
+    document.body.classList.add('modal-open');
 }
 
-function restartProcess() {
-    // סגירה של כל המודאלים הפעילים
-    closeModal('modal4');  // סגור את המודאל האחרון
-    closeModal('modal3');  // סגור את modal3 כדי שלא יישאר פתוח
-    document.getElementById('audioFile').value = "";
-    document.getElementById('fileName').textContent = "לא נבחר קובץ";
-    document.getElementById('uploadBtn').disabled = true;
-    openModal('modal1'); // פתח את modal1 להתחלה מחדש
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
 }
