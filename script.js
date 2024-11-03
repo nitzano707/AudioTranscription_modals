@@ -87,18 +87,23 @@ async function uploadAudio() {
 }
 
 async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
+    // בדיקה האם הקובץ קטן מהגודל המרבי, במקרה כזה אין צורך בפיצול
     if (file.size <= maxChunkSizeBytes) {
         return [file];
     }
 
-    if (file.type === 'audio/wav') {
+    // בדיקת סוג הקובץ והתאמת הפונקציה הנכונה
+    const fileType = file.type || ''; // במקרים מסוימים type יכול להיות ריק
+
+    if (fileType.includes('wav')) {
         return splitWavFile(file, maxChunkSizeBytes);
-    } else if (file.type === 'audio/mp3') {
+    } else if (fileType.includes('mp3')) {
         return splitMp3File(file, maxChunkSizeBytes);
     } else {
-        throw new Error('פורמט קובץ לא נתמך לפיצול.');
+        throw new Error('פורמט קובץ לא נתמך לפיצול. אנא השתמש בקובץ בפורמט MP3 או WAV.');
     }
 }
+
 
 async function splitWavFile(file, maxChunkSizeBytes) {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
