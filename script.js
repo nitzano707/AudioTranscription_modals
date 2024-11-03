@@ -276,31 +276,18 @@ function formatTimestamp(seconds) {
     return `${hours}:${minutes}:${secs},${millis}`;
 }
 
-
 function saveTranscriptions(data, audioFileName) {
-    let cumulativeTime = 0; // משתנה לשמירת הזמן המצטבר של כל המקטעים
+    transcriptionDataText = data.map(d => cleanText(d.text)).join("").trim();
 
-    transcriptionDataText = data.map((d, index) => {
-        // בדיקה אם יש סימן פיסוק בסוף המקטע, במידה ואין נוסיף רווח
-        if (/[.?!]$/.test(d.text.trim())) {
-            return cleanText(d.text);
-        } else {
-            return cleanText(d.text) + " ";
-        }
-    }).join("").trim();
-
-    // יצירת קובץ SRT עבור כל משפט בנפרד עם התזמון הנכון
     transcriptionDataSRT = data.map((d, index) => {
-        const startTime = formatTimestamp(d.start + cumulativeTime); // התחלת המקטע לפי הזמן המצטבר
-        const endTime = formatTimestamp(d.end + cumulativeTime); // סיום המקטע לפי הזמן המצטבר
-
-        // עדכון cumulativeTime לסוף המקטע הנוכחי
-        cumulativeTime += d.end - d.start;
+        // חותמות הזמן המדויקות שמתקבלות מה-API ללא שינוי
+        const startTime = formatTimestamp(d.start); 
+        const endTime = formatTimestamp(d.end);
 
         return `${index + 1}\n${startTime} --> ${endTime}\n${cleanText(d.text)}\n`;
     }).join("\n\n");
 
-    console.log("Transcription data saved successfully:", transcriptionDataText);
+    console.log("Transcription data saved successfully:", transcriptionDataSRT);
 }
 
 
