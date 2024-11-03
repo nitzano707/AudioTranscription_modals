@@ -272,11 +272,19 @@ function formatTimestamp(seconds) {
 }
 
 function saveTranscriptions(data, audioFileName) {
+    let lastEndTime = 0; // חותמת הזמן האחרונה בסוף המקטע הקודם
+
     transcriptionDataText = data.map(d => cleanText(d.text)).join("").trim();
     transcriptionDataSRT = data.map((d, index) => {
-        return `${index + 1}\n${d.timestamp}\n${cleanText(d.text)}\n`;
+        const startTime = formatTimestamp(d.start + lastEndTime); // התחלת המקטע לפי הזמן המצטבר
+        const endTime = formatTimestamp(d.end + lastEndTime); // סיום המקטע לפי הזמן המצטבר
+
+        lastEndTime = d.end + lastEndTime; // עדכון הזמן המצטבר לסוף המקטע הנוכחי
+
+        return `${index + 1}\n${startTime} --> ${endTime}\n${cleanText(d.text)}\n`;
     }).join("\n\n");
 }
+
 
 function displayTranscription(format) {
     let transcriptionResult;
