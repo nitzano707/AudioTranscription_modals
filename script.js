@@ -92,16 +92,22 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
         return [file];
     }
 
+    // בדיקה גמישה לסוג הקובץ עם שימוש ב-file.type ובשם הקובץ
     const fileType = file.type || '';
+    const fileName = file.name || '';
 
-    if (fileType.includes('wav')) {
+    // בדיקות לפי סוג הקובץ
+    if (fileType.includes('wav') || fileName.endsWith('.wav')) {
+        console.log("Detected WAV file");
         return splitWavFile(file, maxChunkSizeBytes);
-    } else if (fileType.includes('mp3')) {
+    } else if (fileType.includes('mp3') || fileName.endsWith('.mp3')) {
+        console.log("Detected MP3 file");
         return await splitMp3File(file, maxChunkSizeBytes);
     } else {
         throw new Error('פורמט קובץ לא נתמך לפיצול. אנא השתמש בקובץ בפורמט MP3 או WAV.');
     }
 }
+
 
 
 async function splitWavFile(file, maxChunkSizeBytes) {
