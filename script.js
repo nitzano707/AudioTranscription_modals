@@ -209,12 +209,12 @@ function bufferToWaveBlob(abuffer) {
     return new Blob([buffer], { type: "audio/wav" });
 }
 
-async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, totalTimeElapsed) {
+async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
     const formData = new FormData();
     formData.append('file', chunk);
     formData.append('model', 'whisper-large-v3-turbo');
-    formData.append('response_format', 'verbose_json');
-    formData.append('language', defaultLanguage);
+    formData.append('response_format', 'verbose_json'); // שימוש בפורמט JSON מפורט לקבלת חותמות זמן
+    formData.append('language', defaultLanguage); // שימוש בשפת ברירת מחדל
 
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
@@ -235,17 +235,25 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 
         if (response.ok) {
             const data = await response.json();
+            console.log(`Received response for chunk ${currentChunk}:`, data);
             if (data.segments) {
+                // יצירת SRT עבור כל משפט בנפרד לפי חותמות הזמן המדויקות מה-API
                 data.segments.forEach((segment, index) => {
-                    const startTime = formatTimestamp(segment.start + totalTimeElapsed);
-                    const endTime = formatTimestamp(segment.end + totalTimeElapsed);
-                    const text = segment.text.trim();
+                    if (typeof segment.start === 'number' && typeof segment.end === 'number') {
+                        const startTime = formatTimestamp(segment.start);
+                        const endTime = formatTimestamp(segment.end);
+                        const text = segment.text.trim();
 
-                    transcriptionData.push({
-                        text: text,
-                        timestamp: `${startTime} --> ${endTime}`
-                    });
+                        transcriptionData.push({
+                            text: text,
+                            timestamp: `${startTime} --> ${endTime}`
+                        });
+                    } else {
+                        console.warn(`Invalid timestamp for segment ${index}:`, segment);
+                    }
                 });
+            } else {
+                console.warn(`Missing segments in response for chunk ${currentChunk}`);
             }
         } else {
             if (response.status === 401) {
@@ -262,11 +270,24 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     }
 }
 
+
+
+function saveTranscriptions(data, audioFileName) {
+    transcriptionDataText = data.map((d) => cleanText(d.text)).join("").trim();
+
+    // יצירת קובץ SRT עבור כל משפט בנפרד
+    transcriptionDataSRT = data.map((d, index) => {
+        return `${index + 1}\n${d.timestamp}\n${cleanText(d.text)}\n`;
+    }).join("\n\n");
+
+    console.log("Transcription data saved successfully:", transcriptionDataText);
+}
+
 function formatTimestamp(seconds) {
     if (typeof seconds !== 'number' || isNaN(seconds)) {
-        return '00:00:00,000'; // ערך ברירת מחדל במקרה של שגיאה
+        console.error('Invalid seconds value for timestamp:', seconds);
+        return '00:00:00,000';
     }
-
     const date = new Date(seconds * 1000);
     const hours = String(date.getUTCHours()).padStart(2, '0');
     const minutes = String(date.getUTCMinutes()).padStart(2, '0');
@@ -275,21 +296,6 @@ function formatTimestamp(seconds) {
 
     return `${hours}:${minutes}:${secs},${millis}`;
 }
-
-function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.map(d => cleanText(d.text)).join("").trim();
-
-    transcriptionDataSRT = data.map((d, index) => {
-        // חותמות הזמן המדויקות שמתקבלות מה-API ללא שינוי
-        const startTime = formatTimestamp(d.start); 
-        const endTime = formatTimestamp(d.end);
-
-        return `${index + 1}\n${startTime} --> ${endTime}\n${cleanText(d.text)}\n`;
-    }).join("\n\n");
-
-    console.log("Transcription data saved successfully:", transcriptionDataSRT);
-}
-
 
 
 function displayTranscription(format) {
