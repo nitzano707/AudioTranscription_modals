@@ -276,24 +276,33 @@ function formatTimestamp(seconds) {
     return `${hours}:${minutes}:${secs},${millis}`;
 }
 
+
 function saveTranscriptions(data, audioFileName) {
-    let lastEndTime = 0; // משתנה לשמירת הזמן המצטבר של כל המקטעים
+    let cumulativeTime = 0; // משתנה לשמירת הזמן המצטבר של כל המקטעים
 
-    transcriptionDataText = data.map(d => cleanText(d.text)).join("").trim();
-
-    transcriptionDataSRT = data.map((d, index) => {
-        // אם start ו-end מוגדרים ונכונים, נשתמש בהם, אחרת נשמור על lastEndTime
-        const startTime = typeof d.start === 'number' ? formatTimestamp(d.start + lastEndTime) : formatTimestamp(lastEndTime);
-        const endTime = typeof d.end === 'number' ? formatTimestamp(d.end + lastEndTime) : formatTimestamp(lastEndTime);
-
-        // עדכון lastEndTime לסוף המקטע הנוכחי אם הזמן של המקטע מוגדר
-        if (typeof d.end === 'number') {
-            lastEndTime += d.end;
+    transcriptionDataText = data.map((d, index) => {
+        // בדיקה אם יש סימן פיסוק בסוף המקטע, במידה ואין נוסיף רווח
+        if (/[.?!]$/.test(d.text.trim())) {
+            return cleanText(d.text);
+        } else {
+            return cleanText(d.text) + " ";
         }
+    }).join("").trim();
+
+    // יצירת קובץ SRT עבור כל משפט בנפרד עם התזמון הנכון
+    transcriptionDataSRT = data.map((d, index) => {
+        const startTime = formatTimestamp(d.start + cumulativeTime); // התחלת המקטע לפי הזמן המצטבר
+        const endTime = formatTimestamp(d.end + cumulativeTime); // סיום המקטע לפי הזמן המצטבר
+
+        // עדכון cumulativeTime לסוף המקטע הנוכחי
+        cumulativeTime += d.end - d.start;
 
         return `${index + 1}\n${startTime} --> ${endTime}\n${cleanText(d.text)}\n`;
     }).join("\n\n");
+
+    console.log("Transcription data saved successfully:", transcriptionDataText);
 }
+
 
 
 function displayTranscription(format) {
