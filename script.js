@@ -3,6 +3,7 @@
 const MAX_SEGMENT_SIZE_MB = 25; // גודל מקטע מקסימלי ב-MB
 
 // משתנים לאחסון התמלול בפורמטים שונים
+let estimatedTime = 0;
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
@@ -46,6 +47,7 @@ document.getElementById('audioFile').addEventListener('change', function () {
 });
 
 async function uploadAudio() {
+    calculateEstimatedTime();
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
         alert('מפתח API חסר. נא להזין מחדש.');
@@ -83,6 +85,7 @@ async function uploadAudio() {
             const chunkFile = new File([chunks[i]], `chunk_${i + 1}.${audioFile.name.split('.').pop()}`, { type: audioFile.type });
             const progressPercent = Math.round(((i + 1) / totalChunks) * 100);
             document.getElementById('progress').style.width = `${progressPercent}%`;
+            updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
             document.getElementById('progressText').textContent = `${progressPercent}%`;
 
             await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
@@ -418,6 +421,41 @@ function downloadTranscription() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+// פונקציה לחישוב זמן משוער לפי סוג וגודל הקובץ
+function calculateEstimatedTime() {
+    const audioFile = document.getElementById('audioFile').files[0];
+    if (!audioFile) return;
+    const sizeMB = audioFile.size / (1024 * 1024);
+    if (audioFile.type.includes('mp3')) {
+        estimatedTime = sizeMB * 1; // MP3: 1 שנייה לכל מגה בייט
+    } else if (audioFile.type.includes('wav')) {
+        estimatedTime = sizeMB * 0.4; // WAV: 0.4 שניות לכל מגה בייט
+    } else {
+        estimatedTime = sizeMB * 1.5; // ברירת מחדל
+    }
+}
+
+// פונקציה לעדכון חלק של סרגל ההתקדמות
+function updateProgressBarSmoothly(currentChunk, totalChunks, estimatedTime) {
+    const progressElement = document.getElementById('progress');
+    const progressTextElement = document.getElementById('progressText');
+    const interval = estimatedTime / totalChunks * 1000;
+    let startProgress = ((currentChunk - 1) / totalChunks) * 100;
+    let endProgress = (currentChunk / totalChunks) * 100;
+    let currentProgress = startProgress;
+
+    const smoothProgress = setInterval(() => {
+        currentProgress += 1;
+        if (currentProgress >= endProgress) {
+            currentProgress = endProgress;
+            clearInterval(smoothProgress);
+        }
+        progressElement.style.width = `${currentProgress}%`;
+        progressTextElement.textContent = `${Math.round(currentProgress)}%`;
+    }, interval / (endProgress - startProgress));
+}
+
 
 // פונקציה לאיפוס תהליך ההעלאה והתמלול
 function restartProcess() {
