@@ -167,7 +167,13 @@ async function splitWavFile(file, maxChunkSizeBytes) {
         }
 
         const blob = bufferToWaveBlob(chunkBuffer);
-        chunks.push(blob);
+        if (blob.size > maxChunkSizeBytes) {
+            console.warn('Chunk exceeded max size, splitting further');
+            const subChunks = await splitWavFile(blob, maxChunkSizeBytes);
+            chunks.push(...subChunks);
+        } else {
+            chunks.push(blob);
+        }
         currentTime = end;
     }
 
@@ -182,7 +188,14 @@ async function splitMp3File(file, maxChunkSizeBytes) {
     for (let i = 0; i < totalChunks; i++) {
         const start = i * maxChunkSizeBytes;
         const end = Math.min((i + 1) * maxChunkSizeBytes, file.size);
-        chunks.push(file.slice(start, end));
+        const chunk = file.slice(start, end);
+        if (chunk.size > maxChunkSizeBytes) {
+            console.warn('MP3 chunk exceeded max size, splitting further');
+            const subChunks = await splitMp3File(chunk, maxChunkSizeBytes);
+            chunks.push(...subChunks);
+        } else {
+            chunks.push(chunk);
+        }
     }
 
     return chunks;
@@ -482,6 +495,7 @@ function updateProgressBarSmoothly(currentChunk, totalChunks, estimatedTime) {
 
 // פונקציה לאיפוס תהליך ההעלאה והתמלול
 function restartProcess() {
+    let estimatedTime = 0;  // איפוס סרגל ההתקדמות
     // סגירה של כל המודלים הפעילים
     closeModal('modal4');  // סגירת מודל התמלול
     closeModal('modal3');  // סגירת מודל ההתקדמות
