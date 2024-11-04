@@ -38,6 +38,9 @@ function triggerFileUpload() {
 
 document.getElementById('audioFile').addEventListener('change', function () {
     const fileName = this.files[0] ? this.files[0].name : "לא נבחר קובץ";
+    if (this.files[0]) {
+        audioFileName = this.files[0].name;
+    }
     document.getElementById('fileName').textContent = fileName;
     document.getElementById('uploadBtn').disabled = !this.files[0];
 });
@@ -50,7 +53,8 @@ async function uploadAudio() {
     }
     openModal('modal3');
     const audioFile = document.getElementById('audioFile').files[0];
-    document.getElementById('modal3').querySelector('.modal-header').textContent = `התמלול מתבצע עבור הקובץ: ${audioFile.name}`;
+    document.getElementById('modal3').querySelector('.modal-header').textContent = `התמלול מתבצע עבור הקובץ: ${audioFileName}`;
+   
     if (!audioFile) {
         alert('אנא בחר קובץ להעלאה.');
         closeModal('modal3');
