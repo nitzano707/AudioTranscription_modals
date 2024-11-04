@@ -300,8 +300,14 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             try {
                 const errorData = JSON.parse(errorText);
                 if (errorData.error && errorData.error.code === 'rate_limit_exceeded') {
-                    const waitTime = errorData.error.message.match(/try again in ([\d\w\.]+)/)[1];
-                    alert(`כמות התמלולים לשעה הסתיימה. נא להמתין ${waitTime} ולהתחיל מחדש את התהליך.`);
+                    let waitTime = errorData.error.message.match(/try again in ([\d\w\.]+)/)[1];
+                    waitTime = waitTime
+                        .replace('s', ' שניות')
+                        .replace('m', ' דקות')
+                        .replace('h', ' שעות')
+                        .replace('d', ' ימים');
+
+                    alert(`מכסת התמלולים שלך לשעה הסתיימה. נא להמתין ${waitTime} ולהתחיל מחדש את התהליך.`);
                     closeModal('modal3');
                     openModal('modal1');
                     return;
