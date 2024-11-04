@@ -11,6 +11,8 @@ const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
 // המשתנה global שנצבר עם הזמן המצטבר הכולל בכל מקטע
 let totalElapsedTime = 0;
 
+let firstChunkDuration = 0;
+
 document.addEventListener('DOMContentLoaded', () => {
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
@@ -48,29 +50,13 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 async function uploadAudio() {
     const audioFile = document.getElementById('audioFile').files[0];
-    if (audioFile) {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const arrayBuffer = await audioFile.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        const durationInMinutes = audioBuffer.duration / 60;
-        console.log(`Duration in minutes: ${durationInMinutes}`);
-        if (durationInMinutes > 120) {
-            alert('משך הקובץ עולה על 120 דקות, יש לבחור קובץ קצר יותר.');
-            restartProcess();
-            return;
-        }
-    }
-
     calculateEstimatedTime();
     const apiKey = localStorage.getItem('groqApiKey');
-
     if (!apiKey) {
         alert('מפתח API חסר. נא להזין מחדש.');
         return;
     }
-
     openModal('modal3');
-
     const modal = document.getElementById('modal3');
     if (modal) {
         const modalBody = modal.querySelector('.modal-body p');
@@ -80,7 +66,6 @@ async function uploadAudio() {
     } else {
         console.warn("Modal or modal header not found.");
     }
-
     if (!audioFile) {
         alert('אנא בחר קובץ להעלאה.');
         closeModal('modal3');
@@ -99,19 +84,27 @@ async function uploadAudio() {
 
         for (let i = 0; i < totalChunks; i++) {
             const chunkFile = new File([chunks[i]], `chunk_${i + 1}.${audioFile.name.split('.').pop()}`, { type: audioFile.type });
-
             if (i === 0) {
                 document.getElementById('progress').style.width = '0%';
                 document.getElementById('progressText').textContent = '0%';
             }
-
             updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
-            await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
 
+            await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
             if (chunks[i].duration) {
                 totalTimeElapsed += chunks[i].duration;
             }
 
+            if (i === 0) {
+                firstChunkDuration = chunks[i].duration;
+                const estimatedTotalDuration = firstChunkDuration * totalChunks;
+                const estimatedTotalDurationInMinutes = estimatedTotalDuration / 60;
+                if (estimatedTotalDurationInMinutes > 120) {
+                    alert('משך הקובץ עולה על 120 דקות, יש לבחור קובץ קצר יותר.');
+                    restartProcess();
+                    return;
+                }
+            }
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
@@ -119,7 +112,6 @@ async function uploadAudio() {
         displayTranscription('text');
         closeModal('modal3');
         openModal('modal4');
-
         const modal4 = document.getElementById('modal4');
         if (modal4) {
             const modalBody = modal4.querySelector('.modal-body p');
@@ -133,6 +125,7 @@ async function uploadAudio() {
         closeModal('modal3');
     }
 }
+
 
 
 async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
@@ -156,6 +149,7 @@ async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
         throw new Error('פורמט קובץ לא נתמך לפיצול. אנא השתמש בקובץ בפורמט MP3 או WAV.');
     }
 }
+
 
 
 
