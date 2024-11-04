@@ -47,6 +47,18 @@ document.getElementById('audioFile').addEventListener('change', function () {
 });
 
 async function uploadAudio() {
+    const audioFile = document.getElementById('audioFile').files[0];
+    if (audioFile) {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const arrayBuffer = await audioFile.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const durationInMinutes = audioBuffer.duration / 60;
+        if (durationInMinutes > 120) {
+            alert('משך הקובץ עולה על 120 דקות, יש לבחור קובץ קצר יותר.');
+            restartProcess();
+            return;
+        }
+    }
     calculateEstimatedTime();
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
