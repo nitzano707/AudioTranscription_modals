@@ -53,7 +53,15 @@ async function uploadAudio() {
     }
     openModal('modal3');
     const audioFile = document.getElementById('audioFile').files[0];
-    document.getElementById('modal3').querySelector('.modal-header').textContent = `התמלול מתבצע עבור הקובץ: ${audioFileName}`;
+    const modal = document.getElementById('modal3');
+    if (modal) {
+        const modalHeader = modal.querySelector('.modal-header');
+        if (modalHeader) {
+            modalHeader.textContent = `התמלול מתבצע עבור הקובץ: ${audioFileName}`;
+        }
+    } else {
+        console.warn("Modal or modal header not found.");
+    }
    
     if (!audioFile) {
         alert('אנא בחר קובץ להעלאה.');
