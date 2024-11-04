@@ -88,10 +88,11 @@ async function uploadAudio() {
                 document.getElementById('progressText').textContent = '0%';
             }
 updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
-            updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
-            document.getElementById('progressText').textContent = `${progressPercent}%`;
+            
 
             await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
+
+            
             if (chunks[i].duration) {
                 totalTimeElapsed += chunks[i].duration;
             }
