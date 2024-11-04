@@ -55,9 +55,9 @@ async function uploadAudio() {
     const audioFile = document.getElementById('audioFile').files[0];
     const modal = document.getElementById('modal3');
     if (modal) {
-        const modalHeader = modal.querySelector('.modal-header');
-        if (modalHeader) {
-            modalHeader.textContent = `התמלול מתבצע עבור הקובץ: ${audioFileName}`;
+        const modalBody = modal.querySelector('.modal-body p');
+        if (modalBody) {
+            modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFileName}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
         }
     } else {
         console.warn("Modal or modal header not found.");
@@ -96,6 +96,13 @@ async function uploadAudio() {
         displayTranscription('text');
         closeModal('modal3');
         openModal('modal4');
+        const modal4 = document.getElementById('modal4');
+        if (modal4) {
+            const modalBody = modal4.querySelector('.modal-body p');
+            if (modalBody) {
+                modalBody.innerHTML = `תמלול הקובץ <strong>${audioFileName}</strong> הושלם`;
+            }
+        }
     } catch (error) {
         console.error('Error during audio processing:', error);
         alert('שגיאה במהלך התמלול. נא לנסות שוב.');
