@@ -72,6 +72,23 @@ async function uploadAudio() {
         return;
     }
 
+    // חישוב הערכת זמן מבוסס על גודל הקובץ וסוגו
+    const sizeInMB = audioFile.size / (1024 * 1024);
+    let estimatedDurationInMinutes;
+    if (audioFile.type.includes('mp3') || audioFile.name.endsWith('.mp3')) {
+        estimatedDurationInMinutes = (sizeInMB / 0.96); // הערכה עבור MP3 בקצב של 128 קילובייט לשנייה
+    } else if (audioFile.type.includes('wav') || audioFile.name.endsWith('.wav')) {
+        estimatedDurationInMinutes = (sizeInMB / 10); // הערכה גסה עבור WAV (לא דחוס)
+    } else {
+        alert('פורמט קובץ לא נתמך. אנא השתמש בקובץ בפורמט MP3 או WAV.');
+        closeModal('modal3');
+        return;
+    }
+
+    if (estimatedDurationInMinutes > 120) {
+        alert(`משך הקובץ מוערך כ-${Math.round(estimatedDurationInMinutes)} דקות, ייתכן שהוא יחרוג ממכסת התמלול של 120 דקות לשעה. אנא היוועץ אם להמשיך.`);
+    }
+    
     const maxChunkSizeBytes = MAX_SEGMENT_SIZE_MB * 1024 * 1024;
     let transcriptionData = [];
     let totalTimeElapsed = 0;
@@ -95,16 +112,7 @@ async function uploadAudio() {
                 totalTimeElapsed += chunks[i].duration;
             }
 
-            if (i === 0) {
-                firstChunkDuration = chunks[i].duration;
-                const estimatedTotalDuration = firstChunkDuration * totalChunks;
-                const estimatedTotalDurationInMinutes = estimatedTotalDuration / 60;
-                if (estimatedTotalDurationInMinutes > 120) {
-                    alert('משך הקובץ עולה על 120 דקות, יש לבחור קובץ קצר יותר.');
-                    restartProcess();
-                    return;
-                }
-            }
+            
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
