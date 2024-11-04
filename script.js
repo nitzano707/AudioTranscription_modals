@@ -1,6 +1,6 @@
 
 // משתנים גלובליים
-const MAX_SEGMENT_SIZE_MB = 25; // גודל מקטע מקסימלי ב-MB
+const MAX_SEGMENT_SIZE_MB = 24; // גודל מקטע מקסימלי ב-MB
 
 // משתנים לאחסון התמלול בפורמטים שונים
 let estimatedTime = 0;
@@ -83,12 +83,11 @@ async function uploadAudio() {
 
         for (let i = 0; i < totalChunks; i++) {
             const chunkFile = new File([chunks[i]], `chunk_${i + 1}.${audioFile.name.split('.').pop()}`, { type: audioFile.type });
-            const progressPercent = Math.round(((i + 1) / totalChunks) * 100);
             if (i === 0) {
                 document.getElementById('progress').style.width = '0%';
                 document.getElementById('progressText').textContent = '0%';
             }
-            document.getElementById('progress').style.width = `${progressPercent}%`;
+updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
             updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
             document.getElementById('progressText').textContent = `${progressPercent}%`;
 
