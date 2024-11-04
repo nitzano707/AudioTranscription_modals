@@ -57,7 +57,7 @@ async function uploadAudio() {
     if (modal) {
         const modalBody = modal.querySelector('.modal-body p');
         if (modalBody) {
-            modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFileName}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
+            modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFileName}</strong> .עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
         }
     } else {
         console.warn("Modal or modal header not found.");
@@ -100,7 +100,7 @@ async function uploadAudio() {
         if (modal4) {
             const modalBody = modal4.querySelector('.modal-body p');
             if (modalBody) {
-                modalBody.innerHTML = `תמלול הקובץ <strong>${audioFileName}</strong> הושלם`;
+                modalBody.innerHTML = `תמלול הקובץ <strong>${audioFileName}</strong> .הושלם`;
             }
         }
     } catch (error) {
