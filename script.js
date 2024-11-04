@@ -88,7 +88,7 @@ async function uploadAudio() {
     if (estimatedDurationInMinutes > 120) {
         alert(`משך הקובץ מוערך כ-${Math.round(estimatedDurationInMinutes)} דקות, ייתכן שהוא יחרוג ממכסת התמלול של 120 דקות לשעה. אנא היוועץ אם להמשיך.`);
     }
-    
+
     const maxChunkSizeBytes = MAX_SEGMENT_SIZE_MB * 1024 * 1024;
     let transcriptionData = [];
     let totalTimeElapsed = 0;
@@ -112,7 +112,6 @@ async function uploadAudio() {
                 totalTimeElapsed += chunks[i].duration;
             }
 
-            
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
@@ -129,10 +128,42 @@ async function uploadAudio() {
         }
     } catch (error) {
         console.error('Error during audio processing:', error);
-        alert('שגיאה במהלך התמלול. נא לנסות שוב.');
+        if (error.message.includes('rate limit')) {
+            const rateLimitMessage = error.message.match(/\d+[dhms]/g).map(time => {
+                if (time.endsWith('d')) return `${parseInt(time)} ימים`;
+                if (time.endsWith('h')) return `${parseInt(time)} שעות`;
+                if (time.endsWith('m')) return `${parseInt(time)} דקות`;
+                if (time.endsWith('s')) return `${parseInt(time)} שניות`;
+                return time;
+            }).join(' ו');
+            alert(`כמות התמלולים לשעה הסתיימה. נא להמתין ${rateLimitMessage}. ולאחר מכן להתחיל מחדש את התהליך.`);
+            resetProcess();
+        } else {
+            alert('שגיאה במהלך התמלול. נא לנסות שוב.');
+        }
         closeModal('modal3');
     }
 }
+
+
+function resetProcess() {
+    // איפוס כל המשתנים הגלובליים
+    estimatedTime = 0;
+    audioFileName = '';
+    transcriptionDataText = '';
+    transcriptionDataSRT = '';
+    totalElapsedTime = 0;
+    firstChunkDuration = 0;
+
+    // איפוס הממשק וחזרה למסך הראשי
+    closeModal('modal3');
+    closeModal('modal4');
+    document.getElementById('audioFile').value = "";
+    document.getElementById('fileName').textContent = "לא נבחר קובץ";
+    document.getElementById('uploadBtn').disabled = true;
+    document.getElementById('startProcessBtn').style.display = 'block';
+}
+
 
 
 
@@ -189,6 +220,8 @@ async function splitWavFile(file, maxChunkSizeBytes) {
         const blob = bufferToWaveBlob(chunkBuffer);
         if (blob.size > maxChunkSizeBytes) {
             console.warn('Chunk exceeded max size, splitting further');
+            // הוספת 5 שניות לסרגל ההתקדמות כאשר מתבצע פיצול נוסף
+            estimatedTime += 5;
             const subChunks = await splitWavFile(blob, maxChunkSizeBytes);
             chunks.push(...subChunks);
         } else {
@@ -199,6 +232,7 @@ async function splitWavFile(file, maxChunkSizeBytes) {
 
     return chunks;
 }
+
 
 
 async function splitMp3File(file, maxChunkSizeBytes) {
