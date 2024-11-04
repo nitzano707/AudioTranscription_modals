@@ -297,6 +297,19 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             }
             const errorText = await response.text();
             console.error(`Error for chunk ${currentChunk}:`, errorText);
+            try {
+                const errorData = JSON.parse(errorText);
+                if (errorData.error && errorData.error.code === 'rate_limit_exceeded') {
+                    const waitTime = errorData.error.message.match(/try again in ([\d\w\.]+)/)[1];
+                    alert(`כמות התמלולים לשעה הסתיימה. נא להמתין ${waitTime} ולהתחיל מחדש את התהליך.`);
+                    closeModal('modal3');
+                    openModal('modal1');
+                    return;
+                }
+            } catch (parseError) {
+                console.warn('Failed to parse error response:', parseError);
+            }
+
         }
     } catch (error) {
         console.error('Network error:', error);
