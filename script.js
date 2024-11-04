@@ -49,8 +49,8 @@ async function uploadAudio() {
         return;
     }
     openModal('modal3');
-    document.getElementById('modal3').querySelector('.modal-header').textContent = `התמלול מתבצע עבור הקובץ: ${audioFile.name}`;
     const audioFile = document.getElementById('audioFile').files[0];
+    document.getElementById('modal3').querySelector('.modal-header').textContent = `התמלול מתבצע עבור הקובץ: ${audioFile.name}`;
     if (!audioFile) {
         alert('אנא בחר קובץ להעלאה.');
         closeModal('modal3');
