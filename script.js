@@ -53,6 +53,7 @@ async function uploadAudio() {
         const arrayBuffer = await audioFile.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         const durationInMinutes = audioBuffer.duration / 60;
+        console.log(`Duration in minutes: ${durationInMinutes}`);
         if (durationInMinutes > 120) {
             alert('משך הקובץ עולה על 120 דקות, יש לבחור קובץ קצר יותר.');
             restartProcess();
