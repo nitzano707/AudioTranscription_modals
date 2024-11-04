@@ -85,6 +85,7 @@ async function uploadAudio() {
         return;
     }
 
+    // הודעת אזהרה אם סך הדקות מוערך כגדול מ-120 דקות
     if (estimatedDurationInMinutes > 120) {
         alert(`משך הקובץ מוערך כ-${Math.round(estimatedDurationInMinutes)} דקות, ייתכן שהוא יחרוג ממכסת התמלול של 120 דקות לשעה. אנא היוועץ אם להמשיך.`);
     }
@@ -128,22 +129,11 @@ async function uploadAudio() {
         }
     } catch (error) {
         console.error('Error during audio processing:', error);
-        if (error.message.includes('rate limit')) {
-            const rateLimitMessage = error.message.match(/\d+[dhms]/g).map(time => {
-                if (time.endsWith('d')) return `${parseInt(time)} ימים`;
-                if (time.endsWith('h')) return `${parseInt(time)} שעות`;
-                if (time.endsWith('m')) return `${parseInt(time)} דקות`;
-                if (time.endsWith('s')) return `${parseInt(time)} שניות`;
-                return time;
-            }).join(' ו');
-            alert(`כמות התמלולים לשעה הסתיימה. נא להמתין ${rateLimitMessage}. ולאחר מכן להתחיל מחדש את התהליך.`);
-            resetProcess();
-        } else {
-            alert('שגיאה במהלך התמלול. נא לנסות שוב.');
-        }
         closeModal('modal3');
+        alert('שגיאה במהלך התמלול. נא לנסות שוב.');
     }
 }
+
 
 
 function resetProcess() {
@@ -156,6 +146,7 @@ function resetProcess() {
     firstChunkDuration = 0;
 
     // איפוס הממשק וחזרה למסך הראשי
+    closeModal('modal1');
     closeModal('modal3');
     closeModal('modal4');
     document.getElementById('audioFile').value = "";
@@ -379,19 +370,18 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                         .replace('d', ' ימים');
 
                     alert(`מכסת התמלולים שלך לשעה הסתיימה. נא להמתין ${waitTime} ולהתחיל מחדש את התהליך.`);
-                    closeModal('modal3');
-                    openModal('modal1');
+                    resetProcess();
                     return;
                 }
             } catch (parseError) {
                 console.warn('Failed to parse error response:', parseError);
             }
-
         }
     } catch (error) {
         console.error('Network error:', error);
     }
 }
+
 
 
 
