@@ -48,35 +48,40 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 async function uploadAudio() {
     const audioFile = document.getElementById('audioFile').files[0];
+
     if (audioFile) {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const arrayBuffer = await audioFile.arrayBuffer();
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
         const durationInMinutes = audioBuffer.duration / 60;
+
         if (durationInMinutes > 120) {
             alert('משך הקובץ עולה על 120 דקות, יש לבחור קובץ קצר יותר.');
             restartProcess();
             return;
         }
     }
+
     calculateEstimatedTime();
     const apiKey = localStorage.getItem('groqApiKey');
+
     if (!apiKey) {
         alert('מפתח API חסר. נא להזין מחדש.');
         return;
     }
+
     openModal('modal3');
-    const audioFile = document.getElementById('audioFile').files[0];
+
     const modal = document.getElementById('modal3');
     if (modal) {
         const modalBody = modal.querySelector('.modal-body p');
         if (modalBody) {
-            modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFileName}</strong> .עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
+            modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFileName}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
         }
     } else {
         console.warn("Modal or modal header not found.");
     }
-   
+
     if (!audioFile) {
         alert('אנא בחר קובץ להעלאה.');
         closeModal('modal3');
@@ -95,19 +100,19 @@ async function uploadAudio() {
 
         for (let i = 0; i < totalChunks; i++) {
             const chunkFile = new File([chunks[i]], `chunk_${i + 1}.${audioFile.name.split('.').pop()}`, { type: audioFile.type });
+
             if (i === 0) {
                 document.getElementById('progress').style.width = '0%';
                 document.getElementById('progressText').textContent = '0%';
             }
-updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
-            
 
+            updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
             await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
 
-            
             if (chunks[i].duration) {
                 totalTimeElapsed += chunks[i].duration;
             }
+
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
@@ -115,11 +120,12 @@ updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
         displayTranscription('text');
         closeModal('modal3');
         openModal('modal4');
+
         const modal4 = document.getElementById('modal4');
         if (modal4) {
             const modalBody = modal4.querySelector('.modal-body p');
             if (modalBody) {
-                modalBody.innerHTML = `תמלול הקובץ <strong>${audioFileName}</strong> .הושלם`;
+                modalBody.innerHTML = `תמלול הקובץ <strong>${audioFileName}</strong> הושלם`;
             }
         }
     } catch (error) {
@@ -128,6 +134,7 @@ updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
         closeModal('modal3');
     }
 }
+
 
 async function splitAudioToChunksBySize(file, maxChunkSizeBytes) {
     // אם הקובץ קטן מהמגבלה, אין צורך לפצל
