@@ -21,7 +21,7 @@
 
     <!-- כפתור ראשי לפתיחת התהליך -->
     <div class="button-container">
-        <p class="instruction-text">מלל הסבר</p>
+        
         <center></center><button id="startProcessBtn" onclick="openModal('modal1')" style="display:none;"><i class="fas fa-play"></i> התחל תהליך</button></center>
     </div>
 
@@ -32,6 +32,7 @@
             <div class="modal-body">
                 <p class="instruction-text">על מנת להתחיל את תהליך התמלול, יש להעלות קובץ אודיו בפורמט WAV או MP3 וללחוץ על הכפתור להלן.</p>
                 <p>פורמטים נתמכים: WAV או MP3</p>
+                <br>
                 <input type="file" id="audioFile" accept=".mp3, .wav" style="display:none;">
                 <button onclick="triggerFileUpload()"><i class="fas fa-upload"></i> לחץ להעלאת קובץ אודיו</button>
                 <span id="fileName">לא נבחר קובץ</span>
