@@ -575,12 +575,26 @@ function updateProgressBarSmoothly(currentChunk, totalChunks, estimatedTime) {
 
 // פונקציה לאיפוס תהליך ההעלאה והתמלול
 function restartProcess() {
-    let estimatedTime = 0;  // איפוס סרגל ההתקדמות
-    // סגירה של כל המודלים הפעילים
-    closeModal('modal4');  // סגירת מודל התמלול
-    closeModal('modal3');  // סגירת מודל ההתקדמות
-    document.getElementById('audioFile').value = "";
-    document.getElementById('fileName').textContent = "לא נבחר קובץ";
-    document.getElementById('uploadBtn').disabled = true;
-    openModal('modal1'); // פתיחת מודל ההתחלה
+            // איפוס כל המשתנים הגלובליים
+            estimatedTime = 0;
+            audioFileName = '';
+            transcriptionDataText = '';
+            transcriptionDataSRT = '';
+            totalElapsedTime = 0;
+            firstChunkDuration = 0;
+
+            // איפוס הממשק וחזרה למסך העלאת קובץ
+           
+            closeModal('modal3');
+            closeModal('modal4');
+            document.getElementById('audioFile').value = "";
+            document.getElementById('fileName').textContent = "לא נבחר קובץ";
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('startProcessBtn').style.display = 'block';
+
+            // איפוס הכרטיסיות והגדרת textTab כברירת מחדל
+            document.querySelectorAll('.tablinks').forEach(btn => btn.classList.remove('active'));
+            document.querySelector("[data-format='text']").classList.add('active');
+            document.querySelectorAll('.tabcontent').forEach(tab => tab.style.display = 'none');
+            document.getElementById('textTab').style.display = 'block';
 }
