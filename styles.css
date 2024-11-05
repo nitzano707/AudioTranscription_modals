@@ -241,3 +241,17 @@ button:disabled {
     align-items: center; /* ממרכז אנכית */
     height: 300px; /* ניתן להגדיל את הגובה אם יש צורך */
 }
+
+.copy-message {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #4caf50;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    font-size: 16px;
+    z-index: 1000;
+}
+
