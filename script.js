@@ -134,6 +134,42 @@ async function uploadAudio() {
     }
 }
 
+function copyTranscription() {
+    const activeTab = document.querySelector(".tablinks.active");
+    if (!activeTab) {
+        alert('לא נבחר פורמט להעתקה. נא לבחור פורמט מתמלול.');
+        return;
+    }
+    const format = activeTab.getAttribute('data-format');
+    let textToCopy;
+
+    if (format === "text") {
+        if (!transcriptionDataText) {
+            alert('אין תמלול להעתקה.');
+            return;
+        }
+        textToCopy = transcriptionDataText;
+    } else if (format === "srt") {
+        if (!transcriptionDataSRT) {
+            alert('אין תמלול להעתקה.');
+            return;
+        }
+        textToCopy = transcriptionDataSRT;
+    }
+
+    // העתקת התמלול ללוח
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        // הצגת הודעת פופ-אפ לאחר העתקה מוצלחת
+        const copyMessage = document.getElementById('copyMessage');
+        copyMessage.style.display = 'block';
+        setTimeout(() => {
+            copyMessage.style.display = 'none';
+        }, 2000); // ההודעה תוצג למשך 2 שניות
+    }).catch((error) => {
+        console.error('Failed to copy text:', error);
+        alert('שגיאה בהעתקת הטקסט. נא לנסות שוב.');
+    });
+}
 
 
 function resetProcess() {
