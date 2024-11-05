@@ -7,29 +7,30 @@ body {
 }
 
 .modal {
-    display: none; /* הסתרת כל המודאלים כברירת מחדל */
-    position: fixed; /* גורם למודאל להופיע במרכז המסך */
+    display: none;
+    position: fixed;
     z-index: 1000;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0, 0, 0, 0.6); /* רקע שחור מטושטש */
+    background-color: rgba(0, 0, 0, 0.6);
 }
 
 .modal-content {
     background-color: #ffffff;
-    margin: 15% auto; /* ממרכז את המודאל אנכית ואופקית */
+    margin: 15% auto;
     padding: 20px;
-    border: 1px solid #888;
+    border: none;
     width: 50%;
     border-radius: 10px;
     position: relative;
     text-align: right;
-    overflow-y: auto; /* הוספת גלילה אנכית */
-    max-height: 80vh; /* הגבלת גובה ל-80% מגובה חלון הצפייה */
-    z-index: 1001;
+    overflow-y: auto;
+    max-height: 80vh;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
 }
 
 .close {
@@ -55,20 +56,18 @@ button {
     background-color: #ff8c00;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 25px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s, box-shadow 0.3s;
     margin: 20px 0;
-}
-
-.button-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
 }
 
 button:hover {
     background-color: #e67e22;
+    box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4);
 }
 
 button:disabled {
@@ -86,10 +85,6 @@ button:disabled {
     display: flex;
     justify-content: space-around;
     margin-bottom: 10px;
-}
-
-.fixed-buttons button {
-    margin: 0 10px;
 }
 
 #apiRequest {
@@ -131,47 +126,13 @@ button:disabled {
     overflow: hidden;
 }
 
-.upload-box {
-    border: 2px dashed #ff8c00;
-    border-radius: 10px;
-    padding: 40px;
-    width: 50%;
-    margin: 20px auto;
-    background-color: #fff;
-    position: relative;
-    transition: border-color 0.3s ease;
-}
-
-.upload-box:hover {
-    border-color: #e67e22;
-}
-
-.drop-zone {
-    cursor: pointer;
-    text-align: center;
-}
-
-.upload-icon {
-    width: 50px;
-    height: 50px;
-    margin-bottom: 10px;
-}
-
-.upload-text {
-    font-size: 1rem;
-    color: #666;
-}
-
 .loading-gif {
     width: min(250px, 20vw);
-    height: auto; /* שומר על יחס גובה-רוחב */
+    height: auto;
     margin: 20px auto;
     display: block;
 }
 
-/* עיצוב הכרטיסיות */
-
-/* עיצוב לטאבים ולתוכן טאבים */
 .tabs {
     display: flex;
     justify-content: space-around;
@@ -222,7 +183,6 @@ button:disabled {
     font-family: Arial, sans-serif;
 }
 
-/* שינוי צבע פס גלילה לאנכי */
 .tabcontent::-webkit-scrollbar {
     width: 8px;
 }
@@ -240,18 +200,37 @@ button:disabled {
     background: #555;
 }
 
-.copy-message {
-    display: none;
-    position: fixed;
-    top: 20%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: #ff8c00;
-    color: #fff;
+.icon-only-button {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.icon-only-button:hover {
+    color: #ff8c00;
+}
+
+.text-icon-button {
     padding: 10px 20px;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    z-index: 1002;
     font-size: 16px;
-    font-weight: bold;
+    background-color: #ff8c00;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.3s, box-shadow 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.text-icon-button:hover {
+    background-color: #e67e22;
+    box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4);
+}
+
+.text-icon-button i {
+    font-size: 18px;
 }
