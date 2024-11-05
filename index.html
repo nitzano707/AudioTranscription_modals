@@ -30,11 +30,11 @@
         <div class="modal-content">
             <span class="close" onclick="closeModal('modal1')">&times;</span>
             <div class="modal-body">
-                <p>פורמטים נתמכים: WAV או MP3</p>
+                <p><פורמטים נתמכים: WAV או MP3</p>
                 <input type="file" id="audioFile" accept=".mp3, .wav" style="display:none;">
-                <button onclick="triggerFileUpload()"><i class="fas fa-upload"></i> לחץ להעלאת קובץ אודיו</button>
+                <button onclick="triggerFileUpload()">לחץ להעלאת קובץ אודיו</button>
                 <span id="fileName">לא נבחר קובץ</span>
-                <button id="uploadBtn" onclick="uploadAudio()" disabled><i class="fas fa-arrow-right"></i> הבא</button>
+                <button id="uploadBtn" onclick="uploadAudio()" disabled>הבא</button>
             </div>
         </div>
     </div>
@@ -46,6 +46,7 @@
             <div class="modal-header"></div>
             <div class="modal-body">
                 <p>התהליך מתבצע...</p>
+
                 <img src="assets/loading.gif" alt="טוען..." class="loading-gif">
                 <div class="progress-bar">
                     <div id="progress" class="progress"></div>
@@ -61,14 +62,13 @@
             <span class="close" onclick="closeModal('modal4')">&times;</span>
             <div class="modal-body">
                 <div class="fixed-buttons">
-                    <button onclick="downloadTranscription()"><i class="fas fa-download"></i> הורד תמלול כפורמט נבחר</button>
-                    <button onclick="restartProcess()"><i class="fas fa-redo"></i> התחל מחדש</button>
-                    <button onclick="copyTranscription()"><i class="fas fa-copy"></i> העתק תמלול</button>
+                    <button onclick="downloadTranscription()">הורד תמלול כפורמט נבחר</button>
+                    <button onclick="restartProcess()">התחל מחדש</button>
                 </div>
                 <p>תמלול הושלם</p>
                 <div class="tabs">
-                    <button class="tablinks" onclick="openTab(event, 'textTab')" data-format="text"><i class="fas fa-file-alt"></i> טקסט</button>
-                    <button class="tablinks" onclick="openTab(event, 'srtTab')" data-format="srt"><i class="fas fa-closed-captioning"></i> SRT</button>
+                    <button class="tablinks" onclick="openTab(event, 'textTab')" data-format="text">טקסט</button>
+                    <button class="tablinks" onclick="openTab(event, 'srtTab')" data-format="srt">SRT</button>
                 </div>
                 <div id="textTab" class="tabcontent">
                     <pre id="textContent"></pre>
@@ -78,6 +78,11 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- הודעת העתקה -->
+    <div id="copyMessage" class="copy-message" style="display: none;">
+        התמלול הועתק בהצלחה!
     </div>
 
     <script src="script.js"></script>
