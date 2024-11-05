@@ -161,15 +161,20 @@ function copyTranscription() {
     navigator.clipboard.writeText(textToCopy).then(() => {
         // הצגת הודעת פופ-אפ לאחר העתקה מוצלחת
         const copyMessage = document.getElementById('copyMessage');
-        copyMessage.style.display = 'block';
-        setTimeout(() => {
-            copyMessage.style.display = 'none';
-        }, 2000); // ההודעה תוצג למשך 2 שניות
+        if (copyMessage) {
+            copyMessage.style.display = 'block';
+            setTimeout(() => {
+                copyMessage.style.display = 'none';
+            }, 2000); // ההודעה תוצג למשך 2 שניות
+        } else {
+            console.warn("copyMessage element not found in the DOM.");
+        }
     }).catch((error) => {
         console.error('Failed to copy text:', error);
         alert('שגיאה בהעתקת הטקסט. נא לנסות שוב.');
     });
 }
+
 
 
 function resetProcess() {
