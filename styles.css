@@ -234,3 +234,10 @@ button:disabled {
 .text-icon-button i {
     font-size: 18px;
 }
+
+.button-container {
+    display: flex;
+    justify-content: center; /* ממרכז אופקית */
+    align-items: center; /* ממרכז אנכית */
+    height: 300px; /* ניתן להגדיל את הגובה אם יש צורך */
+}
