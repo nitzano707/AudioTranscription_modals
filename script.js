@@ -443,12 +443,18 @@ function formatTimestamp(seconds) {
     return `${hours}:${minutes}:${secs},${millis}`;
 }
 
+
 function saveTranscriptions(data, audioFileName) {
-    transcriptionDataText = data.map(d => cleanText(d.text)).join(" ").trim();
-    transcriptionDataSRT = data.map((d, index) => {
+    const title = `תמלול קובץ אודיו: ${audioFileName}\n\n`; // כותרת עם שם הקובץ
+
+    // הוספת הכותרת לפני כל תמלול
+    transcriptionDataText = title + data.map(d => cleanText(d.text)).join(" ").trim();
+    transcriptionDataSRT = title + data.map((d, index) => {
         return `${index + 1}\n${d.timestamp}\n${cleanText(d.text)}\n`;
     }).join("\n\n");
 }
+
+
 
 function cleanText(text) {
     return text.replace(/\s+/g, ' ').trim();
@@ -517,20 +523,23 @@ function downloadTranscription() {
     const format = activeTab.getAttribute('data-format');
     let blob, fileName;
 
+    // קיצור שם קובץ האודיו ל-15 תווים לכל היותר, כדי לא ליצור שם ארוך מדי
+    const shortAudioFileName = audioFileName.length > 15 ? audioFileName.substring(0, 15) + "..." : audioFileName;
+
     if (format === "text") {
         if (!transcriptionDataText) {
             alert('אין תמלול להורדה.');
             return;
         }
         blob = new Blob([transcriptionDataText], { type: 'text/plain' });
-        fileName = 'transcription.txt';
+        fileName = `transcription_${shortAudioFileName}.txt`;
     } else if (format === "srt") {
         if (!transcriptionDataSRT) {
             alert('אין תמלול להורדה.');
             return;
         }
         blob = new Blob([transcriptionDataSRT], { type: 'text/plain' });
-        fileName = 'transcription.srt';
+        fileName = `transcription_${shortAudioFileName}.srt`;
     }
 
     const url = URL.createObjectURL(blob);
@@ -542,6 +551,9 @@ function downloadTranscription() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+
+    
 
 // פונקציה לחישוב זמן משוער לפי סוג וגודל הקובץ
 function calculateEstimatedTime() {
