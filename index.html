@@ -68,6 +68,12 @@
                     <button onclick="copyTranscription()"><i class="fas fa-copy"></i> העתק תמלול</button>
                 </div>
                 <p>תמלול הושלם</p>
+
+                <!-- אלמנט להודעת ההעתקה -->
+                <div id="copyMessage" class="copy-message" style="display: none;">
+                התמלול הועתק בהצלחה!
+                </div>
+                
                 <div class="tabs">
                     <button class="tablinks" onclick="openTab(event, 'textTab')" data-format="text"><i class="fas fa-file-alt"></i> טקסט</button>
                     <button class="tablinks" onclick="openTab(event, 'srtTab')" data-format="srt"><i class="fas fa-closed-captioning"></i> SRT</button>
