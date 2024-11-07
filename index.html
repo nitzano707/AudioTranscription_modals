@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head>
@@ -8,7 +7,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+
     <h1>העלאת קובץ אודיו ותמלול לעברית</h1>
+
     <!-- הסבר על האפליקציה -->
     <div class="app-description">
         <p>
@@ -19,64 +20,55 @@
         </p>
         <p>האפליקציה נבנתה במיוחד כדי להקל עליכם בעבודת התמלול – פשוט, מהיר ונגיש!</p>
     </div>
+
     <!-- אזור הזנת API -->
-    <!-- אזור הזנת API -->
-<div id="apiRequest" style="display:none;">
-    <label for="apiKeyInput">הזן את ה-API מ-GROQ:</label>
-    <input type="password" id="apiKeyInput">
-    <button onclick="saveApiKey()"><i class="fas fa-save"></i> שמור</button>
-    <p class="explanation-text">
-        קוד ה-API ניתן להפקה בחינם מאתר GROQ. תהליך זה הוא חד-פעמי ונועד כדי לאפשר לכם גישה למודל התמלול שלנו. 
-        לאחר הפעם הראשונה שתזינו את הקוד, הוא יישמר במחשב שלכם, ובכניסות הבאות לא תצטרכו להקליד אותו שוב.
-    </p>
+    <div id="apiRequest" style="display:none;">
+        <label for="apiKeyInput">הזן את ה-API מ-GROQ:</label>
+        <input type="password" id="apiKeyInput">
+        <button onclick="saveApiKey()"><i class="fas fa-save"></i> שמור</button>
+        <p class="explanation-text">
+            קוד ה-API ניתן להפקה בחינם מאתר GROQ. תהליך זה הוא חד-פעמי ונועד כדי לאפשר לכם גישה למודל התמלול שלנו. 
+            לאחר הפעם הראשונה שתזינו את הקוד, הוא יישמר במחשב שלכם, ובכניסות הבאות לא תצטרכו להקליד אותו שוב.
+        </p>
 
-<div class="instructions-container">
-    <h3>כיצד לקבל בחינם קוד API אישי לשימוש באפליקציית התמלול שלנו?</h3>
-    <div class="instruction-item">
-        
-        <img src="assets/api_step1.png" alt="שלב 1">
-        <p>א. היכנסו לגוגל והקלידו : Groq cloud</p>
+        <!-- הוראות לקבלת קוד API -->
+        <div class="instructions-container">
+            <h3>כיצד לקבל בחינם קוד API אישי לשימוש באפליקציית התמלול שלנו?</h3>
+            <div class="instruction-item">
+                <img src="assets/api_step1.png" alt="שלב 1">
+                <p>א. היכנסו לגוגל והקלידו : Groq cloud</p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step2.png" alt="שלב 2">
+                <p>ב. התחברו עם חשבון האימייל (ג'ימייל שלכם)</p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step3.png" alt="שלב 3">
+                <p>ג. מהתפריט, בחרו: API Keys</p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step4.png" alt="שלב 4">
+                <p>ד. לחצו על יצירת קוד API אישי (חינם!)</p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step5.png" alt="שלב 5">
+                <p>ה. הקלידו כאן שם כלשהו לקוד שלכם (לדוגמה, IVRIT) ואחר מכן לחצו על Submit</p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step6.png" alt="שלב 6">
+                <p>ו. זה הקוד האישי שלכם שעליכם להעתיק ולהדביק באפליקציה שלנו. לחצו על הלחצן Copy ולאחר מכן לחצו על הלחצן Done</p>
+            </div>
+            <div class="instruction-item">
+                <img src="assets/api_step7.png" alt="שלב 7">
+                <p>ז. חזרו לאפליקציה שלנו, הדביקו את הקוד האישי שלכם ושמרו אותו. מיד תועברו למסך העלאת קובץ אודיו לתמלול!!</p>
+            </div>
+        </div>
     </div>
 
-    <div class="instruction-item">
-        <img src="assets/api_step2.png" alt="שלב 2">
-        <p>ב. התחברו עם חשבון האימייל (ג'ימייל שלכם)</p>
-    </div>
-
-    <div class="instruction-item">
-        <img src="assets/api_step3.png" alt="שלב 3">
-        <p>ג. מהתפריט, בחרו: API Keys</p>
-    </div>
-
-    <div class="instruction-item">
-        <img src="assets/api_step4.png" alt="שלב 4">
-        <p>ד. לחצו על יצירת קוד API אישי (חינם!)</p>
-    </div>
-
-    <div class="instruction-item">
-        <img src="assets/api_step5.png" alt="שלב 5">
-        <p>ה. הקלידו כאן שם כלשהו לקוד שלכם (לדוגמה, IVRIT) ואחר מכן לחצו על Submit</p>
-    </div>
-
-    <div class="instruction-item">
-        <img src="assets/api_step6.png" alt="שלב 6">
-        <p>ו. זה הקוד האישי שלכם שעליכם להעתיק ולהדביק באפליקציה שלנו. לחצו על הלחצן Copy ולאחר מכן לחצו על הלחצן Done</p>
-    </div>
-
-    <div class="instruction-item">
-        <img src="assets/api_step7.png" alt="שלב 7">
-        <p>ז. חזרו לאפליקציה שלנו, הדביקו את הקוד האישי שלכם ושמרו אותו. מיד תועברו למסך העלאת קובץ אודיו לתמלול!!</p>
-    </div>
-</div>
-
-
-   
     <!-- כפתור ראשי לפתיחת התהליך -->
-<div class="button-container">
-    <button id="startProcessBtn" onclick="openModal('modal1')" class="hidden"><i class="fas fa-play"></i> התחל תהליך</button>
-    <button id="startProcessBtn" onclick="openModal('modal1')" style="display:none;"><i class="fas fa-play"></i> התחל תהליך</button>
-</div>
-
+    <div class="button-container">
+        <button id="startProcessBtn" onclick="openModal('modal1')" style="display:none;"><i class="fas fa-play"></i> התחל תהליך</button>
+    </div>
 
     <!-- מודאל ראשון להעלאת קובץ -->
     <div id="modal1" class="modal">
@@ -120,15 +112,14 @@
                     <button onclick="restartProcess()"><i class="fas fa-redo"></i> התחל מחדש</button>
                     <button onclick="copyTranscription()"><i class="fas fa-copy"></i> העתק תמלול</button>
                     <button onclick="showSpeakerSegmentationModal()">הצג חלוקה לפי דוברים</button>
-
                 </div>
                 <p>תמלול הושלם</p>
 
-                <!-- אלמנט להודעת ההעתקה -->
+                <!-- הודעת העתקה -->
                 <div id="copyMessage" class="copy-message" style="display: none;">
-                התמלול הועתק בהצלחה!
+                    התמלול הועתק בהצלחה!
                 </div>
-                
+
                 <div class="tabs">
                     <button class="tablinks" onclick="openTab(event, 'textTab')" data-format="text"><i class="fas fa-file-alt"></i> טקסט</button>
                     <button class="tablinks" onclick="openTab(event, 'srtTab')" data-format="srt"><i class="fas fa-closed-captioning"></i> SRT</button>
@@ -143,27 +134,25 @@
         </div>
     </div>
 
-
+    <!-- מודאל חלוקה לדוברים -->
     <div id="speakerSegmentationModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('speakerSegmentationModal')">&times;</span>
-        <h2>חלוקה לפי דוברים</h2>
-        <p>שימו לב: החלוקה לפי דוברים שתתקבל אינה מדויקת ב-100%. מומלץ לעבור עליה ולבצע תיקונים במידת הצורך.</p>
-        <input type="text" id="intervieweeNameInput" placeholder="הקלד את שם המרואיין"><br>
-        <button onclick="startSpeakerSegmentation()">התחל חלוקה לפי דוברים</button>
-        
-        <div id="segmentationResult" style="white-space: pre-wrap; text-align: right;">התוצאה תופיע כאן. נא להמתין לסוף התמלול.</div>
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('speakerSegmentationModal')">&times;</span>
+            <h2>חלוקה לפי דוברים</h2>
+            <p>שימו לב: החלוקה לפי דוברים שתתקבל אינה מדויקת ב-100%. מומלץ לעבור עליה ולבצע תיקונים במידת הצורך.</p>
+            <input type="text" id="intervieweeNameInput" placeholder="הקלד את שם המרואיין"><br>
+            <button onclick="startSpeakerSegmentation()">התחל חלוקה לפי דוברים</button>
 
-        
-        <div class="action-buttons">
-            
-            <button id="copyButton" onclick="copySegmentationResult()" style="display: none;">העתק תמלול</button>
-            <button id="downloadButton" onclick="downloadSegmentationResult()" style="display: none;">הורד תמלול</button>
+            <div id="segmentationResult" style="white-space: pre-wrap; text-align: right;">
+                התוצאה תופיע כאן. נא להמתין לסוף התמלול.
+            </div>
 
+            <div class="action-buttons">
+                <button id="copyButton" onclick="copySegmentationResult()" style="display: none;">העתק תמלול</button>
+                <button id="downloadButton" onclick="downloadSegmentationResult()" style="display: none;">הורד תמלול</button>
+            </div>
         </div>
     </div>
-</div>
-
 
     <script src="script.js"></script>
 </body>
