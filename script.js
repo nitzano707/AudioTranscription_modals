@@ -653,7 +653,12 @@ async function getSegmentedText(text, prompt) {
             if (response.ok) {
                 const result = await response.json();
                 success = true;
-                return result.choices[0].message.content;
+                let segmentedText = result.choices[0].message.content;
+
+                // הוספת ריווח שורה לפני כל דובר חדש
+                segmentedText = segmentedText.replace(/(דובר \d+:)/g, "\n$1");
+
+                return segmentedText;
             } else {
                 const errorText = await response.text();
                 const errorData = JSON.parse(errorText);
@@ -675,6 +680,10 @@ async function getSegmentedText(text, prompt) {
             retries++;
         }
     }
+
+    throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
+}
+
 
     throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
 }
