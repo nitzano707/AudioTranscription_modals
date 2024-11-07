@@ -11,14 +11,16 @@
     <h1>העלאת קובץ אודיו ותמלול לעברית</h1>
     
     <!-- אזור הזנת API -->
-    <div id="apiRequest" style="display:none;">
-        <label for="apiKeyInput">הזן את ה-API מ-GROQ:</label>
-        <input type="password" id="apiKeyInput">
-        <button onclick="saveApiKey()"><i class="fas fa-save"></i> שמור</button>
-        <p class="explanation-text">
-            קוד ה-API ניתן להפקה בחינם מאתר GROQ. תהליך זה הוא חד פעמי ונועד כדי לאפשר לך גישה למודל התמלול שלנו. לאחר הפעם הראשונה, הכניסה תהיה ישירות למסך העלאת הקובץ.
-        </p>
-    </div>
+    <!-- אזור הזנת API -->
+<div id="apiRequest" style="display:none;">
+    <label for="apiKeyInput">הזן את ה-API מ-GROQ:</label>
+    <input type="password" id="apiKeyInput">
+    <button onclick="saveApiKey()"><i class="fas fa-save"></i> שמור</button>
+    <p class="explanation-text">
+        קוד ה-API ניתן להפקה בחינם מאתר GROQ. תהליך זה הוא חד-פעמי ונועד כדי לאפשר לך גישה למודל התמלול שלנו. 
+        לאחר הפעם הראשונה שתזין את הקוד, הוא יישמר במחשב שלך, ובכניסות הבאות לא תצטרך להקליד אותו שוב.
+    </p>
+</div>
 
     <!-- כפתור ראשי לפתיחת התהליך -->
     <div class="button-container">
