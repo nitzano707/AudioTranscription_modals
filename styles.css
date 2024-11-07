@@ -348,3 +348,35 @@ h1 {
 .button-container button:hover {
     background-color: #218838;
 }
+
+/* עיצוב לאזור המסביר הכולל */
+.instructions-container {
+    max-width: 800px; /* רוחב מקסימלי למיכל */
+    margin: 0 auto; /* מרכז את המיכל בעמוד */
+    padding: 20px;
+    text-align: right; /* טקסט מכוון מימין */
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+}
+
+/* עיצוב לתמונות ההסבר */
+.instructions-container img {
+    max-width: 100%; /* כדי שהתמונות לא יחרגו מהרוחב של המיכל */
+    height: auto; /* שמירה על היחס של התמונה */
+    margin: 10px 0; /* ריווח לפני ואחרי כל תמונה */
+    border: 1px solid #ddd; /* הוספת גבול עדין */
+    border-radius: 5px; /* קצוות מעוגלים מעט */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* הוספת צל להדגשה */
+}
+
+/* עיצוב לטקסט מתחת לכל תמונה */
+.instructions-container p {
+    margin-bottom: 20px; /* ריווח לפני הטקסט הבא */
+    font-size: 16px;
+    color: #333;
+}
+
+/* להוסיף קצת ריווח לתמונות וטקסט שיהיה נעים בעין */
+.instructions-step {
+    margin-bottom: 40px; /* ריווח בין שלב לשלב */
+}
