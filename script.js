@@ -826,6 +826,7 @@ function restartProcess() {
 
     // מחיקת תוכן תמלול מחולק לפי דוברים
     document.getElementById("segmentationResult").textContent = "";
+    document.getElementById("intervieweeNameInput").value = "";
 
 }
 
