@@ -1,5 +1,5 @@
 body {
-    font-family: 'Nunito', sans-serif;
+    font-family: 'Nunito', Arial, sans-serif;
     text-align: center;
     background-color: #f9f9f9;
     color: #333;
@@ -180,7 +180,7 @@ button:disabled {
     word-wrap: break-word;
     font-size: 14px;
     direction: rtl;
-    font-family: Arial, sans-serif;
+    font-family: 'Nunito', Arial, sans-serif;
 }
 
 .tabcontent::-webkit-scrollbar {
@@ -258,7 +258,7 @@ button:disabled {
 #segmentationResult {
     white-space: pre-wrap;
     text-align: right;
-    font-family: Arial, sans-serif;
+    font-family: 'Nunito', Arial, sans-serif;
 }
 
 
