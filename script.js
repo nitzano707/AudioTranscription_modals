@@ -656,8 +656,12 @@ async function getSegmentedText(text, prompt) {
                 success = true;
                 let segmentedText = result.choices[0].message.content;
 
-                // הוספת ריווח שורה לפני כל דובר חדש
-                segmentedText = segmentedText.replace(/(דובר \d+:)/g, "\n$1");
+                
+                // הוספת ריווח שורה לפני כל דובר חדש (מראיין או המרואיין לפי intervieweeName)
+                segmentedText = segmentedText.replace(new RegExp(`(מראיין|${intervieweeName}):`, 'g'), "\n$1:");
+
+               
+
 
                 return segmentedText;
             } else {
