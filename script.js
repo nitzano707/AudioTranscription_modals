@@ -600,7 +600,7 @@ function showSpeakerSegmentationModal() {
 async function startSpeakerSegmentation() {
     let intervieweeName = document.getElementById('intervieweeNameInput').value.trim();
     if (!intervieweeName) {
-        intervieweeName = "מרואיין"; // אם לא הוזן שם המרואיין, השתמש ב"מרואיין"
+        intervieweeName = "מרואיין";
     }
 
     const transcriptionText = transcriptionDataText;
@@ -609,7 +609,7 @@ async function startSpeakerSegmentation() {
     document.getElementById("segmentationResult").textContent = "מתחיל בעיבוד התמלול...\n\n";
 
     for (const segment of segments) {
-        const prompt = `חלק את הטקסט הבא לדוברים – "מראיין" ו-"${intervieweeName}". אם המשפט מכיל סימן שאלה או נשמע כמו שאלה, התייחס אליו כדבריו של המראיין. קטעים ארוכים ומפורטים ללא סימני שאלה הם לרוב דברי המרואיין. אם מופיעות מילים שנראות כשגויות או לא תקניות, השאר את המילה השגויה כפי שהיא מופיעה בתמלול, והצג את התיקון המוצע בסוגריים מרובעים מיד אחריה. לדוגמה: "השיקונים [השיקולים]". התמקד בתיקון מילים שאינן מתאימות להקשר המשפט או נראות שגויות מבחינת השפה. פצל את הפסקה בהתאם לדוברים, כאשר כל דובר ממשיך את דבריו ברצף, ללא תוויות חוזרות. החזר את הטקסט עם התיקונים בסוגריים מרובעים בלבד, ללא טקסט נוסף לפניו או אחריו:\n\n${segment}`;
+        const prompt = `חלק את הטקסט הבא לדוברים – "מראיין" ו-"${intervieweeName}". אם המשפט מכיל סימן שאלה או נשמע כמו שאלה, התייחס אליו כדבריו של המראיין. קטעים ארוכים ומפורטים ללא סימני שאלה הם לרוב דברי ${intervieweeName}. אם מופיעות מילים שנראות כשגויות או לא תקניות, השאר את המילה השגויה כפי שהיא מופיעה בתמלול, והצג את התיקון המוצע בסוגריים מרובעים מיד אחריה. לדוגמה: "השיקונים [השיקולים]". התמקד בתיקון מילים שאינן מתאימות להקשר המשפט או נראות שגויות מבחינת השפה. פצל את הפסקה בהתאם לדוברים, כאשר כל דובר ממשיך את דבריו ברצף, ללא תוויות חוזרות. החזר את הטקסט עם התיקונים בסוגריים מרובעים בלבד, ללא טקסט נוסף לפניו או אחריו:\n\n${segment}`;
 
         try {
             const result = await getSegmentedText(segment, prompt, intervieweeName);
@@ -626,6 +626,7 @@ async function startSpeakerSegmentation() {
     fullResult += "\n\n---\nסוף תמלול";
     document.getElementById("segmentationResult").textContent = fullResult;
 }
+
 
 
 
@@ -662,8 +663,12 @@ async function getSegmentedText(text, prompt, intervieweeName) {
                 success = true;
                 let segmentedText = result.choices[0].message.content;
 
-                // הוספת ריווח שורה לפני כל דובר חדש
-                segmentedText = segmentedText.replace(/(מראיין:|${intervieweeName}:)/g, "\n$1");
+                // הוספת ריווח שורה לפני כל דובר חדש, בהתאם אם שם המרואיין הוזן
+                if (intervieweeName) {
+                    segmentedText = segmentedText.replace(/(מראיין:|${intervieweeName}:)/g, "\n$1");
+                } else {
+                    segmentedText = segmentedText.replace(/(מראיין:|מרואיין:)/g, "\n$1");
+                }
 
                 return segmentedText;
             } else {
@@ -690,6 +695,7 @@ async function getSegmentedText(text, prompt, intervieweeName) {
 
     throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
 }
+
 
 
 
