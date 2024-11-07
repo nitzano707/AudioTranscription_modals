@@ -593,6 +593,58 @@ function showSpeakerSegmentationModal() {
     openModal('speakerSegmentationModal');
 }
 
+async function startSpeakerSegmentation() {
+    const intervieweeName = document.getElementById('intervieweeNameInput').value;
+    if (!intervieweeName) {
+        alert("אנא הזן את שם המרואיין.");
+        return;
+    }
+
+    const prompt = `אתה עוזר מועיל שמפצל תמלולים לפי הדוברים "מראיין" ו-"${intervieweeName}".`;
+    const transcriptionText = transcriptionDataText;
+
+    try {
+        const segmentedText = await getSegmentedText(transcriptionText, prompt);
+        document.getElementById('segmentationResult').textContent = segmentedText + "\n\n---\nסוף תמלול";
+    } catch (error) {
+        console.error("Error during speaker segmentation:", error);
+        alert("שגיאה במהלך חלוקת התמלול לפי דוברים. נסה שוב.");
+    }
+}
+
+
+async function getSegmentedText(text, prompt) {
+    const apiKey = localStorage.getItem('groqApiKey');
+    if (!apiKey) {
+        alert("מפתח API חסר. נא להזין מפתח API.");
+        return "";
+    }
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: "llama3-70b-8192",
+            messages: [
+                {role: "system", content: prompt},
+                {role: "user", content: text}
+            ],
+            max_tokens: 1500
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result.choices[0].message.content;
+}
+
 
 
 // פונקציה לאיפוס תהליך ההעלאה והתמלול
