@@ -632,6 +632,10 @@ async function getSegmentedText(text, prompt) {
     let retries = 0;
     const apiKey = localStorage.getItem('groqApiKey');
 
+    if (!apiKey) {
+        throw new Error("API Key not found in local storage.");
+    }
+
     while (!success && retries < maxRetries) {
         try {
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -684,15 +688,12 @@ async function getSegmentedText(text, prompt) {
     throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
 }
 
-
-    throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
-}
-
 // פונקציה שמחלצת את זמן ההמתנה מתוך הודעת השגיאה
 function extractWaitTime(errorText) {
     const match = errorText.match(/try again in ([\d.]+)s/);
     return match ? parseFloat(match[1]) : null;
 }
+
 
 
 
