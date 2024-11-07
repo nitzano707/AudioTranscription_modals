@@ -460,7 +460,7 @@ function saveTranscriptions(data, audioFileName) {
 
 
 function cleanText(text) {
-    return text.replace(/\s+/g, ' ').trim();
+    return text.(/\s+/g, ' ').trim();
 }
 
 function displayTranscription(format) {
@@ -598,10 +598,9 @@ function showSpeakerSegmentationModal() {
 }
 
 async function startSpeakerSegmentation() {
-    const intervieweeName = document.getElementById('intervieweeNameInput').value;
+    let intervieweeName = document.getElementById('intervieweeNameInput').value.trim();
     if (!intervieweeName) {
-        alert("אנא הזן את שם המרואיין.");
-        return;
+        intervieweeName = "מרואיין"; // אם לא הוזן שם המרואיין, השתמש ב"מרואיין"
     }
 
     const transcriptionText = transcriptionDataText;
@@ -631,7 +630,8 @@ async function startSpeakerSegmentation() {
 
 
 
-async function getSegmentedText(text, prompt) {
+
+async function getSegmentedText(text, prompt, intervieweeName) {
     let success = false;
     const maxRetries = 5;
     let retries = 0;
@@ -663,7 +663,7 @@ async function getSegmentedText(text, prompt) {
                 let segmentedText = result.choices[0].message.content;
 
                 // הוספת ריווח שורה לפני כל דובר חדש
-                segmentedText = segmentedText.replace(/(מראיין:|מרואיין:)/g, "\n$1");
+                segmentedText = segmentedText.replace(/(מראיין:|${intervieweeName}:)/g, "\n$1");
 
                 return segmentedText;
             } else {
@@ -690,6 +690,7 @@ async function getSegmentedText(text, prompt) {
 
     throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
 }
+
 
 
 // פונקציה שמחלצת את זמן ההמתנה מתוך הודעת השגיאה
