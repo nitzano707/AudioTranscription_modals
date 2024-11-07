@@ -254,3 +254,9 @@ button:disabled {
     font-size: 16px;
     z-index: 1000;
 }
+
+#segmentationResult {
+    white-space: pre-wrap;
+    text-align: right;
+    font-family: Arial, sans-serif;
+}
