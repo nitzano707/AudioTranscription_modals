@@ -611,7 +611,7 @@ async function startSpeakerSegmentation() {
         const prompt = `חלק את הטקסט הבא לדוברים – "מראיין" ו-"${intervieweeName}". אם המשפט מכיל סימן שאלה או נשמע כמו שאלה, התייחס אליו כדבריו של המראיין. קטעים ארוכים ומפורטים ללא סימני שאלה הם לרוב דברי המרואיין. אם מופיעות מילים שנראות כשגויות או לא תקניות, השאר את המילה השגויה כפי שהיא מופיעה בתמלול, והצג את התיקון המוצע בסוגריים מרובעים מיד אחריה. לדוגמה: "השיקונים [השיקולים]". התמקד בתיקון מילים שאינן מתאימות להקשר המשפט או נראות שגויות מבחינת השפה. פצל את הפסקה בהתאם לדוברים, כאשר כל דובר ממשיך את דבריו ברצף, ללא תוויות חוזרות. החזר את הטקסט עם התיקונים בסוגריים מרובעים בלבד, ללא טקסט נוסף לפניו או אחריו:\n\n${segment}`;
 
         try {
-            const result = await getSegmentedText(segment, prompt);
+            const result = await getSegmentedText(segment, prompt, intervieweeName);
             fullResult += result + "\n\n";
             document.getElementById("segmentationResult").textContent = fullResult;
         } catch (error) {
@@ -628,7 +628,8 @@ async function startSpeakerSegmentation() {
 
 
 
-async function getSegmentedText(text, prompt) {
+
+async function getSegmentedText(text, prompt, intervieweeName) {
     let success = false;
     const maxRetries = 5;
     let retries = 0;
@@ -644,7 +645,7 @@ async function getSegmentedText(text, prompt) {
                 body: JSON.stringify({
                     model: "llama3-70b-8192",
                     messages: [
-                        { role: "system", content: prompt },
+                        { role: "system", content: `אתה עוזר שמפענח תמלולים ומבצע חלוקה ברורה לפי דוברים. תפקידך הוא להבחין בין דברי המראיין לבין דברי המרואיין, ${intervieweeName}, תוך שימוש בתוויות 'מראיין' ו-'${intervieweeName}' לפני כל חלק רלוונטי. דאג לשמור על מבנה עקבי כך שכל דובר מזוהה בבירור.` },
                         { role: "user", content: text }
                     ],
                     max_tokens: 1024
@@ -656,12 +657,8 @@ async function getSegmentedText(text, prompt) {
                 success = true;
                 let segmentedText = result.choices[0].message.content;
 
-                
-                // הוספת ריווח שורה לפני כל דובר חדש (מראיין או המרואיין לפי intervieweeName)
-                segmentedText = segmentedText.replace(new RegExp(`(מראיין|${intervieweeName}):`, 'g'), "\n$1:");
-
-               
-
+                // הוספת ריווח שורה לפני כל דובר חדש
+                segmentedText = segmentedText.replace(/(מראיין:|מרואיין:)/g, "\n$1");
 
                 return segmentedText;
             } else {
@@ -688,6 +685,7 @@ async function getSegmentedText(text, prompt) {
 
     throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
 }
+
 
 // פונקציה שמחלצת את זמן ההמתנה מתוך הודעת השגיאה
 function extractWaitTime(errorText) {
