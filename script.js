@@ -18,9 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
     apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
         document.getElementById('apiRequest').style.display = 'block';
+         // הוסף מחלקת 'hidden' אם אין מפתח API
+        document.getElementById('startProcessBtn').classList.add('hidden');
     } else {
         document.getElementById('apiRequest').style.display = 'none';
         document.getElementById('startProcessBtn').style.display = 'block';
+        / הוסף את המחלקה 'show' כדי להציג את הכפתור
+        document.getElementById('startProcessBtn').classList.add('show');
     }
     document.getElementById('textTab').style.display = 'block';
     document.querySelector("button[onclick*='textTab']").classList.add('active');
