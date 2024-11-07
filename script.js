@@ -802,26 +802,26 @@ function downloadSegmentationResult() {
 
 // פונקציה לאיפוס תהליך ההעלאה והתמלול
 function restartProcess() {
-            // איפוס כל המשתנים הגלובליים
-            estimatedTime = 0;
-            audioFileName = '';
-            transcriptionDataText = '';
-            transcriptionDataSRT = '';
-            totalElapsedTime = 0;
-            firstChunkDuration = 0;
+    // איפוס כל המשתנים הגלובליים
+    estimatedTime = 0;
+    audioFileName = '';
+    transcriptionDataText = '';
+    transcriptionDataSRT = '';
+    speakerSegmentationData = ''; // איפוס חלוקה לדוברים
+    totalElapsedTime = 0;
+    firstChunkDuration = 0;
 
-            // איפוס הממשק וחזרה למסך העלאת קובץ
-           
-            closeModal('modal3');
-            closeModal('modal4');
-            document.getElementById('audioFile').value = "";
-            document.getElementById('fileName').textContent = "לא נבחר קובץ";
-            document.getElementById('uploadBtn').disabled = true;
-            document.getElementById('startProcessBtn').style.display = 'block';
+    // איפוס הממשק וחזרה למסך הראשי
+    closeModal('modal1');
+    closeModal('modal3');
+    closeModal('modal4');
+    document.getElementById('audioFile').value = "";
+    document.getElementById('fileName').textContent = "לא נבחר קובץ";
+    document.getElementById('uploadBtn').disabled = true;
+    document.getElementById('startProcessBtn').style.display = 'block';
 
-            // איפוס הכרטיסיות והגדרת textTab כברירת מחדל
-            document.querySelectorAll('.tablinks').forEach(btn => btn.classList.remove('active'));
-            document.querySelector("[data-format='text']").classList.add('active');
-            document.querySelectorAll('.tabcontent').forEach(tab => tab.style.display = 'none');
-            document.getElementById('textTab').style.display = 'block';
+    // הסתרת כפתורי הורדה והעתקה
+    document.getElementById('downloadButton').style.display = 'none';
+    document.getElementById('copyButton').style.display = 'none';
 }
+
