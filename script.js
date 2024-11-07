@@ -589,6 +589,12 @@ function updateProgressBarSmoothly(currentChunk, totalChunks, estimatedTime) {
 }
 
 
+function showSpeakerSegmentationModal() {
+    openModal('speakerSegmentationModal');
+}
+
+
+
 // פונקציה לאיפוס תהליך ההעלאה והתמלול
 function restartProcess() {
             // איפוס כל המשתנים הגלובליים
