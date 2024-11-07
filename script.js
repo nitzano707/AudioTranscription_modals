@@ -16,6 +16,7 @@ let apiKey = localStorage.getItem('groqApiKey');
 
 document.addEventListener('DOMContentLoaded', () => {
     // const apiKey = localStorage.getItem('groqApiKey');
+    apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
         document.getElementById('apiRequest').style.display = 'block';
     } else {
@@ -31,6 +32,7 @@ function saveApiKey() {
     const apiKeyInput = document.getElementById('apiKeyInput').value;
     if (apiKeyInput) {
         localStorage.setItem('groqApiKey', apiKeyInput);
+        apiKey = apiKeyInput;
         document.getElementById('apiRequest').style.display = 'none';
         document.getElementById('startProcessBtn').style.display = 'block';
     }
@@ -52,7 +54,7 @@ document.getElementById('audioFile').addEventListener('change', function () {
 async function uploadAudio() {
     const audioFile = document.getElementById('audioFile').files[0];
     calculateEstimatedTime();
-    const apiKey = localStorage.getItem('groqApiKey');
+    // const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
         alert('מפתח API חסר. נא להזין מחדש.');
         return;
@@ -629,12 +631,15 @@ async function startSpeakerSegmentation() {
 
 
 
-async function getSegmentedText(text, prompt, intervieweeName) {
+async function getSegmentedText(text, prompt) {
     let success = false;
     const maxRetries = 5;
     let retries = 0;
 
     while (!success && retries < maxRetries) {
+        if (!apiKey) {
+            throw new Error("API Key not found in local storage.");
+        }
         try {
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
@@ -645,7 +650,7 @@ async function getSegmentedText(text, prompt, intervieweeName) {
                 body: JSON.stringify({
                     model: "llama3-70b-8192",
                     messages: [
-                        { role: "system", content: `אתה עוזר שמפענח תמלולים ומבצע חלוקה ברורה לפי דוברים. תפקידך הוא להבחין בין דברי המראיין לבין דברי המרואיין, ${intervieweeName}, תוך שימוש בתוויות 'מראיין' ו-'${intervieweeName}' לפני כל חלק רלוונטי. דאג לשמור על מבנה עקבי כך שכל דובר מזוהה בבירור.` },
+                        { role: "system", content: prompt },
                         { role: "user", content: text }
                     ],
                     max_tokens: 1024
@@ -691,6 +696,31 @@ async function getSegmentedText(text, prompt, intervieweeName) {
 function extractWaitTime(errorText) {
     const match = errorText.match(/try again in ([\d.]+)s/);
     return match ? parseFloat(match[1]) : null;
+}
+
+function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
+    const segments = [];
+    let currentSegment = "";
+    let sentenceCount = 0;
+
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+
+    for (let sentence of sentences) {
+        if ((currentSegment.length + sentence.length > maxChars) || sentenceCount >= maxSentences) {
+            segments.push(currentSegment.trim());
+            currentSegment = "";
+            sentenceCount = 0;
+        }
+
+        currentSegment += sentence + " ";
+        sentenceCount++;
+    }
+
+    if (currentSegment.trim()) {
+        segments.push(currentSegment.trim());
+    }
+
+    return segments;
 }
 
 
