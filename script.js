@@ -630,9 +630,9 @@ async function getSegmentedText(text, prompt) {
     let success = false;
     const maxRetries = 5;
     let retries = 0;
+    const apiKey = localStorage.getItem('groqApiKey');
 
     while (!success && retries < maxRetries) {
-        const apiKey = apiKeys[apiKeyIndex];
         try {
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
@@ -664,8 +664,6 @@ async function getSegmentedText(text, prompt) {
                         console.log(`מגבלת קצב הושגה. ממתין ${waitTime} שניות לפני ניסיון נוסף...`);
                         await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
                     } else {
-                        // אם לא נמצא זמן המתנה, נחליף API
-                        apiKeyIndex = (apiKeyIndex + 1) % apiKeys.length;
                         retries++;
                     }
                 } else {
@@ -674,7 +672,6 @@ async function getSegmentedText(text, prompt) {
             }
         } catch (error) {
             console.error("Error with segment:", error);
-            apiKeyIndex = (apiKeyIndex + 1) % apiKeys.length;
             retries++;
         }
     }
@@ -687,6 +684,7 @@ function extractWaitTime(errorText) {
     const match = errorText.match(/try again in ([\d.]+)s/);
     return match ? parseFloat(match[1]) : null;
 }
+
 
 
 function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
