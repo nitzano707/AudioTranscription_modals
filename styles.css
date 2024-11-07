@@ -360,13 +360,22 @@ h1 {
 }
 
 /* עיצוב לתמונות ההסבר */
+.instructions-container .image-wrapper {
+    width: 100%;
+    max-width: 600px; /* רוחב מקסימלי למסגרת */
+    height: 350px; /* גובה אחיד לכל התמונות */
+    margin: 20px auto; /* מרכז את המיכל */
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 .instructions-container img {
-    max-width: 100%; /* כדי שהתמונות לא יחרגו מהרוחב של המיכל */
-    height: auto; /* שמירה על היחס של התמונה */
-    margin: 10px 0; /* ריווח לפני ואחרי כל תמונה */
-    border: 1px solid #ddd; /* הוספת גבול עדין */
-    border-radius: 5px; /* קצוות מעוגלים מעט */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* הוספת צל להדגשה */
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* שמירה על יחס התמונות במיכל */
 }
 
 /* עיצוב לטקסט מתחת לכל תמונה */
