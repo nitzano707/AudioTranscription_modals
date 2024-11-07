@@ -589,6 +589,112 @@ function updateProgressBarSmoothly(currentChunk, totalChunks, estimatedTime) {
 }
 
 
+function showSpeakerSegmentationModal() {
+    document.getElementById("speakerSegmentationModal").style.display = "block";
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = "none";
+}
+
+
+async function startSpeakerSegmentation() {
+    const intervieweeName = document.getElementById("intervieweeNameInput").value.trim();
+    if (!intervieweeName) {
+        alert("אנא הזן את שם המרואיין");
+        return;
+    }
+
+    const transcriptionText = document.getElementById("transcriptionInput").value; // טקסט התמלול מהאפליקציה הקיימת
+    const segments = splitTextIntoSegments(transcriptionText); // שימוש בפונקציה לפיצול הטקסט למקטעים
+    let fullResult = "";
+
+    document.getElementById("segmentationResult").textContent = "מתחיל בעיבוד התמלול...\n\n";
+
+    for (const segment of segments) {
+        const prompt = `חלק את הטקסט הבא לדוברים בצורה של "מראיין" ו-"${intervieweeName}":\n\n${segment}`;
+        try {
+            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${userApiKey}`, // API של המשתמש
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "llama3-70b-8192",
+                    messages: [
+                        {role: "system", content: `אתה עוזר שמפענח תמלולים לפי הדוברים "מראיין" ו-"${intervieweeName}"`},
+                        {role: "user", content: prompt}
+                    ],
+                    max_tokens: 1024,
+                    temperature: 1
+                })
+            });
+
+            const data = await response.json();
+            const result = data.choices[0]?.message?.content || '';
+            fullResult += result + "\n\n";
+            document.getElementById("segmentationResult").textContent = fullResult;
+
+        } catch (error) {
+            console.error("Error with segment:", error);
+            break;
+        }
+    }
+
+    fullResult += "\n\n---\nסוף תמלול";
+    document.getElementById("segmentationResult").textContent = fullResult;
+}
+
+function copySegmentationResult() {
+    const text = document.getElementById("segmentationResult").textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        alert("התמלול הועתק ללוח.");
+    });
+}
+
+function downloadSegmentationResult() {
+    const text = document.getElementById("segmentationResult").textContent;
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "תמלול_לפי_דוברים.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+
+function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
+    const segments = [];
+    let currentSegment = "";
+    let sentenceCount = 0;
+
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+
+    for (let sentence of sentences) {
+        if ((currentSegment.length + sentence.length > maxChars) || sentenceCount >= maxSentences) {
+            segments.push(currentSegment.trim());
+            currentSegment = "";
+            sentenceCount = 0;
+        }
+
+        currentSegment += sentence + " ";
+        sentenceCount++;
+    }
+
+    if (currentSegment.trim()) {
+        segments.push(currentSegment.trim());
+    }
+
+    return segments;
+}
+
+
+
+
+
+
 // פונקציה לאיפוס תהליך ההעלאה והתמלול
 function restartProcess() {
             // איפוס כל המשתנים הגלובליים
