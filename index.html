@@ -78,6 +78,8 @@
                 <div class="tabs">
                     <button class="tablinks" onclick="openTab(event, 'textTab')" data-format="text"><i class="fas fa-file-alt"></i> טקסט</button>
                     <button class="tablinks" onclick="openTab(event, 'srtTab')" data-format="srt"><i class="fas fa-closed-captioning"></i> SRT</button>
+                    <button onclick="showSpeakerSegmentationModal()">הצג חלוקה לפי דוברים</button>
+
                 </div>
                 <div id="textTab" class="tabcontent">
                     <pre id="textContent"></pre>
@@ -89,6 +91,20 @@
         </div>
     </div>
 
+
+    <div id="speakerSegmentationModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('speakerSegmentationModal')">&times;</span>
+            <h2>חלוקה לפי דוברים</h2>
+            <input type="text" id="intervieweeNameInput" placeholder="הקלד את שם המרואיין"><br>
+            <button onclick="startSpeakerSegmentation()">התחל חלוקה לפי דוברים</button>
+            <div id="segmentationResult"></div>
+            <button onclick="copySegmentationResult()">העתק תמלול</button>
+            <button onclick="downloadSegmentationResult()">הורד תמלול</button>
+        </div>
+    </div>
+
+    
     <script src="script.js"></script>
 </body>
 </html>
