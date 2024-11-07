@@ -630,11 +630,6 @@ async function getSegmentedText(text, prompt) {
     let success = false;
     const maxRetries = 5;
     let retries = 0;
-    const apiKey = localStorage.getItem('groqApiKey');
-
-    if (!apiKey) {
-        throw new Error("API Key not found in local storage.");
-    }
 
     while (!success && retries < maxRetries) {
         try {
@@ -693,6 +688,7 @@ function extractWaitTime(errorText) {
     const match = errorText.match(/try again in ([\d.]+)s/);
     return match ? parseFloat(match[1]) : null;
 }
+
 
 
 
