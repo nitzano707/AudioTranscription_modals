@@ -600,17 +600,30 @@ async function startSpeakerSegmentation() {
         return;
     }
 
-    const prompt = `אתה עוזר מועיל שמפצל תמלולים לפי הדוברים "מראיין" ו-"${intervieweeName}".`;
     const transcriptionText = transcriptionDataText;
+    const segments = splitTextIntoSegments(transcriptionText);
+    let fullResult = "";
+    document.getElementById("segmentationResult").textContent = "מתחיל בעיבוד התמלול...\n\n";
 
-    try {
-        const segmentedText = await getSegmentedText(transcriptionText, prompt);
-        document.getElementById('segmentationResult').textContent = segmentedText + "\n\n---\nסוף תמלול";
-    } catch (error) {
-        console.error("Error during speaker segmentation:", error);
-        alert("שגיאה במהלך חלוקת התמלול לפי דוברים. נסה שוב.");
+    for (const segment of segments) {
+        const prompt = `חלק את הטקסט הבא לדוברים – "מראיין" ו-"${intervieweeName}". אם המשפט מכיל סימן שאלה או נשמע כמו שאלה, התייחס אליו כדברי המראיין.`;
+
+        try {
+            const result = await getSegmentedText(segment, prompt);
+            fullResult += result + "\n\n";
+            document.getElementById("segmentationResult").textContent = fullResult;
+        } catch (error) {
+            console.error("Error with segment:", error);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 2000)); // המתנה קצרה בין הבקשות
     }
+
+    // הוספת הודעת "סוף תמלול"
+    fullResult += "\n\n---\nסוף תמלול";
+    document.getElementById("segmentationResult").textContent = fullResult;
 }
+
 
 
 async function getSegmentedText(text, prompt) {
@@ -643,6 +656,31 @@ async function getSegmentedText(text, prompt) {
 
     const result = await response.json();
     return result.choices[0].message.content;
+}
+
+function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
+    const segments = [];
+    let currentSegment = "";
+    let sentenceCount = 0;
+
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+
+    for (let sentence of sentences) {
+        if ((currentSegment.length + sentence.length > maxChars) || sentenceCount >= maxSentences) {
+            segments.push(currentSegment.trim());
+            currentSegment = "";
+            sentenceCount = 0;
+        }
+
+        currentSegment += sentence + " ";
+        sentenceCount++;
+    }
+
+    if (currentSegment.trim()) {
+        segments.push(currentSegment.trim());
+    }
+
+    return segments;
 }
 
 
