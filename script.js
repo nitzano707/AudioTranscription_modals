@@ -640,6 +640,10 @@ async function startSpeakerSegmentation() {
     // הוספת הודעת "סוף תמלול"
     fullResult += "\n\n---\nסוף תמלול";
     document.getElementById("segmentationResult").textContent = fullResult;
+
+    // הפיכת כפתורי ההורדה וההעתקה לזמינים לאחר סיום התמלול
+    document.getElementById("copyButton").style.display = "block";
+    document.getElementById("downloadButton").style.display = "block";
 }
 
 
@@ -768,6 +772,31 @@ function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
 }
 
 
+function copySegmentationResult() {
+    const segmentationResult = document.getElementById('segmentationResult').textContent;
+    if (segmentationResult) {
+        navigator.clipboard.writeText(segmentationResult).then(() => {
+            alert('תמלול הועתק בהצלחה!');
+        }).catch((error) => {
+            console.error('שגיאה בהעתקת הטקסט:', error);
+        });
+    }
+}
+
+function downloadSegmentationResult() {
+    const segmentationResult = document.getElementById('segmentationResult').textContent;
+    if (segmentationResult) {
+        const blob = new Blob([segmentationResult], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'segmentation_result.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+}
 
 
 
