@@ -672,7 +672,7 @@ async function getSegmentedText(text, prompt) {
                         { role: "system", content: prompt },
                         { role: "user", content: text }
                     ],
-                    max_tokens: 8000
+                    max_tokens: 1024
                 })
             });
 
