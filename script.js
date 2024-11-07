@@ -823,5 +823,9 @@ function restartProcess() {
     // הסתרת כפתורי הורדה והעתקה
     document.getElementById('downloadButton').style.display = 'none';
     document.getElementById('copyButton').style.display = 'none';
+
+    // מחיקת תוכן תמלול מחולק לפי דוברים
+    document.getElementById("segmentationResult").textContent = "";
+
 }
 
