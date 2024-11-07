@@ -12,8 +12,10 @@ let totalElapsedTime = 0;
 
 let firstChunkDuration = 0;
 
+let apiKey = localStorage.getItem('groqApiKey');
+
 document.addEventListener('DOMContentLoaded', () => {
-    const apiKey = localStorage.getItem('groqApiKey');
+    // const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
         document.getElementById('apiRequest').style.display = 'block';
     } else {
