@@ -15,7 +15,6 @@ let firstChunkDuration = 0;
 let apiKey = localStorage.getItem('groqApiKey');
 
 document.addEventListener('DOMContentLoaded', () => {
-    // const apiKey = localStorage.getItem('groqApiKey');
     apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
         document.getElementById('apiRequest').style.display = 'block';
@@ -28,15 +27,17 @@ document.addEventListener('DOMContentLoaded', () => {
     displayTranscription('text');
 });
 
+
 function saveApiKey() {
     const apiKeyInput = document.getElementById('apiKeyInput').value;
     if (apiKeyInput) {
         localStorage.setItem('groqApiKey', apiKeyInput);
-        apiKey = apiKeyInput;
+        apiKey = apiKeyInput; // עדכון משתנה גלובלי
         document.getElementById('apiRequest').style.display = 'none';
         document.getElementById('startProcessBtn').style.display = 'block';
     }
 }
+
 
 function triggerFileUpload() {
     document.getElementById('audioFile').click();
