@@ -261,7 +261,6 @@ button:disabled {
     font-family: Arial, sans-serif;
 }
 
-
 /* עיצוב כללי למסך הפתיחה */
 .app-description {
     max-width: 600px;
@@ -278,8 +277,8 @@ button:disabled {
 }
 
 /* עיצוב כותרת */
-h1 {
-    color: #333;
+h1, h2, h3 {
+    color: #2c3e50; /* צבע כותרות */
     font-size: 2em;
     text-align: center;
     margin-top: 20px;
@@ -368,20 +367,21 @@ h1 {
 }
 
 .instruction-item img {
-    flex: 1 1 75%; /* התמונה לא תעלה על 75% מרוחב המיכל */
-    max-width: 75%; /* מגבלה של 75% כדי להבטיח אחידות */
+    flex: 1 1 50%; /* התמונה לא תעלה על 50% מרוחב המיכל */
+    max-width: 50%; /* מגבלה של 50% כדי להבטיח אחידות */
     height: auto; /* שמירה על היחס הנכון */
     border: 1px solid #ccc;
     border-radius: 5px;
 }
 
 .instruction-item p {
-    flex: 1 1 40%; /* הטקסט לא יעלה על 30% מרוחב המיכל */
+    flex: 1 1 40%; /* הטקסט לא יעלה על 40% מרוחב המיכל */
     font-size: 1rem;
     line-height: 1.5;
     margin: 0;
 }
--container img {
+
+.instructions-container img {
     width: 100%;
     height: 100%;
     object-fit: contain; /* שמירה על יחס התמונות במיכל */
@@ -397,4 +397,13 @@ h1 {
 /* להוסיף קצת ריווח לתמונות וטקסט שיהיה נעים בעין */
 .instructions-step {
     margin-bottom: 40px; /* ריווח בין שלב לשלב */
+}
+
+a {
+    color: #007bff; /* צבע לינקים */
+    text-decoration: none;
+}
+
+a:hover {
+    color: #0056b3; /* צבע לינקים כשעוברים עם העכבר */
 }
