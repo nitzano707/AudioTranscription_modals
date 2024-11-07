@@ -239,7 +239,7 @@ button:disabled {
     display: flex;
     justify-content: center; /* ממרכז אופקית */
     align-items: center; /* ממרכז אנכית */
-    height: 300px; /* ניתן להגדיל את הגובה אם יש צורך */
+    margin-top: 10px; /* הוסף מרווח קטן */
 }
 
 .copy-message {
