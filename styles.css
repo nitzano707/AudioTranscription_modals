@@ -349,30 +349,39 @@ h1 {
     background-color: #218838;
 }
 
-/* עיצוב לאזור המסביר הכולל */
 .instructions-container {
-    max-width: 800px; /* רוחב מקסימלי למיכל */
-    margin: 0 auto; /* מרכז את המיכל בעמוד */
-    padding: 20px;
-    text-align: right; /* טקסט מכוון מימין */
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin: 20px;
 }
 
-/* עיצוב לתמונות ההסבר */
-.instructions-container .image-wrapper {
-    width: 100%;
-    max-width: 600px; /* רוחב מקסימלי למסגרת */
-    height: 350px; /* גובה אחיד לכל התמונות */
-    margin: 20px auto; /* מרכז את המיכל */
-    position: relative;
-    overflow: hidden;
+.instruction-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
     border: 1px solid #ddd;
-    border-radius: 5px;
+    padding: 15px;
+    border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.instructions-container img {
+.instruction-item img {
+    flex: 1 1 50%; /* התמונה לא תעלה על 50% מרוחב המיכל */
+    max-width: 50%; /* מגבלה של 50% כדי להבטיח אחידות */
+    height: auto; /* שמירה על היחס הנכון */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.instruction-item p {
+    flex: 1 1 45%; /* הטקסט לא יעלה על 50% מרוחב המיכל */
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
+}
+-container img {
     width: 100%;
     height: 100%;
     object-fit: contain; /* שמירה על יחס התמונות במיכל */
