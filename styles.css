@@ -274,7 +274,7 @@ button:disabled {
     line-height: 1.6;
     font-size: 1.1em;
     color: #333;
-    text-align: right;
+    text-align: justify; /* הוספת יישור דו-צידי */
 }
 
 /* עיצוב כותרת */
@@ -330,7 +330,7 @@ h1 {
     color: #555;
     font-size: 0.9em;
     margin-top: 10px;
-    text-align: right;
+    text-align: justify; /* הוספת יישור דו-צידי */
 }
 
 /* עיצוב כפתור התחל */
