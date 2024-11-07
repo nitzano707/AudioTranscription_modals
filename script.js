@@ -627,36 +627,67 @@ async function startSpeakerSegmentation() {
 
 
 async function getSegmentedText(text, prompt) {
-    const apiKey = localStorage.getItem('groqApiKey');
-    if (!apiKey) {
-        alert("מפתח API חסר. נא להזין מפתח API.");
-        return "";
+    let success = false;
+    const maxRetries = 5;
+    let retries = 0;
+
+    while (!success && retries < maxRetries) {
+        const apiKey = apiKeys[apiKeyIndex];
+        try {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: "llama3-70b-8192",
+                    messages: [
+                        { role: "system", content: prompt },
+                        { role: "user", content: text }
+                    ],
+                    max_tokens: 1024
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                success = true;
+                return result.choices[0].message.content;
+            } else {
+                const errorText = await response.text();
+                const errorData = JSON.parse(errorText);
+
+                if (errorData.error && errorData.error.code === "rate_limit_exceeded") {
+                    const waitTime = extractWaitTime(errorText);
+                    if (waitTime) {
+                        console.log(`מגבלת קצב הושגה. ממתין ${waitTime} שניות לפני ניסיון נוסף...`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+                    } else {
+                        // אם לא נמצא זמן המתנה, נחליף API
+                        apiKeyIndex = (apiKeyIndex + 1) % apiKeys.length;
+                        retries++;
+                    }
+                } else {
+                    throw new Error(`שגיאה בבקשה: ${errorText}`);
+                }
+            }
+        } catch (error) {
+            console.error("Error with segment:", error);
+            apiKeyIndex = (apiKeyIndex + 1) % apiKeys.length;
+            retries++;
+        }
     }
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: "llama3-70b-8192",
-            messages: [
-                {role: "system", content: prompt},
-                {role: "user", content: text}
-            ],
-            max_tokens: 1500
-        })
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-    }
-
-    const result = await response.json();
-    return result.choices[0].message.content;
+    throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
 }
+
+// פונקציה שמחלצת את זמן ההמתנה מתוך הודעת השגיאה
+function extractWaitTime(errorText) {
+    const match = errorText.match(/try again in ([\d.]+)s/);
+    return match ? parseFloat(match[1]) : null;
+}
+
 
 function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
     const segments = [];
@@ -682,6 +713,8 @@ function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
 
     return segments;
 }
+
+
 
 
 
