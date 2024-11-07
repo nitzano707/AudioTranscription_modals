@@ -368,15 +368,15 @@ h1 {
 }
 
 .instruction-item img {
-    flex: 1 1 70%; /* התמונה לא תעלה על 70% מרוחב המיכל */
-    max-width: 70%; /* מגבלה של 70% כדי להבטיח אחידות */
+    flex: 1 1 50%; /* התמונה לא תעלה על 50% מרוחב המיכל */
+    max-width: 50%; /* מגבלה של 50% כדי להבטיח אחידות */
     height: auto; /* שמירה על היחס הנכון */
     border: 1px solid #ccc;
     border-radius: 5px;
 }
 
 .instruction-item p {
-    flex: 1 1 30%; /* הטקסט לא יעלה על 30% מרוחב המיכל */
+    flex: 1 1 45%; /* הטקסט לא יעלה על 50% מרוחב המיכל */
     font-size: 1rem;
     line-height: 1.5;
     margin: 0;
