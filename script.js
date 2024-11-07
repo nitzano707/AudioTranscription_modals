@@ -620,7 +620,7 @@ async function startSpeakerSegmentation() {
             console.error("Error with segment:", error);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 2000)); // המתנה קצרה בין הבקשות
+        await new Promise(resolve => setTimeout(resolve, 200)); // המתנה קצרה בין הבקשות
     }
 
     // הוספת הודעת "סוף תמלול"
@@ -654,7 +654,7 @@ async function getSegmentedText(text, prompt) {
                         { role: "system", content: prompt },
                         { role: "user", content: text }
                     ],
-                    max_tokens: 1024
+                    max_tokens: 8000
                 })
             });
 
