@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
         document.getElementById('apiRequest').style.display = 'block';
-         
+        document.getElementById('apiKeyInput').focus(); // הוספת הפוקוס כאן 
     } else {
         document.getElementById('apiRequest').style.display = 'none';
         document.getElementById('startProcessBtn').style.display = 'block';
