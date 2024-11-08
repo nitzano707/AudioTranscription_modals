@@ -20,70 +20,103 @@
         <!-- כותרת ראשית -->
         <h1>שאלות נפוצות ומידע נוסף</h1>
 
-        <!-- תפריט צד לקטגוריות -->
-        <aside class="sidebar">
-            <h2>קטגוריות</h2>
-            <ul>
-                <li><a href="#operation">אופן פעולת האפליקציה</a></li>
-                <li><a href="#security">אבטחת מידע ופרטיות</a></li>
-                <li><a href="#api">מפתחות API והתחברות</a></li>
-                <li><a href="#limits">מגבלות ופורמטים נתמכים</a></li>
-                <li><a href="#support">תמיכה ופתרון בעיות</a></li>
-            </ul>
-        </aside>
-
-        <!-- תוכן עמוד FAQ -->
+        <!-- תוכן עמוד FAQ עם פונקציונליות פתיחה וסגירה -->
         <section class="faq-content">
-            <!-- קטגוריה: אופן פעולת האפליקציה -->
-            <h2 id="operation">אופן פעולת האפליקציה</h2>
-            <ul class="faq-list">
-                <li>כיצד האפליקציה מבצעת את תהליך התמלול? האפליקציה משתמשת במודל תמלול מבוסס בינה מלאכותית של GroqCloud לצורך עיבוד האודיו והחזרת התוצאה.</li>
-                <li>מה קורה אם הקובץ שלי גדול מדי? האפליקציה מפצלת קבצים גדולים למקטעים קטנים כך שניתן יהיה לעבד אותם ביעילות.</li>
-            </ul>
+            <h2>אופן פעולת האפליקציה</h2>
+            <div class="faq-item">
+                <button class="faq-question">כיצד האפליקציה מבצעת את תהליך התמלול?</button>
+                <div class="faq-answer">
+                    <p>האפליקציה משתמשת במודל תמלול מבוסס בינה מלאכותית של GroqCloud לצורך עיבוד האודיו והחזרת התוצאה.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question">מה קורה אם הקובץ שלי גדול מדי?</button>
+                <div class="faq-answer">
+                    <p>האפליקציה מפצלת קבצים גדולים למקטעים קטנים כך שניתן יהיה לעבד אותם ביעילות.</p>
+                </div>
+            </div>
 
-            <!-- קטגוריה: אבטחת מידע ופרטיות -->
-            <h2 id="security">אבטחת מידע ופרטיות</h2>
-            <ul class="faq-list">
-                <li>האם האפליקציה שומרת את קבצי האודיו או את התמלול? האפליקציה אינה שומרת את קבצי האודיו או את התמלולים. כל עיבוד הנתונים מתבצע באופן מקומי במחשב שלך.</li>
-                <li>האם המידע שלי נשלח לאינטרנט לצורך עיבוד התמלול? כן, הקבצים נשלחים ל-GroqCloud לצורך עיבוד, אך לא נשמרים לאחר העיבוד. ניתן לקרוא עוד על מדיניות הפרטיות של Groq <a href="https://groq.com/privacy-policy/" target="_blank">כאן</a>.</li>
-                <li>האם GroqCloud משתמשת במידע לצרכים אחרים? על פי מדיניות GroqCloud, המידע הנשלח לעיבוד אינו נשמר או משמש לאימון מודלים.</li>
-            </ul>
+            <h2>אבטחת מידע ופרטיות</h2>
+            <div class="faq-item">
+                <button class="faq-question">האם האפליקציה שומרת את קבצי האודיו או את התמלול?</button>
+                <div class="faq-answer">
+                    <p>האפליקציה אינה שומרת את קבצי האודיו או את התמלולים. כל עיבוד הנתונים מתבצע באופן מקומי במחשב שלך.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question">האם המידע שלי נשלח לאינטרנט לצורך עיבוד התמלול?</button>
+                <div class="faq-answer">
+                    <p>כן, הקבצים נשלחים ל-GroqCloud לצורך עיבוד, אך לא נשמרים לאחר העיבוד. ניתן לקרוא עוד על מדיניות הפרטיות של Groq <a href="https://groq.com/privacy-policy/" target="_blank">כאן</a>.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question">האם המידע שלי נשמר במכשיר לצורך עבודה עתידית?</button>
+                <div class="faq-answer">
+                    <p>לא, לאחר עיבוד התמלול, המידע אינו נשמר באפליקציה או בשרתים.</p>
+                </div>
+            </div>
+            <div class="faq-item">
+                <button class="faq-question">האם GroqCloud משתמשת במידע לצרכים אחרים?</button>
+                <div class="faq-answer">
+                    <p>על פי מדיניות GroqCloud, המידע הנשלח לעיבוד אינו נשמר או משמש לאימון מודלים.</p>
+                </div>
+            </div>
 
-            <!-- קטגוריה: מפתחות API והתחברות -->
-            <h2 id="api">מפתחות API והתחברות</h2>
-            <ul class="faq-list">
-                <li>היכן נשמר מפתח ה-API שלי? מפתח ה-API נשמר מקומית במכשיר שלך באחסון הדפדפן, כדי שתוכל לגשת לאפליקציה ללא צורך בהזנה חוזרת.</li>
-            </ul>
+            <h2>מפתחות API והתחברות</h2>
+            <div class="faq-item">
+                <button class="faq-question">היכן נשמר מפתח ה-API שלי?</button>
+                <div class="faq-answer">
+                    <p>מפתח ה-API נשמר מקומית במכשיר שלך באחסון הדפדפן, כדי שתוכל לגשת לאפליקציה ללא צורך בהזנה חוזרת.</p>
+                </div>
+            </div>
 
-            <!-- קטגוריה: מגבלות ופורמטים נתמכים -->
-            <h2 id="limits">מגבלות ופורמטים נתמכים</h2>
-            <ul class="faq-list">
-                <li>מהם הפורמטים הנתמכים לתמלול? האפליקציה תומכת בפורמטים MP3 ו-WAV לתמלול.</li>
-            </ul>
+            <h2>מגבלות ופורמטים נתמכים</h2>
+            <div class="faq-item">
+                <button class="faq-question">מהם הפורמטים הנתמכים לתמלול?</button>
+                <div class="faq-answer">
+                    <p>האפליקציה תומכת בפורמטים MP3 ו-WAV לתמלול.</p>
+                </div>
+            </div>
 
-            <!-- קטגוריה: תמיכה ופתרון בעיות -->
-            <h2 id="support">תמיכה ופתרון בעיות</h2>
-            <ul class="faq-list">
-                <li>כיצד ניתן להימנע משגיאות במהלך התמלול? במידה של שגיאה, האפליקציה מנסה מחדש עד 5 פעמים וממתינה לפני כל ניסיון נוסף במידה שנדרש.</li>
-            </ul>
+            <h2>תמיכה ופתרון בעיות</h2>
+            <div class="faq-item">
+                <button class="faq-question">כיצד ניתן להימנע משגיאות במהלך התמלול?</button>
+                <div class="faq-answer">
+                    <p>במידה של שגיאה, האפליקציה מנסה מחדש עד 5 פעמים וממתינה לפני כל ניסיון נוסף במידה שנדרש.</p>
+                </div>
+            </div>
         </section>
 
-        <!-- פסקת אודותיי -->
+        <!-- פסקת אודותיי (פתוחה באופן קבוע) -->
         <section class="about-developer">
-            <h2>אודות המפתח</h2>
-            <p>שלום, אני ד"ר ניצן אליקים, מרצה, חוקר ומומחה בפיתוח טכנולוגיות חינוכיות מתקדמות. אני מוביל את 
-            <a href="https://www.talpiot.ac.il/masters-degree-heterogeneous-teaching-education-in-society-ex/" target="_blank">התוכנית לתואר שני ב"הוראה הטרוגנית - חינוך בחברה משתנה"</a> במכללת תלפיות, ומלמד גם במכללות ירושלים ואורות. אני מתמקד בשילוב בינה מלאכותית ואסטרטגיות למידה חדשניות לשיפור תהליכי ההוראה ולהנגשת כלים טכנולוגיים לאנשי חינוך ומחקר.</p>
+            <img src="assets/nitzan-photo.jpg" alt="ד"ר ניצן אליקים" class="profile-photo">
+            <div class="about-text">
+                <h2>אודות המפתח</h2>
+                <p>שלום, אני ד"ר ניצן אליקים, מרצה, חוקר ומומחה בפיתוח טכנולוגיות חינוכיות מתקדמות. אני מוביל את 
+                <a href="https://www.talpiot.ac.il/masters-degree-heterogeneous-teaching-education-in-society-ex/" target="_blank">התוכנית לתואר שני ב"הוראה הטרוגנית - חינוך בחברה משתנה"</a> במכללת תלפיות, ומלמד גם במכללות ירושלים ואורות. אני מתמקד בשילוב בינה מלאכותית ואסטרטגיות למידה חדשניות לשיפור תהליכי ההוראה ולהנגשת כלים טכנולוגיים לאנשי חינוך ומחקר.</p>
+            </div>
         </section>
     </div>
+
+    <script>
+        // פונקציה לפתיחה וסגירה של תשובות
+        document.querySelectorAll('.faq-question').forEach(button => {
+            button.addEventListener('click', () => {
+                const answer = button.nextElementSibling;
+
+                // פתיחה וסגירה של התשובה
+                answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
+            });
+        });
+    </script>
 
     <style>
         /* עיצוב לעמוד FAQ */
         .faq-page {
-            display: flex;
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            gap: 20px;
+            font-family: 'Nunito', Arial, sans-serif;
         }
 
         .logo-container {
@@ -96,58 +129,69 @@
             height: auto;
         }
 
-        .sidebar {
-            width: 20%;
-            padding: 10px;
-            background-color: #f7f7f7;
-            border-radius: 5px;
-            margin-right: 10px;
-            text-align: right;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        .sidebar ul li a {
-            display: block;
-            padding: 8px 0;
+        h1, h2 {
             color: #333;
-            text-decoration: none;
-            font-weight: bold;
+            text-align: right;
         }
 
-        .sidebar ul li a:hover {
-            text-decoration: underline;
-        }
-
-        .faq-content {
-            width: 75%;
-        }
-
-        .faq-list {
-            list-style-type: none;
-            padding: 0;
+        .faq-item {
             margin: 10px 0;
+            border-bottom: 1px solid #ddd;
         }
 
-        .faq-list li {
+        .faq-question {
+            width: 100%;
+            background-color: #f7f7f7;
+            color: #333;
+            padding: 15px;
+            text-align: right;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            outline: none;
+            text-align: right;
+            transition: background-color 0.3s;
+        }
+
+        .faq-question:hover {
+            background-color: #e0e0e0;
+        }
+
+        .faq-answer {
+            display: none; /* ברירת מחדל - התשובה מוסתרת */
+            padding: 10px 15px;
             background-color: #ffffff;
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            font-size: 15px;
+            color: #555;
+            text-align: right;
+        }
+
+        .faq-answer p {
+            margin: 0;
         }
 
         .about-developer {
+            display: flex;
+            align-items: center;
             margin-top: 40px;
             padding: 20px;
             background-color: #f9f9f9;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             text-align: right;
+            gap: 15px;
+        }
+
+        .profile-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .about-text {
+            font-size: 1.1em;
+            line-height: 1.6;
         }
     </style>
 
