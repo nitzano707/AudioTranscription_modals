@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>שאלות נפוצות ומידע נוסף</title>
-    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -24,13 +23,13 @@
         <section class="faq-content">
             <h2>אופן פעולת האפליקציה</h2>
             <div class="faq-item">
-                <button class="faq-question">כיצד האפליקציה מבצעת את תהליך התמלול?</button>
+                <button class="faq-question"><i class="fas fa-cogs"></i> כיצד האפליקציה מבצעת את תהליך התמלול?</button>
                 <div class="faq-answer">
                     <p>האפליקציה משתמשת במודל תמלול מבוסס בינה מלאכותית של GroqCloud לצורך עיבוד האודיו והחזרת התוצאה.</p>
                 </div>
             </div>
             <div class="faq-item">
-                <button class="faq-question">מה קורה אם הקובץ שלי גדול מדי?</button>
+                <button class="faq-question"><i class="fas fa-cogs"></i> מה קורה אם הקובץ שלי גדול מדי?</button>
                 <div class="faq-answer">
                     <p>האפליקציה מפצלת קבצים גדולים למקטעים קטנים כך שניתן יהיה לעבד אותם ביעילות.</p>
                 </div>
@@ -38,25 +37,25 @@
 
             <h2>אבטחת מידע ופרטיות</h2>
             <div class="faq-item">
-                <button class="faq-question">האם האפליקציה שומרת את קבצי האודיו או את התמלול?</button>
+                <button class="faq-question"><i class="fas fa-lock"></i> האם האפליקציה שומרת את קבצי האודיו או את התמלול?</button>
                 <div class="faq-answer">
                     <p>האפליקציה אינה שומרת את קבצי האודיו או את התמלולים. כל עיבוד הנתונים מתבצע באופן מקומי במחשב שלך.</p>
                 </div>
             </div>
             <div class="faq-item">
-                <button class="faq-question">האם המידע שלי נשלח לאינטרנט לצורך עיבוד התמלול?</button>
+                <button class="faq-question"><i class="fas fa-lock"></i> האם המידע שלי נשלח לאינטרנט לצורך עיבוד התמלול?</button>
                 <div class="faq-answer">
                     <p>כן, הקבצים נשלחים ל-GroqCloud לצורך עיבוד, אך לא נשמרים לאחר העיבוד. ניתן לקרוא עוד על מדיניות הפרטיות של Groq <a href="https://groq.com/privacy-policy/" target="_blank">כאן</a>.</p>
                 </div>
             </div>
             <div class="faq-item">
-                <button class="faq-question">האם המידע שלי נשמר במכשיר לצורך עבודה עתידית?</button>
+                <button class="faq-question"><i class="fas fa-lock"></i> האם המידע שלי נשמר במכשיר לצורך עבודה עתידית?</button>
                 <div class="faq-answer">
                     <p>לא, לאחר עיבוד התמלול, המידע אינו נשמר באפליקציה או בשרתים.</p>
                 </div>
             </div>
             <div class="faq-item">
-                <button class="faq-question">האם GroqCloud משתמשת במידע לצרכים אחרים?</button>
+                <button class="faq-question"><i class="fas fa-lock"></i> האם GroqCloud משתמשת במידע לצרכים אחרים?</button>
                 <div class="faq-answer">
                     <p>על פי מדיניות GroqCloud, המידע הנשלח לעיבוד אינו נשמר או משמש לאימון מודלים.</p>
                 </div>
@@ -64,7 +63,7 @@
 
             <h2>מפתחות API והתחברות</h2>
             <div class="faq-item">
-                <button class="faq-question">היכן נשמר מפתח ה-API שלי?</button>
+                <button class="faq-question"><i class="fas fa-key"></i> היכן נשמר מפתח ה-API שלי?</button>
                 <div class="faq-answer">
                     <p>מפתח ה-API נשמר מקומית במכשיר שלך באחסון הדפדפן, כדי שתוכל לגשת לאפליקציה ללא צורך בהזנה חוזרת.</p>
                 </div>
@@ -72,7 +71,7 @@
 
             <h2>מגבלות ופורמטים נתמכים</h2>
             <div class="faq-item">
-                <button class="faq-question">מהם הפורמטים הנתמכים לתמלול?</button>
+                <button class="faq-question"><i class="fas fa-file-alt"></i> מהם הפורמטים הנתמכים לתמלול?</button>
                 <div class="faq-answer">
                     <p>האפליקציה תומכת בפורמטים MP3 ו-WAV לתמלול.</p>
                 </div>
@@ -80,7 +79,7 @@
 
             <h2>תמיכה ופתרון בעיות</h2>
             <div class="faq-item">
-                <button class="faq-question">כיצד ניתן להימנע משגיאות במהלך התמלול?</button>
+                <button class="faq-question"><i class="fas fa-question-circle"></i> כיצד ניתן להימנע משגיאות במהלך התמלול?</button>
                 <div class="faq-answer">
                     <p>במידה של שגיאה, האפליקציה מנסה מחדש עד 5 פעמים וממתינה לפני כל ניסיון נוסף במידה שנדרש.</p>
                 </div>
@@ -94,6 +93,7 @@
                 <h2>אודות המפתח</h2>
                 <p>שלום, אני ד"ר ניצן אליקים, מרצה, חוקר ומומחה בפיתוח טכנולוגיות חינוכיות מתקדמות. אני מוביל את 
                 <a href="https://www.talpiot.ac.il/masters-degree-heterogeneous-teaching-education-in-society-ex/" target="_blank">התוכנית לתואר שני ב"הוראה הטרוגנית - חינוך בחברה משתנה"</a> במכללת תלפיות, ומלמד גם במכללות ירושלים ואורות. אני מתמקד בשילוב בינה מלאכותית ואסטרטגיות למידה חדשניות לשיפור תהליכי ההוראה ולהנגשת כלים טכנולוגיים לאנשי חינוך ומחקר.</p>
+                <p>פיתחתי את האפליקציה הזו במיוחד עבור הסטודנטים שלי בקורסי המחקר לתואר השני, כולל סמינריונים ועבודות גמר, במטרה להקל עליהם בתהליך תמלול ראיונות והקלטות. מתוך רצון לתרום גם לקהילה הרחבה, החלטתי לפרסם את האפליקציה לשימוש חופשי וללא עלות. האפליקציה זמינה לכולם, והיא מופצת ללא מטרות רווח.</p>
             </div>
         </section>
     </div>
@@ -117,6 +117,7 @@
             margin: 0 auto;
             padding: 20px;
             font-family: 'Nunito', Arial, sans-serif;
+            font-size: 1.1em; /* הגדלת הגופן הכללי */
         }
 
         .logo-container {
@@ -129,8 +130,15 @@
             height: auto;
         }
 
-        h1, h2 {
+        h1 {
             color: #333;
+            font-size: 2em; /* גודל כותרת ראשית */
+            text-align: right;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 1.6em; /* גודל כותרות קטגוריות */
             text-align: right;
         }
 
@@ -145,11 +153,14 @@
             color: #333;
             padding: 15px;
             text-align: right;
-            font-size: 16px;
+            font-size: 1.2em; /* הגדלת גודל השאלות */
+            font-weight: bold; /* הדגשה של השאלות */
             border: none;
             cursor: pointer;
             outline: none;
-            text-align: right;
+            display: flex;
+            align-items: center;
+            gap: 10px; /* ריווח בין האייקון לשאלה */
             transition: background-color 0.3s;
         }
 
@@ -161,9 +172,10 @@
             display: none; /* ברירת מחדל - התשובה מוסתרת */
             padding: 10px 15px;
             background-color: #ffffff;
-            font-size: 15px;
+            font-size: 1.1em; /* גודל גופן התשובה */
             color: #555;
             text-align: right;
+            line-height: 1.6; /* מרווח בין השורות בתשובות */
         }
 
         .faq-answer p {
