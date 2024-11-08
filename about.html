@@ -12,7 +12,7 @@
     <!-- לוגו עם קישור לעמוד הראשי -->
     <div class="logo-container">
         <a href="index.html">
-            <img src="assets/logo.png" alt="לוגו" class="logo">
+            <img src="assets/logo.png" alt="לוגו" class="small-logo">
         </a>
     </div>
 
@@ -32,82 +32,49 @@
             </ul>
         </aside>
 
-        <!-- תוכן עמוד FAQ עם אקורדיון לשאלות ותשובות -->
+        <!-- תוכן עמוד FAQ -->
         <section class="faq-content">
             <!-- קטגוריה: אופן פעולת האפליקציה -->
             <h2 id="operation">אופן פעולת האפליקציה</h2>
-            <div class="accordion">
-                <button class="accordion-btn">כיצד האפליקציה מבצעת את תהליך התמלול?</button>
-                <div class="accordion-content">
-                    <p>האפליקציה משתמשת במודל תמלול מבוסס בינה מלאכותית של GroqCloud, המבצע את התמלול ומחזיר את התוצאה לאפליקציה.</p>
-                </div>
-                <button class="accordion-btn">מה קורה אם הקובץ שלי גדול מדי?</button>
-                <div class="accordion-content">
-                    <p>האפליקציה מפצלת קבצים גדולים למקטעים קטנים כך שניתן יהיה לעבד אותם ביעילות.</p>
-                </div>
-            </div>
+            <ul class="faq-list">
+                <li>כיצד האפליקציה מבצעת את תהליך התמלול? האפליקציה משתמשת במודל תמלול מבוסס בינה מלאכותית של GroqCloud לצורך עיבוד האודיו והחזרת התוצאה.</li>
+                <li>מה קורה אם הקובץ שלי גדול מדי? האפליקציה מפצלת קבצים גדולים למקטעים קטנים כך שניתן יהיה לעבד אותם ביעילות.</li>
+            </ul>
 
             <!-- קטגוריה: אבטחת מידע ופרטיות -->
             <h2 id="security">אבטחת מידע ופרטיות</h2>
-            <div class="accordion">
-                <button class="accordion-btn">האם האפליקציה שומרת את קבצי האודיו או את התמלול?</button>
-                <div class="accordion-content">
-                    <p>האפליקציה אינה שומרת את קבצי האודיו או את התמלולים. כל עיבוד הנתונים מתבצע באופן מקומי במחשב שלך.</p>
-                </div>
-                <button class="accordion-btn">האם המידע שלי נשלח לאינטרנט לצורך עיבוד התמלול?</button>
-                <div class="accordion-content">
-                    <p>כן, הקבצים נשלחים ל-GroqCloud לצורך עיבוד, אך לא נשמרים לאחר העיבוד. ניתן לקרוא עוד על מדיניות הפרטיות של Groq בקישור <a href="https://groq.com/privacy-policy/" target="_blank">כאן</a> ובפרטים נוספים על <a href="https://groq.com/wp-content/uploads/2024/05/Groq-Privacy-Policy_Final_30MAY2024.pdf" target="_blank">מדיניות האבטחה והפרטיות המלאה</a>.</p>
-                </div>
-                <button class="accordion-btn">האם GroqCloud משתמשת במידע לצרכים אחרים?</button>
-                <div class="accordion-content">
-                    <p>על פי מדיניות GroqCloud, המידע הנשלח לעיבוד אינו נשמר או משמש לאימון מודלים. לפרטים נוספים על השימוש במידע, ניתן לעיין במדיניות הפרטיות של החברה <a href="https://groq.com/privacy-policy/" target="_blank">כאן</a>.</p>
-                </div>
-            </div>
+            <ul class="faq-list">
+                <li>האם האפליקציה שומרת את קבצי האודיו או את התמלול? האפליקציה אינה שומרת את קבצי האודיו או את התמלולים. כל עיבוד הנתונים מתבצע באופן מקומי במחשב שלך.</li>
+                <li>האם המידע שלי נשלח לאינטרנט לצורך עיבוד התמלול? כן, הקבצים נשלחים ל-GroqCloud לצורך עיבוד, אך לא נשמרים לאחר העיבוד. ניתן לקרוא עוד על מדיניות הפרטיות של Groq <a href="https://groq.com/privacy-policy/" target="_blank">כאן</a>.</li>
+                <li>האם GroqCloud משתמשת במידע לצרכים אחרים? על פי מדיניות GroqCloud, המידע הנשלח לעיבוד אינו נשמר או משמש לאימון מודלים.</li>
+            </ul>
 
             <!-- קטגוריה: מפתחות API והתחברות -->
             <h2 id="api">מפתחות API והתחברות</h2>
-            <div class="accordion">
-                <button class="accordion-btn">היכן נשמר מפתח ה-API שלי?</button>
-                <div class="accordion-content">
-                    <p>מפתח ה-API נשמר מקומית במכשיר שלך באחסון הדפדפן, כדי שתוכל לגשת לאפליקציה ללא צורך בהזנה חוזרת.</p>
-                </div>
-            </div>
+            <ul class="faq-list">
+                <li>היכן נשמר מפתח ה-API שלי? מפתח ה-API נשמר מקומית במכשיר שלך באחסון הדפדפן, כדי שתוכל לגשת לאפליקציה ללא צורך בהזנה חוזרת.</li>
+            </ul>
 
             <!-- קטגוריה: מגבלות ופורמטים נתמכים -->
             <h2 id="limits">מגבלות ופורמטים נתמכים</h2>
-            <div class="accordion">
-                <button class="accordion-btn">מהם הפורמטים הנתמכים לתמלול?</button>
-                <div class="accordion-content">
-                    <p>האפליקציה תומכת בפורמטים MP3 ו-WAV לתמלול.</p>
-                </div>
-            </div>
+            <ul class="faq-list">
+                <li>מהם הפורמטים הנתמכים לתמלול? האפליקציה תומכת בפורמטים MP3 ו-WAV לתמלול.</li>
+            </ul>
 
             <!-- קטגוריה: תמיכה ופתרון בעיות -->
             <h2 id="support">תמיכה ופתרון בעיות</h2>
-            <div class="accordion">
-                <button class="accordion-btn">כיצד ניתן להימנע משגיאות במהלך התמלול?</button>
-                <div class="accordion-content">
-                    <p>במידה של שגיאה, האפליקציה מנסה מחדש עד 5 פעמים וממתינה לפני כל ניסיון במידה שנדרש.</p>
-                </div>
-            </div>
+            <ul class="faq-list">
+                <li>כיצד ניתן להימנע משגיאות במהלך התמלול? במידה של שגיאה, האפליקציה מנסה מחדש עד 5 פעמים וממתינה לפני כל ניסיון נוסף במידה שנדרש.</li>
+            </ul>
+        </section>
+
+        <!-- פסקת אודותיי -->
+        <section class="about-developer">
+            <h2>אודות המפתח</h2>
+            <p>שלום, אני ד"ר ניצן אליקים, מרצה, חוקר ומומחה בפיתוח טכנולוגיות חינוכיות מתקדמות. אני מוביל את 
+            <a href="https://www.talpiot.ac.il/masters-degree-heterogeneous-teaching-education-in-society-ex/" target="_blank">התוכנית לתואר שני ב"הוראה הטרוגנית - חינוך בחברה משתנה"</a> במכללת תלפיות, ומלמד גם במכללות ירושלים ואורות. אני מתמקד בשילוב בינה מלאכותית ואסטרטגיות למידה חדשניות לשיפור תהליכי ההוראה ולהנגשת כלים טכנולוגיים לאנשי חינוך ומחקר.</p>
         </section>
     </div>
-
-    <script>
-        // פונקציה לאקורדיון פתיחה וסגירה של תוכן השאלות
-        const accordions = document.getElementsByClassName('accordion-btn');
-        for (let i = 0; i < accordions.length; i++) {
-            accordions[i].addEventListener('click', function () {
-                this.classList.toggle('active');
-                const content = this.nextElementSibling;
-                if (content.style.display === "block") {
-                    content.style.display = "none";
-                } else {
-                    content.style.display = "block";
-                }
-            });
-        }
-    </script>
 
     <style>
         /* עיצוב לעמוד FAQ */
@@ -116,21 +83,27 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+            gap: 20px;
         }
 
         .logo-container {
-            position: absolute;
-            top: 10px;
-            right: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .small-logo {
+            width: 100px;
+            height: auto;
         }
 
         .sidebar {
             width: 20%;
             padding: 10px;
-            background-color: #f1f1f1;
+            background-color: #f7f7f7;
             border-radius: 5px;
             margin-right: 10px;
             text-align: right;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
         .sidebar ul {
@@ -141,7 +114,7 @@
         .sidebar ul li a {
             display: block;
             padding: 8px 0;
-            color: #ff8c00;
+            color: #333;
             text-decoration: none;
             font-weight: bold;
         }
@@ -152,35 +125,29 @@
 
         .faq-content {
             width: 75%;
-            margin-right: 20px;
         }
 
-        .accordion-btn {
-            background-color: #ff8c00;
-            color: white;
-            cursor: pointer;
-            padding: 12px;
-            text-align: right;
-            font-size: 16px;
-            border: none;
-            outline: none;
-            transition: 0.3s;
+        .faq-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+
+        .faq-list li {
+            background-color: #ffffff;
+            padding: 10px;
+            margin-bottom: 8px;
             border-radius: 5px;
-            margin-top: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
-        .accordion-btn.active {
-            background-color: #e67e22;
-        }
-
-        .accordion-content {
-            padding: 15px;
+        .about-developer {
+            margin-top: 40px;
+            padding: 20px;
             background-color: #f9f9f9;
-            display: none;
-            border-radius: 5px;
-            margin-top: 5px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             text-align: right;
-            line-height: 1.5;
         }
     </style>
 
