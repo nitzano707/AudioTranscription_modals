@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <title>שאלות נפוצות ומידע נוסף</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- לוגו עם קישור לעמוד הראשי -->
+    <div class="logo-container">
+        <a href="index.html">
+            <img src="assets/logo.png" alt="לוגו" class="logo">
+        </a>
+    </div>
+
+    <div class="faq-page">
+        <!-- כותרת ראשית -->
+        <h1>שאלות נפוצות ומידע נוסף</h1>
+
+        <!-- תפריט צד לקטגוריות -->
+        <aside class="sidebar">
+            <h2>קטגוריות</h2>
+            <ul>
+                <li><a href="#operation">אופן פעולת האפליקציה</a></li>
+                <li><a href="#security">אבטחת מידע ופרטיות</a></li>
+                <li><a href="#api">מפתחות API והתחברות</a></li>
+                <li><a href="#limits">מגבלות ופורמטים נתמכים</a></li>
+                <li><a href="#support">תמיכה ופתרון בעיות</a></li>
+            </ul>
+        </aside>
+
+        <!-- תוכן עמוד FAQ עם אקורדיון לשאלות ותשובות -->
+        <section class="faq-content">
+            <!-- קטגוריה: אופן פעולת האפליקציה -->
+            <h2 id="operation">אופן פעולת האפליקציה</h2>
+            <div class="accordion">
+                <button class="accordion-btn">כיצד האפליקציה מבצעת את תהליך התמלול?</button>
+                <div class="accordion-content">
+                    <p>האפליקציה משתמשת במודל תמלול מבוסס בינה מלאכותית של GroqCloud, המבצע את התמלול ומחזיר את התוצאה לאפליקציה.</p>
+                </div>
+                <button class="accordion-btn">מה קורה אם הקובץ שלי גדול מדי?</button>
+                <div class="accordion-content">
+                    <p>האפליקציה מפצלת קבצים גדולים למקטעים קטנים כך שניתן יהיה לעבד אותם ביעילות.</p>
+                </div>
+            </div>
+
+            <!-- קטגוריה: אבטחת מידע ופרטיות -->
+            <h2 id="security">אבטחת מידע ופרטיות</h2>
+            <div class="accordion">
+                <button class="accordion-btn">האם האפליקציה שומרת את קבצי האודיו או את התמלול?</button>
+                <div class="accordion-content">
+                    <p>האפליקציה אינה שומרת את קבצי האודיו או את התמלולים. כל עיבוד הנתונים מתבצע באופן מקומי במחשב שלך.</p>
+                </div>
+                <button class="accordion-btn">האם המידע שלי נשלח לאינטרנט לצורך עיבוד התמלול?</button>
+                <div class="accordion-content">
+                    <p>כן, הקבצים נשלחים ל-GroqCloud לצורך עיבוד, אך לא נשמרים לאחר העיבוד. ניתן לקרוא עוד על מדיניות הפרטיות של Groq בקישור <a href="https://groq.com/privacy-policy/" target="_blank">כאן</a> ובפרטים נוספים על <a href="https://groq.com/wp-content/uploads/2024/05/Groq-Privacy-Policy_Final_30MAY2024.pdf" target="_blank">מדיניות האבטחה והפרטיות המלאה</a>.</p>
+                </div>
+                <button class="accordion-btn">האם GroqCloud משתמשת במידע לצרכים אחרים?</button>
+                <div class="accordion-content">
+                    <p>על פי מדיניות GroqCloud, המידע הנשלח לעיבוד אינו נשמר או משמש לאימון מודלים. לפרטים נוספים על השימוש במידע, ניתן לעיין במדיניות הפרטיות של החברה <a href="https://groq.com/privacy-policy/" target="_blank">כאן</a>.</p>
+                </div>
+            </div>
+
+            <!-- קטגוריה: מפתחות API והתחברות -->
+            <h2 id="api">מפתחות API והתחברות</h2>
+            <div class="accordion">
+                <button class="accordion-btn">היכן נשמר מפתח ה-API שלי?</button>
+                <div class="accordion-content">
+                    <p>מפתח ה-API נשמר מקומית במכשיר שלך באחסון הדפדפן, כדי שתוכל לגשת לאפליקציה ללא צורך בהזנה חוזרת.</p>
+                </div>
+            </div>
+
+            <!-- קטגוריה: מגבלות ופורמטים נתמכים -->
+            <h2 id="limits">מגבלות ופורמטים נתמכים</h2>
+            <div class="accordion">
+                <button class="accordion-btn">מהם הפורמטים הנתמכים לתמלול?</button>
+                <div class="accordion-content">
+                    <p>האפליקציה תומכת בפורמטים MP3 ו-WAV לתמלול.</p>
+                </div>
+            </div>
+
+            <!-- קטגוריה: תמיכה ופתרון בעיות -->
+            <h2 id="support">תמיכה ופתרון בעיות</h2>
+            <div class="accordion">
+                <button class="accordion-btn">כיצד ניתן להימנע משגיאות במהלך התמלול?</button>
+                <div class="accordion-content">
+                    <p>במידה של שגיאה, האפליקציה מנסה מחדש עד 5 פעמים וממתינה לפני כל ניסיון במידה שנדרש.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // פונקציה לאקורדיון פתיחה וסגירה של תוכן השאלות
+        const accordions = document.getElementsByClassName('accordion-btn');
+        for (let i = 0; i < accordions.length; i++) {
+            accordions[i].addEventListener('click', function () {
+                this.classList.toggle('active');
+                const content = this.nextElementSibling;
+                if (content.style.display === "block") {
+                    content.style.display = "none";
+                } else {
+                    content.style.display = "block";
+                }
+            });
+        }
+    </script>
+
+    <style>
+        /* עיצוב לעמוד FAQ */
+        .faq-page {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .logo-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .sidebar {
+            width: 20%;
+            padding: 10px;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            margin-right: 10px;
+            text-align: right;
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .sidebar ul li a {
+            display: block;
+            padding: 8px 0;
+            color: #ff8c00;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .sidebar ul li a:hover {
+            text-decoration: underline;
+        }
+
+        .faq-content {
+            width: 75%;
+            margin-right: 20px;
+        }
+
+        .accordion-btn {
+            background-color: #ff8c00;
+            color: white;
+            cursor: pointer;
+            padding: 12px;
+            text-align: right;
+            font-size: 16px;
+            border: none;
+            outline: none;
+            transition: 0.3s;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .accordion-btn.active {
+            background-color: #e67e22;
+        }
+
+        .accordion-content {
+            padding: 15px;
+            background-color: #f9f9f9;
+            display: none;
+            border-radius: 5px;
+            margin-top: 5px;
+            text-align: right;
+            line-height: 1.5;
+        }
+    </style>
+
+</body>
+</html>
