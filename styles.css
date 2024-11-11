@@ -398,3 +398,8 @@ h1 {
 .instructions-step {
     margin-bottom: 40px; /* ריווח בין שלב לשלב */
 }
+
+.logo {
+    width: 150px; /* קובע את רוחב התמונה */
+    height: auto; /* שומר על יחס הגובה-רוחב */
+}
