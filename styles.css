@@ -413,14 +413,17 @@ h1 {
     gap: 20px;
     max-width: 1000px;
     margin: 20px auto;
-    align-items: flex-start;
+    align-items: center; /* מרכז את התוכן אנכית */
 }
 
+/* עיצוב הקונטיינר של הסרטון */
 .video-container {
     flex: 0 0 30%; /* הסרטון יתפוס 30% מהרוחב */
     max-width: 30%;
+    align-self: center; /* מרכז את הסרטון אנכית */
 }
 
+/* עיצוב הקונטיינר של הטקסט */
 .text-container {
     flex: 1; /* הטקסט יתפוס את יתר השטח */
     text-align: right;
