@@ -403,3 +403,26 @@ h1 {
     max-width: 100%; /* מוודא שהתמונה לא תחרוג מהרוחב של המיכל */
     height: auto; /* שומר על יחס הגובה-רוחב */
 }
+
+
+
+/* לצורך הוספת סרטון */
+
+.content-container {
+    display: flex;
+    gap: 20px;
+    max-width: 800px;
+    margin: 20px auto;
+    align-items: flex-start;
+}
+
+.video-container {
+    flex: 0 0 30%; /* 30% לרוחב הסרטון */
+    max-width: 30%;
+}
+
+.text-container {
+    flex: 1; /* 70% לרוחב הטקסט */
+    text-align: right;
+}
+
