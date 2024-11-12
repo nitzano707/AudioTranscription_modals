@@ -413,16 +413,18 @@ h1 {
     gap: 20px;
     max-width: 800px;
     margin: 20px auto;
-    align-items: flex-start;
+    align-items: flex-start; /* יישור עליון */
 }
 
 .video-container {
     flex: 0 0 30%; /* 30% לרוחב הסרטון */
     max-width: 30%;
+    margin-top: 50px; /* כוונן את המספר כדי למקם את הסרטון באמצע הטקסט */
 }
 
 .text-container {
     flex: 1; /* 70% לרוחב הטקסט */
     text-align: right;
 }
+
 
