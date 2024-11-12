@@ -411,21 +411,21 @@ h1 {
 .content-container {
     display: flex;
     gap: 20px;
-    max-width: 800px;
+    max-width: 1000px;
     margin: 20px auto;
     align-items: flex-start;
 }
 
-.video-inline {
-    flex: 0 0 30%; /* הסרטון יתפוס 30% מהשטח */
+.video-container {
+    flex: 0 0 30%; /* הסרטון יתפוס 30% מהרוחב */
     max-width: 30%;
-    margin-top: 40px; /* ניתן להתאים את הערך בהתאם למיקום הרצוי */
 }
 
 .text-container {
     flex: 1; /* הטקסט יתפוס את יתר השטח */
     text-align: right;
 }
+
 
 
 
