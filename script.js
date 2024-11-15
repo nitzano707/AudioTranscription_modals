@@ -56,6 +56,42 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 async function uploadAudio() {
     const audioFile = document.getElementById('audioFile').files[0];
+
+    // בדיקת סוג וגודל הקובץ
+
+        if (!audioFile) {
+        alert('אנא בחר קובץ להעלאה.');
+        return;
+    }
+
+    // בדיקת סוג וגודל הקובץ
+    const fileType = audioFile.type.toLowerCase();
+    const fileExtension = audioFile.name.split('.').pop().toLowerCase();
+    const isM4A = fileType.includes('m4a') || fileExtension === 'm4a';
+    const sizeInMB = audioFile.size / (1024 * 1024);
+
+    // בדיקת הגבלת גודל רק עבור קבצי M4A
+    if (isM4A && sizeInMB > MAX_SEGMENT_SIZE_MB) {
+        alert(`קבצי M4A חייבים להיות קטנים מ-${MAX_SEGMENT_SIZE_MB}MB. אנא העלה קובץ קטן יותר או השתמש בפורמט MP3/WAV.`);
+        document.getElementById('audioFile').value = ""; // איפוס בחירת הקובץ
+        document.getElementById('fileName').textContent = "לא נבחר קובץ";
+        document.getElementById('uploadBtn').disabled = true;
+        return;
+    }
+
+    // בדיקת סוג הקובץ
+    if (!fileType.includes('mp3') && 
+        !fileType.includes('wav') && 
+        !fileType.includes('m4a') && 
+        !fileExtension === 'mp3' && 
+        !fileExtension === 'wav' && 
+        !fileExtension === 'm4a') {
+        alert('פורמט קובץ לא נתמך. אנא השתמש בקובץ בפורמט MP3, WAV, או M4A.');
+        return;
+    }
+
+    // סיום בדיקת סוג וגודל הקובץ
+    
     calculateEstimatedTime();
     // const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
