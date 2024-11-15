@@ -151,7 +151,7 @@ button:disabled {
 }
 
 .tablinks {
-    background-color: #ff8c00;
+    background-color: #666666; /* אפור כהה ללחצן לא פעיל */;
     border: none;
     outline: none;
     cursor: pointer;
@@ -162,12 +162,12 @@ button:disabled {
 }
 
 .tablinks:hover {
-    background-color: #e67e22;
+    background-color: #777777; /* אפור כהה קצת יותר בהיר למעבר עכבר */
     color: #fff;
 }
 
 .tablinks.active {
-    background-color: #d35400;
+    background-color: #d35400; /* האדום-כתום שראיתי בתמונה */
     color: white;
     border-radius: 5px;
 }
