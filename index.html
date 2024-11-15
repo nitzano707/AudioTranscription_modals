@@ -101,14 +101,14 @@
             <span class="close" onclick="closeModal('modal1')">&times;</span>
             <div class="modal-body">
                 <p class="instruction-text">על מנת להתחיל את תהליך התמלול, יש להעלות קובץ אודיו וללחוץ על לחצן "הבא".</p>
-                <p>פורמטים נתמכים כרגע (בהמשך תהיה תמיכה בפורמטי אודיו נוספים): WAV או MP3</p>
+                <p>פורמטים נתמכים כרגע: WAV או MP3 (ללא מגבלת גודל), וכן M4A (עד 24MB)</p>
                 <p>
                      <span style="font-size: 0.9em;">
                         <a href="https://d3ctxlq1ktw2nl.cloudfront.net/staging/2024-1-3/d981e7c1-a794-7339-863c-412225a4d030.mp3" target=_blanlk>רוצים להתנסות בקובץ אודיו לתמלול? הורידו מכאן</a>
                      </span>
                 </p>
                 <br>
-                <input type="file" id="audioFile" accept=".mp3, .wav" style="display:none;">
+                <input type="file" id="audioFile" accept=".mp3, .wav, .m4a" style="display:none;">
                 <button onclick="triggerFileUpload()"><i class="fas fa-upload"></i> לחץ להעלאת קובץ אודיו</button>
                 <span id="fileName">לא נבחר קובץ</span>
                 <button id="uploadBtn" onclick="uploadAudio()" disabled><i class="fas fa-arrow-right"></i> הבא</button>
