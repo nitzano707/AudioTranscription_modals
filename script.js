@@ -50,9 +50,16 @@ document.getElementById('audioFile').addEventListener('change', function () {
     const fileName = this.files[0] ? this.files[0].name : "לא נבחר קובץ";
     if (this.files[0]) {
         audioFileName = this.files[0].name;
+        document.getElementById('fileName').textContent = fileName;
+        document.getElementById('uploadBtn').disabled = false;
+        // תוספת שלי:
+        document.getElementById('uploadBtn').classList.add('start-over');
+    } else {
+        document.getElementById('fileName').textContent = "לא נבחר קובץ";
+        document.getElementById('uploadBtn').disabled = true;
+        // תוספת שלי:
+        document.getElementById('uploadBtn').classList.remove('start-over');
     }
-    document.getElementById('fileName').textContent = fileName;
-    document.getElementById('uploadBtn').disabled = !this.files[0];
 });
 
 async function uploadAudio() {
