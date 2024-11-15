@@ -87,6 +87,15 @@ button:disabled {
     margin-bottom: 10px;
 }
 
+
+.start-over {
+    background-color: #28a745 !important; /* צבע ירוק */
+}
+
+.start-over:hover {
+    background-color: #218838 !important; /* צבע ירוק כהה יותר למעבר עכבר */
+}
+
 #apiRequest {
     margin-bottom: 20px;
 }
