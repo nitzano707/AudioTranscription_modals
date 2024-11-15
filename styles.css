@@ -144,7 +144,8 @@ button:disabled {
 
 .tabs {
     display: flex;
-    justify-content: space-around;
+    justify-content: flex-end; /* שינוי ליישור לצד ימין */
+    gap: 10px; /* מרווח בין הלחצנים */
     background-color: #f1f1f1;
     padding: 10px;
     border-bottom: 1px solid #ccc;
