@@ -452,7 +452,7 @@ function formatTimestamp(seconds) {
 
 function saveTranscriptions(data, audioFileName) {
     // const title = `תמלול קובץ אודיו: ${audioFileName}\n\n`; // כותרת עם שם הקובץ
-    const title = `תמלול קובץ אודיו: ${audioFileName} - בוצע ע"י https://tamleli.netlify.app/\n\n`; // כותרת עם שם הקובץ
+    const title = `תמלול קובץ אודיו: ${audioFileName}  :בוצע באמצעות https://tamleli.netlify.app\n\n`; // כותרת עם שם הקובץ
 
     // הוספת הכותרת לפני כל תמלול
     transcriptionDataText = title + data.map(d => cleanText(d.text)).join(" ").trim();
