@@ -854,7 +854,7 @@ function restartProcess() {
     document.getElementById('audioFile').value = "";
     document.getElementById('fileName').textContent = "לא נבחר קובץ";
     document.getElementById('uploadBtn').disabled = true;
-    document.getElementById('uploadBtn').classList.remove('start-over');  // מחזיר את הצבע הכתום
+    
     document.getElementById('startProcessBtn').style.display = 'block';
 
     // הסתרת כפתורי הורדה והעתקה
