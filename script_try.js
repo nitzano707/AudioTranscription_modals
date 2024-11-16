@@ -748,12 +748,20 @@ ${segmentText}`;
 // 4. פונקציה ליצירת קטעים עם חפיפה
 function createOverlappingSegments(text, maxChars = 500, overlap = 100) {
     console.log("Creating segments with maxChars:", maxChars, "overlap:", overlap);
+    console.log("Total text length:", text.length);
+    
     const segments = [];
     let startIndex = 0;
     
     while (startIndex < text.length) {
         let endIndex = Math.min(startIndex + maxChars, text.length);
         let naturalEnd = findNaturalBreak(text, endIndex);
+        
+        // בדיקת תקינות
+        if (naturalEnd <= startIndex) {
+            console.warn("Warning: Natural end not found, forcing segment break");
+            naturalEnd = endIndex;
+        }
         
         const segment = {
             text: text.slice(startIndex, naturalEnd),
@@ -769,7 +777,16 @@ function createOverlappingSegments(text, maxChars = 500, overlap = 100) {
             preview: segment.text.substring(0, 50) + '...'
         });
         
+        // וידוא שאנחנו מתקדמים
+        if (naturalEnd === text.length) {
+            break; // יציאה מהלולאה אם הגענו לסוף הטקסט
+        }
+        
         startIndex = naturalEnd - overlap;
+        // וידוא שלא נתקענו
+        if (startIndex >= text.length - overlap) {
+            break;
+        }
     }
     
     console.log(`Total segments created: ${segments.length}`);
@@ -778,12 +795,15 @@ function createOverlappingSegments(text, maxChars = 500, overlap = 100) {
 
 // 5. פונקציה למציאת נקודת חיתוך טבעית
 function findNaturalBreak(text, around) {
-    console.log("Finding natural break around position:", around);
     const sentenceEndings = ['. ', '? ', '! ', '.\n', '?\n', '!\n'];
     let bestBreak = around;
     let minDistance = Infinity;
     
-    for (let i = Math.max(0, around - 100); i < Math.min(text.length, around + 100); i++) {
+    // מגבלת החיפוש ל-100 תווים לפני ואחרי
+    const searchStart = Math.max(0, around - 100);
+    const searchEnd = Math.min(text.length, around + 100);
+    
+    for (let i = searchStart; i < searchEnd; i++) {
         for (const ending of sentenceEndings) {
             if (text.slice(i, i + ending.length) === ending) {
                 const distance = Math.abs(i - around);
@@ -795,7 +815,12 @@ function findNaturalBreak(text, around) {
         }
     }
     
-    console.log("Found natural break at:", bestBreak);
+    // אם לא נמצאה נקודת חיתוך טבעית, נחזיר את הנקודה המקורית
+    if (bestBreak === around && around < text.length) {
+        console.warn("No natural break found, using original position:", around);
+        return around;
+    }
+    
     return bestBreak;
 }
 
