@@ -747,50 +747,68 @@ ${segmentText}`;
 
 // 4. פונקציה ליצירת קטעים עם חפיפה
 function createOverlappingSegments(text, maxChars = 500, overlap = 100) {
-    console.log("Creating segments with maxChars:", maxChars, "overlap:", overlap);
-    console.log("Total text length:", text.length);
+    console.log("Starting text segmentation. Text length:", text.length);
     
+    if (!text || text.length === 0) {
+        console.error("Empty text received");
+        return [];
+    }
+
     const segments = [];
-    let startIndex = 0;
-    
-    while (startIndex < text.length) {
-        let endIndex = Math.min(startIndex + maxChars, text.length);
-        let naturalEnd = findNaturalBreak(text, endIndex);
+    let currentPosition = 0;
+
+    while (currentPosition < text.length) {
+        // קביעת נקודת הסיום הפוטנציאלית
+        let endPosition = Math.min(currentPosition + maxChars, text.length);
         
-        // בדיקת תקינות
-        if (naturalEnd <= startIndex) {
-            console.warn("Warning: Natural end not found, forcing segment break");
-            naturalEnd = endIndex;
+        // אם זה לא הסגמנט האחרון, חפש נקודת סיום טבעית
+        if (endPosition < text.length) {
+            let naturalBreak = findLastSentenceEnd(text.substring(currentPosition, endPosition + 100));
+            if (naturalBreak > 0) {
+                endPosition = currentPosition + naturalBreak;
+            }
         }
-        
+
+        // הוספת הסגמנט
         const segment = {
-            text: text.slice(startIndex, naturalEnd),
-            startIndex,
-            endIndex: naturalEnd
+            text: text.substring(currentPosition, endPosition),
+            startIndex: currentPosition,
+            endIndex: endPosition
         };
         
         segments.push(segment);
         console.log(`Created segment ${segments.length}:`, {
             length: segment.text.length,
-            start: startIndex,
-            end: naturalEnd,
+            start: currentPosition,
+            end: endPosition,
             preview: segment.text.substring(0, 50) + '...'
         });
-        
-        // וידוא שאנחנו מתקדמים
-        if (naturalEnd === text.length) {
-            break; // יציאה מהלולאה אם הגענו לסוף הטקסט
-        }
-        
-        startIndex = naturalEnd - overlap;
-        // וידוא שלא נתקענו
-        if (startIndex >= text.length - overlap) {
+
+        // התקדמות לנקודה הבאה
+        if (endPosition >= text.length) {
             break;
         }
+        currentPosition = Math.max(currentPosition + 1, endPosition - overlap);
     }
-    
-    console.log(`Total segments created: ${segments.length}`);
+
+    console.log(`Created ${segments.length} segments in total`);
     return segments;
+}
+
+
+// פונקציה חדשה למציאת סוף משפט אחרון
+function findLastSentenceEnd(text) {
+    const sentenceEndings = ['. ', '? ', '! ', '.\n', '?\n', '!\n', '. ', '? ', '! '];
+    let lastFound = -1;
+
+    for (const ending of sentenceEndings) {
+        const lastIndex = text.lastIndexOf(ending);
+        if (lastIndex > lastFound) {
+            lastFound = lastIndex + ending.length;
+        }
+    }
+
+    return lastFound > 0 ? lastFound : text.length;
 }
 
 // 5. פונקציה למציאת נקודת חיתוך טבעית
@@ -846,10 +864,17 @@ function removeOverlap(newText, previousText, minOverlap = 20) {
 
 // 7. פונקציה לעדכון תצוגת ההתקדמות
 function updateProgressDisplay(current, total) {
-    console.log(`Updating progress: ${current}/${total}`);
     const percentage = Math.round((current / total) * 100);
-    const progressText = `מעבד קטע ${current} מתוך ${total} (${percentage}%)...`;
-    document.getElementById("segmentationResult").textContent += "\n" + progressText;
+    const progressText = `\nמעבד קטע ${current} מתוך ${total} (${percentage}%)...`;
+    const currentText = document.getElementById("segmentationResult").textContent;
+    
+    // מחיקת שורת ההתקדמות הקודמת אם קיימת
+    const lastProgressIndex = currentText.lastIndexOf('\nמעבד קטע');
+    const newText = lastProgressIndex >= 0 
+        ? currentText.substring(0, lastProgressIndex) + progressText
+        : currentText + progressText;
+        
+    document.getElementById("segmentationResult").textContent = newText;
 }
 
 // 8. פונקציית הקריאה ל-API
