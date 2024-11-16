@@ -634,6 +634,7 @@ function showSpeakerSegmentationModal() {
     openModal('speakerSegmentationModal');
 }
 
+// 1. הפונקציה הראשית לחלוקה לדוברים - גרסה משופרת
 async function startSpeakerSegmentation() {
     let intervieweeName = document.getElementById('intervieweeNameInput').value.trim();
     if (!intervieweeName) {
@@ -641,51 +642,151 @@ async function startSpeakerSegmentation() {
     }
 
     const transcriptionText = transcriptionDataText;
-    const segments = splitTextIntoSegments(transcriptionText);
-    let fullResult = "";
     document.getElementById("segmentationResult").textContent = "מתחיל בעיבוד התמלול...\n\n";
 
-    for (const segment of segments) {
-        //const prompt = `חלק את הטקסט הבא לדוברים – "מראיין" ו-"${intervieweeName}". אם המשפט מכיל סימן שאלה או נשמע כמו שאלה, התייחס אליו כדבריו של המראיין. קטעים ארוכים ומפורטים ללא סימני שאלה הם לרוב דברי ${intervieweeName}. אם מופיעות מילים שנראות כשגויות או לא תקניות, השאר את המילה השגויה כפי שהיא מופיעה בתמלול, והצג את התיקון המוצע בסוגריים מרובעים מיד אחריה. לדוגמה: "השיקונים [השיקולים]". התמקד בתיקון מילים שאינן מתאימות להקשר המשפט או נראות שגויות מבחינת השפה. פצל את הפסקה בהתאם לדוברים, כאשר כל דובר ממשיך את דבריו ברצף, ללא תוויות חוזרות. החזר את הטקסט עם התיקונים בסוגריים מרובעים בלבד, ללא טקסט נוסף לפניו או אחריו:\n\n${segment}`;
-        const prompt = `חלק את הטקסט הבא לפי דוברים - "מראיין" ו-"${intervieweeName}". השתמש באסטרטגיות הבאות כדי להבחין ביניהם:
-- אם המשפט מכיל סימן שאלה, או מנוסח כשאלה, התייחס אליו כדבריו של המראיין.
-- קטעים ארוכים ומפורטים או כאלו הכוללים מידע אישי ומתארים חוויות – התייחס אליהם כדברי ${intervieweeName}.
-- כאשר מופיעים ביטויים כמו "ספרי לנו", "הסבר", או פניות דומות, ראה בכך אינדיקציה לכך שמדובר בדברי המראיין.
-- במקרים בהם שם המרואיין מופיע בתוך הטקסט, זהו רמז להפרדת דבריו מהשאלות של המראיין.
-- שים לב לשימוש במגדר בצורת הפעלים: אם המגדר של המראיין והמרואיין שונים, צורת הפעלים יכולה לעזור לזהות את הדובר, כאשר המראיין או המרואיין מדברים בהתאם למגדרם.
-- שמור על רצף הדובר, כך שכל דובר ממשיך את דבריו ללא תוויות חוזרות מיותרות.
-- אם מופיעה מילה שנראית שגויה או לא תקנית, השאר אותה כפי שהיא והצג תיקון מוצע בסוגריים מרובעים מיד אחריה. לדוגמה: "השיקונים [השיקולים]". התמקד בתיקון מילים שאינן מתאימות להקשר המשפט או נראות שגויות מבחינה לשונית.
-- אל תוסיף שום טקסט או תו כלשהו (כמו למשל "Here is the divided text:") לפני או אחרי הטקסט שאתה מחזיר.
-החזר את הטקסט כשהוא מפוצל לפי דוברים, עם התיקונים המוצעים בלבד בסוגריים מרובעים, ללא טקסט נוסף לפני או אחרי:\n\n${segment}`;
-
-
+    try {
+        const result = await processTranscriptionWithContext(transcriptionText, intervieweeName);
+        document.getElementById("segmentationResult").textContent = result + "\n\n---\nסוף תמלול";
         
-
-        try {
-            const result = await getSegmentedText(segment, prompt, intervieweeName);
-            // הוספת שורה חדשה בין הדוברים
-            fullResult += result.replace(/(מראיין:|מרואיין:|${intervieweeName}:)/g, "\n$1") + "\n\n";
-            document.getElementById("segmentationResult").textContent = fullResult;
-        } catch (error) {
-            console.error("Error with segment:", error);
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 200)); // המתנה קצרה בין הבקשות
+        // הפיכת כפתורי ההורדה וההעתקה לזמינים
+        document.getElementById("copyButton").style.display = "block";
+        document.getElementById("downloadButton").style.display = "block";
+    } catch (error) {
+        console.error("שגיאה בעיבוד התמלול:", error);
+        document.getElementById("segmentationResult").textContent = "אירעה שגיאה בעיבוד התמלול. נא לנסות שוב.";
     }
-
-    // הוספת הודעת "סוף תמלול"
-    fullResult += "\n\n---\nסוף תמלול";
-    document.getElementById("segmentationResult").textContent = fullResult;
-
-    // הפיכת כפתורי ההורדה וההעתקה לזמינים לאחר סיום התמלול
-    document.getElementById("copyButton").style.display = "block";
-    document.getElementById("downloadButton").style.display = "block";
 }
 
+// 2. פונקציה חדשה לעיבוד עם הקשר
+async function processTranscriptionWithContext(transcriptionText, intervieweeName) {
+    const segments = createOverlappingSegments(transcriptionText);
+    let fullResult = '';
+    let previousContext = '';
+    
+    for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+        
+        const promptWithContext = createPromptWithContext(segment.text, previousContext, intervieweeName);
+        
+        try {
+            const result = await getSegmentedText(segment.text, promptWithContext, intervieweeName);
+            previousContext = segment.text.slice(-200); // שמירת הקשר
+            
+            // עיבוד התוצאה והסרת חפיפות
+            const processedResult = removeOverlap(result, fullResult);
+            fullResult += processedResult;
+            
+            // עדכון UI עם אחוזי התקדמות
+            updateProgressDisplay(i + 1, segments.length);
+            
+        } catch (error) {
+            console.error(`שגיאה בעיבוד קטע ${i + 1}:`, error);
+            // המשך לקטע הבא במקרה של שגיאה
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+    return fullResult.trim();
+}
 
+// 3. פונקציה חדשה ליצירת פרומפט עם הקשר
+function createPromptWithContext(segmentText, previousContext, intervieweeName) {
+    return `אתה מומחה לעיבוד טקסט ותמלולים. עליך לעבד את קטע התמלול הבא ולבצע בו שתי פעולות עיקריות:
 
+1. חלוקה מדויקת לדוברים: 
+- סמן כל קטע טקסט עם הדובר המתאים: "מראיין:" או "${intervieweeName}:"
+- קריטריונים לזיהוי:
+  * דברי המראיין: שאלות ישירות, הנחיות שיחה, בקשות להרחבה
+  * דברי ${intervieweeName}: תשובות מפורטות, שיתוף חוויות אישיות, הסברים מקצועיים
 
+2. תיקונים פונטיים ולשוניים:
+- זהה מילים ששובשו בתמלול והצג תיקון בסוגריים מרובעים
+- שמור על התיקונים המקוריים מהקטע הקודם
+- דוגמאות לתיקונים:
+  * שיבושי הגייה: "להתקשור" → "להתקשור [להתקשר]"
+  * צירופי מילים: "בבית הספר יסודי" → "בבית הספר יסודי [בבית הספר היסודי]"
+  * שמות מוסדות: "במכלה למנהל" → "במכלה [במכללה] למנהל"
 
+הקשר קודם:
+${previousContext ? `הקטע הקודם הסתיים ב: "${previousContext}"` : 'זהו תחילת התמלול'}
+
+הנחיות חשובות:
+1. העתק את כל הטקסט המקורי - אל תשמיט שום חלק
+2. שמור על כל סימני הפיסוק והרווחים המקוריים
+3. הצג תמיד את המילה המקורית ואחריה את התיקון בסוגריים
+4. הקפד על המשך רצף הגיוני של השיחה
+
+טקסט לעיבוד:
+${segmentText}`;
+}
+
+// 4. פונקציה חדשה ליצירת קטעים עם חפיפה
+function createOverlappingSegments(text, maxChars = 500, overlap = 100) {
+    const segments = [];
+    let startIndex = 0;
+    
+    while (startIndex < text.length) {
+        let endIndex = Math.min(startIndex + maxChars, text.length);
+        let naturalEnd = findNaturalBreak(text, endIndex);
+        
+        segments.push({
+            text: text.slice(startIndex, naturalEnd),
+            startIndex,
+            endIndex: naturalEnd
+        });
+        
+        startIndex = naturalEnd - overlap;
+    }
+    
+    return segments;
+}
+
+// 5. פונקציה חדשה למציאת נקודת חיתוך טבעית
+function findNaturalBreak(text, around) {
+    const sentenceEndings = ['. ', '? ', '! ', '.\n', '?\n', '!\n'];
+    let bestBreak = around;
+    let minDistance = Infinity;
+    
+    for (let i = Math.max(0, around - 100); i < Math.min(text.length, around + 100); i++) {
+        for (const ending of sentenceEndings) {
+            if (text.slice(i, i + ending.length) === ending) {
+                const distance = Math.abs(i - around);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    bestBreak = i + ending.length;
+                }
+            }
+        }
+    }
+    
+    return bestBreak;
+}
+
+// 6. פונקציה חדשה להסרת חפיפה
+function removeOverlap(newText, previousText, minOverlap = 20) {
+    if (!previousText) return newText;
+    
+    let maxOverlap = 0;
+    let overlapLength = Math.min(previousText.length, newText.length, 200);
+    
+    for (let i = minOverlap; i <= overlapLength; i++) {
+        if (previousText.slice(-i) === newText.slice(0, i)) {
+            maxOverlap = i;
+        }
+    }
+    
+    return newText.slice(maxOverlap);
+}
+
+// 7. פונקציה חדשה לעדכון תצוגת ההתקדמות
+function updateProgressDisplay(current, total) {
+    const percentage = Math.round((current / total) * 100);
+    const progressText = `מעבד קטע ${current} מתוך ${total} (${percentage}%)...`;
+    document.getElementById("segmentationResult").textContent += "\n" + progressText;
+}
+
+// 8. עדכון הפונקציה getSegmentedText
 async function getSegmentedText(text, prompt) {
     let success = false;
     const maxRetries = 5;
@@ -716,10 +817,10 @@ async function getSegmentedText(text, prompt) {
                 const result = await response.json();
                 success = true;
                 let segmentedText = result.choices[0].message.content;
-
+                
                 // הוספת ריווח שורה לפני כל דובר חדש
                 segmentedText = segmentedText.replace(/(מראיין:|מרואיין:)/g, "\n$1");
-
+                
                 return segmentedText;
             } else {
                 const errorText = await response.text();
