@@ -634,65 +634,86 @@ function showSpeakerSegmentationModal() {
     openModal('speakerSegmentationModal');
 }
 
-// 1. הפונקציה הראשית לחלוקה לדוברים - גרסה משופרת
+// 1. הפונקציה הראשית לחלוקה לדוברים
 async function startSpeakerSegmentation() {
+    console.log("Starting speaker segmentation process...");
+    
     let intervieweeName = document.getElementById('intervieweeNameInput').value.trim();
     if (!intervieweeName) {
         intervieweeName = "מרואיין";
     }
+    console.log("Interviewee name:", intervieweeName);
 
     const transcriptionText = transcriptionDataText;
+    console.log("Original text length:", transcriptionText.length);
+    console.log("First 100 chars of text:", transcriptionText.substring(0, 100));
+
+    if (!transcriptionText) {
+        console.error("No transcription text found!");
+        alert("לא נמצא טקסט לעיבוד. נא לוודא שיש תמלול.");
+        return;
+    }
+
     document.getElementById("segmentationResult").textContent = "מתחיל בעיבוד התמלול...\n\n";
 
     try {
         const result = await processTranscriptionWithContext(transcriptionText, intervieweeName);
+        console.log("Processing completed successfully");
         document.getElementById("segmentationResult").textContent = result + "\n\n---\nסוף תמלול";
         
-        // הפיכת כפתורי ההורדה וההעתקה לזמינים
         document.getElementById("copyButton").style.display = "block";
         document.getElementById("downloadButton").style.display = "block";
     } catch (error) {
-        console.error("שגיאה בעיבוד התמלול:", error);
+        console.error("Error in speaker segmentation:", error);
         document.getElementById("segmentationResult").textContent = "אירעה שגיאה בעיבוד התמלול. נא לנסות שוב.";
     }
 }
 
-// 2. פונקציה חדשה לעיבוד עם הקשר
+// 2. פונקציה לעיבוד עם הקשר
 async function processTranscriptionWithContext(transcriptionText, intervieweeName) {
+    console.log("Starting processTranscriptionWithContext");
     const segments = createOverlappingSegments(transcriptionText);
+    console.log(`Created ${segments.length} segments`);
+    console.log("First segment:", segments[0]);
+
     let fullResult = '';
     let previousContext = '';
     
     for (let i = 0; i < segments.length; i++) {
+        console.log(`Processing segment ${i + 1} of ${segments.length}`);
         const segment = segments[i];
         
         const promptWithContext = createPromptWithContext(segment.text, previousContext, intervieweeName);
+        console.log(`Created prompt for segment ${i + 1}. Prompt length:`, promptWithContext.length);
         
         try {
-            const result = await getSegmentedText(segment.text, promptWithContext, intervieweeName);
-            previousContext = segment.text.slice(-200); // שמירת הקשר
+            console.log(`Sending segment ${i + 1} to API...`);
+            const result = await getSegmentedText(segment.text, promptWithContext);
+            console.log(`Received result for segment ${i + 1}. Result length:`, result.length);
             
-            // עיבוד התוצאה והסרת חפיפות
+            previousContext = segment.text.slice(-200);
             const processedResult = removeOverlap(result, fullResult);
-            fullResult += processedResult;
+            console.log(`Processed result length after overlap removal:`, processedResult.length);
             
-            // עדכון UI עם אחוזי התקדמות
+            fullResult += processedResult;
             updateProgressDisplay(i + 1, segments.length);
             
         } catch (error) {
-            console.error(`שגיאה בעיבוד קטע ${i + 1}:`, error);
-            // המשך לקטע הבא במקרה של שגיאה
+            console.error(`Error processing segment ${i + 1}:`, error);
+            throw error;
         }
         
         await new Promise(resolve => setTimeout(resolve, 200));
     }
     
+    console.log("Processing completed. Final result length:", fullResult.length);
     return fullResult.trim();
 }
 
-// 3. פונקציה חדשה ליצירת פרומפט עם הקשר
+// 3. פונקציה ליצירת פרומפט עם הקשר
 function createPromptWithContext(segmentText, previousContext, intervieweeName) {
-    return `אתה מומחה לעיבוד טקסט ותמלולים. עליך לעבד את קטע התמלול הבא ולבצע בו שתי פעולות עיקריות:
+    console.log("Creating prompt with context. Interview name:", intervieweeName);
+    const prompt = `אתה מומחה לעיבוד טקסט ותמלולים. עליך לעבד את קטע התמלול הבא ולבצע בו שתי פעולות עיקריות:
 
 1. חלוקה מדויקת לדוברים: 
 - סמן כל קטע טקסט עם הדובר המתאים: "מראיין:" או "${intervieweeName}:"
@@ -719,10 +740,14 @@ ${previousContext ? `הקטע הקודם הסתיים ב: "${previousContext}"` 
 
 טקסט לעיבוד:
 ${segmentText}`;
+
+    console.log("Prompt created. Length:", prompt.length);
+    return prompt;
 }
 
-// 4. פונקציה חדשה ליצירת קטעים עם חפיפה
+// 4. פונקציה ליצירת קטעים עם חפיפה
 function createOverlappingSegments(text, maxChars = 500, overlap = 100) {
+    console.log("Creating segments with maxChars:", maxChars, "overlap:", overlap);
     const segments = [];
     let startIndex = 0;
     
@@ -730,20 +755,30 @@ function createOverlappingSegments(text, maxChars = 500, overlap = 100) {
         let endIndex = Math.min(startIndex + maxChars, text.length);
         let naturalEnd = findNaturalBreak(text, endIndex);
         
-        segments.push({
+        const segment = {
             text: text.slice(startIndex, naturalEnd),
             startIndex,
             endIndex: naturalEnd
+        };
+        
+        segments.push(segment);
+        console.log(`Created segment ${segments.length}:`, {
+            length: segment.text.length,
+            start: startIndex,
+            end: naturalEnd,
+            preview: segment.text.substring(0, 50) + '...'
         });
         
         startIndex = naturalEnd - overlap;
     }
     
+    console.log(`Total segments created: ${segments.length}`);
     return segments;
 }
 
-// 5. פונקציה חדשה למציאת נקודת חיתוך טבעית
+// 5. פונקציה למציאת נקודת חיתוך טבעית
 function findNaturalBreak(text, around) {
+    console.log("Finding natural break around position:", around);
     const sentenceEndings = ['. ', '? ', '! ', '.\n', '?\n', '!\n'];
     let bestBreak = around;
     let minDistance = Infinity;
@@ -760,11 +795,15 @@ function findNaturalBreak(text, around) {
         }
     }
     
+    console.log("Found natural break at:", bestBreak);
     return bestBreak;
 }
 
-// 6. פונקציה חדשה להסרת חפיפה
+// 6. פונקציה להסרת חפיפה
 function removeOverlap(newText, previousText, minOverlap = 20) {
+    console.log("Removing overlap. New text length:", newText.length, 
+                "Previous text length:", previousText?.length || 0);
+    
     if (!previousText) return newText;
     
     let maxOverlap = 0;
@@ -776,27 +815,34 @@ function removeOverlap(newText, previousText, minOverlap = 20) {
         }
     }
     
+    console.log("Found overlap length:", maxOverlap);
     return newText.slice(maxOverlap);
 }
 
-// 7. פונקציה חדשה לעדכון תצוגת ההתקדמות
+// 7. פונקציה לעדכון תצוגת ההתקדמות
 function updateProgressDisplay(current, total) {
+    console.log(`Updating progress: ${current}/${total}`);
     const percentage = Math.round((current / total) * 100);
     const progressText = `מעבד קטע ${current} מתוך ${total} (${percentage}%)...`;
     document.getElementById("segmentationResult").textContent += "\n" + progressText;
 }
 
-// 8. עדכון הפונקציה getSegmentedText
+// 8. פונקציית הקריאה ל-API
 async function getSegmentedText(text, prompt) {
+    console.log("Starting API request with text length:", text.length);
+
     let success = false;
     const maxRetries = 5;
     let retries = 0;
 
     while (!success && retries < maxRetries) {
         if (!apiKey) {
+            console.error("API Key missing");
             throw new Error("API Key not found in local storage.");
         }
+
         try {
+            console.log(`Attempt ${retries + 1} of ${maxRetries}`);
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -813,38 +859,39 @@ async function getSegmentedText(text, prompt) {
                 })
             });
 
+            console.log("API response status:", response.status);
+            
             if (response.ok) {
                 const result = await response.json();
+                console.log("API response received successfully");
                 success = true;
                 let segmentedText = result.choices[0].message.content;
-                
-                // הוספת ריווח שורה לפני כל דובר חדש
                 segmentedText = segmentedText.replace(/(מראיין:|מרואיין:)/g, "\n$1");
-                
                 return segmentedText;
             } else {
                 const errorText = await response.text();
+                console.error("API error response:", errorText);
                 const errorData = JSON.parse(errorText);
 
                 if (errorData.error && errorData.error.code === "rate_limit_exceeded") {
                     const waitTime = extractWaitTime(errorText);
                     if (waitTime) {
-                        console.log(`מגבלת קצב הושגה. ממתין ${waitTime} שניות לפני ניסיון נוסף...`);
+                        console.log(`Rate limit exceeded. Waiting ${waitTime} seconds...`);
                         await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
                     } else {
                         retries++;
                     }
                 } else {
-                    throw new Error(`שגיאה בבקשה: ${errorText}`);
+                    throw new Error(`API request error: ${errorText}`);
                 }
             }
         } catch (error) {
-            console.error("Error with segment:", error);
+            console.error("API request failed:", error);
             retries++;
         }
     }
 
-    throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
+    throw new Error("Failed to get segmented text after multiple retries");
 }
 
 
