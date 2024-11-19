@@ -442,3 +442,65 @@ h1 {
 
 
 
+/* התאמות רספונסיביות לתצוגה בסמארטפון */
+@media (max-width: 768px) {
+    body {
+        font-size: 16px; /* להתאים את גודל הגופן למסכים קטנים יותר */
+    }
+
+    .modal-content {
+        width: 90%;
+        margin: 10% auto;
+    }
+
+    .instructions-container {
+        gap: 10px;
+        margin: 10px;
+    }
+
+    .instruction-item {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .instruction-item img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .content-container {
+        flex-direction: column;
+        max-width: 100%;
+        gap: 10px;
+    }
+
+    .video-container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .text-container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .button-container {
+        flex-direction: column;
+        margin-top: 20px;
+    }
+
+    button {
+        width: 100%; /* כפתורים יתפרסו על כל הרוחב */
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+
+    .fixed-buttons {
+        flex-direction: column;
+    }
+
+    .tablinks {
+        flex: 1;
+        padding: 10px;
+    }
+}
