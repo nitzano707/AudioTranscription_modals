@@ -582,14 +582,22 @@ function downloadTranscription() {
         fileName = `transcription_${shortAudioFileName}.srt`;
     }
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    //const url = URL.createObjectURL(blob);
+   // const a = document.createElement('a');
+   // a.href = url;
+   // a.download = fileName;
+   // document.body.appendChild(a);
+   // a.click();
+   // document.body.removeChild(a);
+   // URL.revokeObjectURL(url);
+
+    // שינוי: שימוש בקישור הורדה קבוע (downloadLink) במקום יצירת אלמנט חדש בכל פעם
+        const url = URL.createObjectURL(blob);
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = url;
+        downloadLink.download = fileName;
+        downloadLink.click();
+        URL.revokeObjectURL(url);
 }
 
 
