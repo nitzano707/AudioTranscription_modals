@@ -126,10 +126,10 @@
             <span class="close" onclick="closeModal('modal1')">&times;</span>
             <div class="modal-body">
                 <p class="instruction-text">על מנת להתחיל את תהליך התמלול, יש להעלות קובץ אודיו וללחוץ על לחצן "הבא".</p>
-                <p>פורמטים נתמכים כרגע: WAV או MP3 (ללא מגבלת גודל), וכן M4A (עד 24MB)
+                <p>פורמטים נתמכים כרגע: WAV או MP3 (ללא מגבלת גודל), וכן M4A או MP4 (עד 24MB)
                     <BR>
                         <span style="font-size: 0.9em;">
-                        *אם ברשותכם קובץ בפורמט אחר או M4A  שחורג מ 24MB – תוכלו להמיר אותם ל MP3 
+                        *אם ברשותכם קובץ בפורמט אחר או MP4 או M4A   שחורג מ 24MB – תוכלו להמיר אותם ל MP3 
                             <a href=" https://online-audio-converter.com/#google_vignette " target=_blank>
                                 כאן
                             </a>
@@ -142,7 +142,7 @@
                      </span>
                 </p>
                 <br>
-                <input type="file" id="audioFile" accept=".mp3, .wav, .m4a" style="display:none;">
+                <input type="file" id="audioFile" accept=".mp3, .wav, .m4a, .mp4" style="display:none;">
                 <button onclick="triggerFileUpload()"><i class="fas fa-upload"></i> לחץ להעלאת קובץ אודיו</button>
                 <span id="fileName">לא נבחר קובץ</span>
                 <button id="uploadBtn" onclick="uploadAudio()" disabled><i class="fas fa-arrow-right"></i> הבא</button>
