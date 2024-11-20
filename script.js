@@ -74,6 +74,7 @@ async function uploadAudio() {
    const fileType = audioFile.type.toLowerCase();
    const fileExtension = audioFile.name.split('.').pop().toLowerCase();
    const isM4A = fileType.includes('m4a') || fileExtension === 'm4a';
+   const isMP4 = fileType.includes('mp4') || fileExtension === 'mp4';
    const sizeInMB = audioFile.size / (1024 * 1024);
 
    // בדיקת הגבלת גודל רק עבור קבצי M4A
@@ -85,14 +86,25 @@ async function uploadAudio() {
        return;
    }
 
+    // בדיקת הגבלת גודל רק עבור קבצי MP4
+   if (isMP4 && sizeInMB > MAX_SEGMENT_SIZE_MB) {
+       alert(`קבצי MP4 חייבים להיות קטנים מ-${MAX_SEGMENT_SIZE_MB}MB. אנא העלה קובץ קטן יותר או השתמש בפורמט MP3/WAV.`);
+       document.getElementById('audioFile').value = ""; 
+       document.getElementById('fileName').textContent = "לא נבחר קובץ";
+       document.getElementById('uploadBtn').disabled = true;
+       return;
+   }
+
    // בדיקת סוג הקובץ
    if (!fileType.includes('mp3') && 
        !fileType.includes('wav') && 
        !fileType.includes('m4a') && 
+       !fileType.includes('mp4') &&
        !fileExtension === 'mp3' && 
        !fileExtension === 'wav' && 
+       !fileExtension === 'mp4' &&
        !fileExtension === 'm4a') {
-       alert('פורמט קובץ לא נתמך. אנא השתמש בקובץ בפורמט MP3, WAV, או M4A.');
+       alert('פורמט קובץ לא נתמך. אנא השתמש בקובץ בפורמט MP3 | WAV | M4A |.');
        return;
    }
 
@@ -120,8 +132,8 @@ async function uploadAudio() {
        estimatedDurationInMinutes = (sizeInMB / 0.96); // הערכה עבור MP3 בקצב של 128 קילובייט לשנייה
    } else if (fileType.includes('wav') || fileExtension === 'wav') {
        estimatedDurationInMinutes = (sizeInMB / 10); // הערכה גסה עבור WAV (לא דחוס)
-   } else if (isM4A) {
-       estimatedDurationInMinutes = (sizeInMB / 0.75); // הערכה עבור M4A
+   } else if (isM4A || isMP4) {
+       estimatedDurationInMinutes = (sizeInMB / 0.75); // הערכה עבור M4A או MP4
    }
 
    // הודעת אזהרה אם סך הדקות מוערך כגדול מ-120 דקות
