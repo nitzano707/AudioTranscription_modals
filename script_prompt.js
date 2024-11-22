@@ -408,7 +408,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     }
 
     try {
-        console.log(`Sending chunk ${currentChunk} of ${totalChunks} to the API...`);
+        console.log(`Sending chunk ${currentChunk} of ${totalChunks} to the API... with prompt: ${myprompt}`);
         const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
             method: 'POST',
             headers: {
