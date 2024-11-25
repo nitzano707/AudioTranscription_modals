@@ -801,11 +801,11 @@ function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
     let currentSegment = "";
     let sentenceCount = 0;
 
-    // פירוק הטקסט למשפטים באמצעות Regex
-    const sentences = text.match(/[^.!?]+[.!?]+|.+$/g) || [text]; // תומך גם במשפטים שלא מסתיימים בסימני פיסוק
+    // שימוש ב-Regex לזיהוי משפטים, כולל משפטים ללא סימני פיסוק
+    const sentences = text.match(/[^.!?]+[.!?]*|.+$/g) || [text]; 
 
     for (let sentence of sentences) {
-        // אם משפט יחיד ארוך מדי, חותכים אותו לפסקה נפרדת
+        // אם המשפט חורג מהמגבלה, הוסף אותו כקטע נפרד
         if (sentence.length > maxChars) {
             if (currentSegment.trim()) {
                 segments.push(currentSegment.trim());
@@ -816,25 +816,26 @@ function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
             continue;
         }
 
-        // תנאים להוספת פסקה חדשה
+        // בדיקת מגבלת תווים או משפטים
         if ((currentSegment.length + sentence.length > maxChars) || sentenceCount >= maxSentences) {
             segments.push(currentSegment.trim());
             currentSegment = "";
             sentenceCount = 0;
         }
 
-        // הוספת המשפט הנוכחי לפסקה הפעילה
+        // הוספת המשפט לקטע הנוכחי
         currentSegment += sentence + " ";
         sentenceCount++;
     }
 
-    // הוספת הקטע האחרון אם נשאר
+    // שמירה של הקטע האחרון (אם נשאר)
     if (currentSegment.trim()) {
         segments.push(currentSegment.trim());
     }
 
     return segments;
 }
+
 
 
 
