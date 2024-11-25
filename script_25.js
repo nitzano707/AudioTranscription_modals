@@ -799,25 +799,41 @@ function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
     let currentSegment = "";
     let sentenceCount = 0;
 
-    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    // פירוק הטקסט למשפטים באמצעות Regex
+    const sentences = text.match(/[^.!?]+[.!?]+|.+$/g) || [text]; // תומך גם במשפטים שלא מסתיימים בסימני פיסוק
 
     for (let sentence of sentences) {
+        // אם משפט יחיד ארוך מדי, חותכים אותו לפסקה נפרדת
+        if (sentence.length > maxChars) {
+            if (currentSegment.trim()) {
+                segments.push(currentSegment.trim());
+                currentSegment = "";
+                sentenceCount = 0;
+            }
+            segments.push(sentence.trim());
+            continue;
+        }
+
+        // תנאים להוספת פסקה חדשה
         if ((currentSegment.length + sentence.length > maxChars) || sentenceCount >= maxSentences) {
             segments.push(currentSegment.trim());
             currentSegment = "";
             sentenceCount = 0;
         }
 
+        // הוספת המשפט הנוכחי לפסקה הפעילה
         currentSegment += sentence + " ";
         sentenceCount++;
     }
 
+    // הוספת הקטע האחרון אם נשאר
     if (currentSegment.trim()) {
         segments.push(currentSegment.trim());
     }
 
     return segments;
 }
+
 
 
 
