@@ -663,14 +663,84 @@ async function startSpeakerSegmentation() {
         intervieweeName = "מרואיין";
     }
 
-    const transcriptionText = transcriptionDataText;
-    const segments = splitTextIntoSegments(transcriptionText);
-    let fullResult = "";
+    const segments = transcriptionData; // שימוש בסגמנטים שכבר התקבלו מהתמלול
+    let totalSegments = segments.length;
+    let identifiedSegments = []; // מערך לאחסון זיהוי הדוברים עבור כל סגמנט
     document.getElementById("segmentationResult").textContent = "מתחיל בעיבוד התמלול...\n\n";
 
-    for (const segment of segments) {
-        //const prompt = `חלק את הטקסט הבא לדוברים – "מראיין" ו-"${intervieweeName}". אם המשפט מכיל סימן שאלה או נשמע כמו שאלה, התייחס אליו כדבריו של המראיין. קטעים ארוכים ומפורטים ללא סימני שאלה הם לרוב דברי ${intervieweeName}. אם מופיעות מילים שנראות כשגויות או לא תקניות, השאר את המילה השגויה כפי שהיא מופיעה בתמלול, והצג את התיקון המוצע בסוגריים מרובעים מיד אחריה. לדוגמה: "השיקונים [השיקולים]". התמקד בתיקון מילים שאינן מתאימות להקשר המשפט או נראות שגויות מבחינת השפה. פצל את הפסקה בהתאם לדוברים, כאשר כל דובר ממשיך את דבריו ברצף, ללא תוויות חוזרות. החזר את הטקסט עם התיקונים בסוגריים מרובעים בלבד, ללא טקסט נוסף לפניו או אחריו:\n\n${segment}`;
-        const prompt = `
+    for (let i = 0; i < totalSegments - 4; i++) {
+        const segmentGroup = segments.slice(i, i + 5); // שליחת קבוצת סגמנטים (5 סגמנטים בכל פעם)
+        const prompt = createSpeakerIdentificationPrompt(segmentGroup, intervieweeName);
+
+        try {
+            const speakerIdentifications = await getSegmentedText(segmentGroup, prompt);
+            // שמירה של זיהוי הדוברים עבור הסגמנט האמצעי (index 2)
+            identifiedSegments.push({
+                segmentId: i + 2,
+                speaker: speakerIdentifications[2]
+            });
+        } catch (error) {
+            console.error("Error with segment group:", error);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 200)); // המתנה קצרה בין הבקשות
+    }
+
+    mergeSegmentsBySpeaker(identifiedSegments);
+    displaySegmentationResult();
+}
+
+
+// פונקציה להצגת תוצאת החלוקה לדוברים
+function displaySegmentationResult() {
+    const segmentationResultElement = document.getElementById("segmentationResult");
+    const mergedSegments = mergeSegmentsBySpeaker(identifiedSegments);
+
+    segmentationResultElement.innerHTML = mergedSegments.map(paragraph => {
+        const speakerLabel = paragraph.speaker === 1 ? "מראיין" : "מרואיין";
+        const startTime = formatTimestamp(paragraph.startTime);
+        const endTime = formatTimestamp(paragraph.endTime);
+        const colorClass = paragraph.speaker === 1 ? "blue-paragraph" : "green-paragraph";
+        return `<div class="${colorClass}"><strong>${speakerLabel}:</strong> [${startTime} - ${endTime}]<br>${paragraph.text}</div>`;
+    }).join("\n\n");
+}
+
+// פונקציה למיזוג הסגמנטים לפי דוברים לפסקאות
+function mergeSegmentsBySpeaker(identifiedSegments) {
+    let currentSpeaker = null;
+    let mergedSegments = [];
+    let currentParagraph = { speaker: null, text: "", startTime: null, endTime: null };
+
+    identifiedSegments.forEach(segment => {
+        if (segment.speaker !== currentSpeaker) {
+            if (currentParagraph.text) {
+                mergedSegments.push(currentParagraph);
+            }
+            currentSpeaker = segment.speaker;
+            currentParagraph = {
+                speaker: currentSpeaker,
+                text: segment.text,
+                startTime: segment.startTime,
+                endTime: segment.endTime
+            };
+        } else {
+            currentParagraph.text += ` ${segment.text}`;
+            currentParagraph.endTime = segment.endTime;
+        }
+    });
+
+    if (currentParagraph.text) {
+        mergedSegments.push(currentParagraph);
+    }
+
+    return mergedSegments;
+}
+
+
+
+// פונקציה ליצירת הפרומפט עבור זיהוי הדוברים
+function createSpeakerIdentificationPrompt(segmentGroup, intervieweeName) {
+    return `
 חלק את הטקסט הבא לפי דוברים - "מראיין" ו-"${intervieweeName}". 
 
 אל תדלג על שום מילה מהטקסט המקורי. שמור על כל מילה, אות וסימן פיסוק בדיוק כפי שהם מופיעים בטקסט המקורי.
@@ -679,62 +749,31 @@ async function startSpeakerSegmentation() {
 השתמש באסטרטגיות הבאות לזיהוי הדוברים:
 - אם המשפט מכיל סימן שאלה, או מנוסח כשאלה, התייחס אליו כדבריו של המראיין.
 - קטעים ארוכים, מפורטים, או כאלו הכוללים מידע אישי ומתארים חוויות – התייחס אליהם כדברי ${intervieweeName}.
-- בדרך כלל המראיין מתחיל לדבר ראשון ומציג את עצמו ואת מטרת הראיון
-- לפעמים, המרואיין שואל שאלות הבהרה קצרות
-- בדרך כלל המרואיין מדבר יותר מילים והמראיין מדבר פחות
-- לקראת סוף הראיון, המראיין בדרך כלל מודה למרואיין ונפרד ממנו
+- בדרך כלל המראיין מתחיל לדבר ראשון ומציג את עצמו ואת מטרת הראיון.
+- לפעמים, המרואיין שואל שאלות הבהרה קצרות.
+- בדרך כלל המרואיין מדבר יותר מילים והמראיין מדבר פחות.
+- לקראת סוף הראיון, המראיין בדרך כלל מודה למרואיין ונפרד ממנו.
 - ביטויים כמו "ספרי לנו", "הסבר" או פניות דומות מעידים שמדובר בדברי המראיין.
-- שם המרואיין המופיע בתוך הטקסט הוא רמז להפרדת דבריו מהשאלות של המראיין.
-- הבחנה מגדרית: אם המראיין והמרואיין במגדרים שונים, צורת הפעלים יכולה לסייע לזהות את הדובר.
 
 שמור על רצף הדובר, כך שכל דובר ממשיך את דבריו ללא תוויות חוזרות מיותרות.
 
 חשוב: 
-
 - אל תשנה מילים בתמלול המקורי.
-- אם מופיעה מילה שנראית שגויה או לא תקנית, השאר אותה כפי שהיא והצע תיקון בסוגריים מרובעים מיד אחריה (לדוגמה: "השיקונים [השיקולים]").
-- אל תוסיף שום טקסט או תווים נוספים (כמו "Here is the divided text:") לפני או אחרי הפלט.
-
-דוגמה לפורמט המצופה:
-מראיין: מה החוויה שלך בעניין הזה?
-${intervieweeName}: זו הייתה חוויה ייחודית מאוד. אני זוכרת [זוכר] שפגשתי שם אנשים מדהימים.
+- החזר את זיהוי הדובר עבור כל סגמנט בקבוצה באופן הבא: 1 עבור מראיין, 2 עבור ${intervieweeName}.
 
 הנה הטקסט לחלוקה:
-\n\n${segment}`;
 
-
-
-        
-
-        try {
-            const result = await getSegmentedText(segment, prompt, intervieweeName);
-            // הוספת שורה חדשה בין הדוברים
-            fullResult += result.replace(/(מראיין:|מרואיין:|${intervieweeName}:)/g, "\n$1") + "\n\n";
-            document.getElementById("segmentationResult").textContent = fullResult;
-        } catch (error) {
-            console.error("Error with segment:", error);
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 200)); // המתנה קצרה בין הבקשות
-    }
-
-    // הוספת הודעת "סוף תמלול"
-    fullResult += "\n\n---\nסוף תמלול";
-    document.getElementById("segmentationResult").textContent = fullResult;
-
-    // הפיכת כפתורי ההורדה וההעתקה לזמינים לאחר סיום התמלול
-    document.getElementById("copyButton").style.display = "block";
-    document.getElementById("downloadButton").style.display = "block";
+${segmentGroup.map(s => s.text).join('\n\n')}`;
 }
 
 
 
-
-
-async function getSegmentedText(text, prompt) {
+// פונקציה לקבלת זיהוי דוברים מהמודל
+async function getSegmentedText(segmentGroup, prompt) {
     let success = false;
     const maxRetries = 5;
     let retries = 0;
+    let apiKey = localStorage.getItem('groqApiKey');
 
     while (!success && retries < maxRetries) {
         if (!apiKey) {
@@ -751,7 +790,7 @@ async function getSegmentedText(text, prompt) {
                     model: "llama3-70b-8192",
                     messages: [
                         { role: "system", content: prompt },
-                        { role: "user", content: text }
+                        { role: "user", content: segmentGroup.map(s => s.text).join("\n\n") }
                     ],
                     max_tokens: 1024
                 })
@@ -760,12 +799,7 @@ async function getSegmentedText(text, prompt) {
             if (response.ok) {
                 const result = await response.json();
                 success = true;
-                let segmentedText = result.choices[0].message.content;
-
-                // הוספת ריווח שורה לפני כל דובר חדש
-                segmentedText = segmentedText.replace(/(מראיין:|מרואיין:)/g, "\n$1");
-
-                return segmentedText;
+                return result.choices[0].message.content.split('\n');
             } else {
                 const errorText = await response.text();
                 const errorData = JSON.parse(errorText);
@@ -792,11 +826,13 @@ async function getSegmentedText(text, prompt) {
 }
 
 
-// פונקציה שמחלצת את זמן ההמתנה מתוך הודעת השגיאה
+// פונקציה לחישוב זמן ההמתנה מתוך הודעת השגיאה
 function extractWaitTime(errorText) {
-    const match = errorText.match(/try again in ([\d.]+)s/);
+    const match = errorText.match(/try again in ([\d\.]+)s/);
     return match ? parseFloat(match[1]) : null;
 }
+
+
 
 function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
     const segments = [];
@@ -870,25 +906,29 @@ function splitTextIntoSegments(text, maxChars = 500, maxSentences = 5) {
 }
 
 
+// פונקציה להעתקת תוצאת החלוקה ללוח עם עיצוב
 function copySegmentationResult() {
-    const segmentationResult = document.getElementById('segmentationResult').textContent;
+    const segmentationResult = document.getElementById('segmentationResult');
     if (segmentationResult) {
-        navigator.clipboard.writeText(segmentationResult).then(() => {
-            alert('תמלול הועתק בהצלחה!');
-        }).catch((error) => {
-            console.error('שגיאה בהעתקת הטקסט:', error);
-        });
+        const range = document.createRange();
+        range.selectNode(segmentationResult);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand('copy');
+        alert('תמלול הועתק בהצלחה!');
     }
 }
 
+// פונקציה להורדת תמלול כקובץ Word
 function downloadSegmentationResult() {
-    const segmentationResult = document.getElementById('segmentationResult').textContent;
+    const segmentationResult = document.getElementById('segmentationResult').innerHTML;
     if (segmentationResult) {
-        const blob = new Blob([segmentationResult], { type: 'text/plain' });
+        const blob = new Blob([segmentationResult], { type: 'application/msword' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'segmentation_result.txt';
+        a.download = 'segmentation_result.doc';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
