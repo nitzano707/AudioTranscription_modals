@@ -661,22 +661,27 @@ function showSpeakerSegmentationModal() {
 
 // פונקציה להתחלת תהליך זיהוי הדוברים
 async function startSpeakerSegmentation() {
+    console.log("Starting speaker segmentation process...");
     let intervieweeName = document.getElementById('intervieweeNameInput').value.trim();
     if (!intervieweeName) {
         intervieweeName = "מרואיין";
     }
 
+    console.log("Interviewee name:", intervieweeName);
     const segments = transcriptionData; // שימוש בסגמנטים שכבר התקבלו מהתמלול
     let totalSegments = segments.length;
     let identifiedSegments = []; // משתנה מקומי לאחסון זיהוי הדוברים עבור כל סגמנט
     document.getElementById("segmentationResult").textContent = "מתחיל בעיבוד התמלול...\n\n";
 
+    console.log("Total segments to process:", totalSegments);
     for (let i = 0; i < totalSegments - 4; i++) {
+         console.log(`Processing segment group ${i + 1} to ${i + 5}`);
         const segmentGroup = segments.slice(i, i + 5); // שליחת קבוצת סגמנטים (5 סגמנטים בכל פעם)
         const prompt = createSpeakerIdentificationPrompt(segmentGroup, intervieweeName);
 
         try {
             const speakerIdentifications = await getSegmentedText(segmentGroup, prompt);
+            console.log("Speaker identification result for segment group:", speakerIdentifications);
             // שמירה של זיהוי הדוברים עבור הסגמנט האמצעי (index 2)
             identifiedSegments.push({
                 segmentId: i + 2,
@@ -691,14 +696,17 @@ async function startSpeakerSegmentation() {
 
         await new Promise(resolve => setTimeout(resolve, 200)); // המתנה קצרה בין הבקשות
     }
+      console.log("Merging segments by speaker...");
 
     const mergedSegments = mergeSegmentsBySpeaker(identifiedSegments);
+     console.log("Merged segments:", mergedSegments);
     displaySegmentationResult(mergedSegments);
 }
 
 
 // פונקציה להצגת תוצאת החלוקה לדוברים
 function displaySegmentationResult(mergedSegments) {
+     console.log("Displaying segmentation result...");
     const segmentationResultElement = document.getElementById("segmentationResult");
 
     segmentationResultElement.innerHTML = mergedSegments.map(paragraph => {
@@ -713,11 +721,13 @@ function displaySegmentationResult(mergedSegments) {
 
 // פונקציה למיזוג הסגמנטים לפי דוברים לפסקאות
 function mergeSegmentsBySpeaker(identifiedSegments) {
+    console.log("Merging segments into paragraphs by speaker...");
     let currentSpeaker = null;
     let mergedSegments = [];
     let currentParagraph = { speaker: null, text: "", startTime: null, endTime: null };
 
     identifiedSegments.forEach(segment => {
+        console.log("Processing segment:", segment);
         if (segment.speaker !== currentSpeaker) {
             if (currentParagraph.text) {
                 mergedSegments.push(currentParagraph);
@@ -738,7 +748,7 @@ function mergeSegmentsBySpeaker(identifiedSegments) {
     if (currentParagraph.text) {
         mergedSegments.push(currentParagraph);
     }
-
+ console.log("Final merged segments:", mergedSegments);
     return mergedSegments;
 }
 
