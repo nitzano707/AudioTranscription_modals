@@ -727,44 +727,50 @@ async function startSpeakerSegmentation() {
 
     console.log("Total segments to process:", transcriptionData.length);
 
-    // יצירת קבוצות עם חפיפה
-    const groupSize = 5;
-    const overlapSize = 1;
-    const groups = createOverlappingGroups(transcriptionData, groupSize, overlapSize);
+    // יצירת קבוצות של סגמנטים עם חפיפה
+    const overlappingGroups = createOverlappingGroups(transcriptionData, 5);
+    let finalSegments = [];
 
     try {
-        for (let i = 0; i < groups.length; i++) {
-            const group = groups[i];
+        for (let i = 0; i < overlappingGroups.length; i++) {
+            const group = overlappingGroups[i];
             const prompt = createSpeakerIdentificationPrompt(group, intervieweeName);
-            
-            // קבלת זיהוי הדוברים מהמודל עבור הקבוצה הנוכחית
-            const speakerIdentifications = await getSegmentedText(group, prompt);
+            console.log(`Processing group ${i + 1} with prompt:`, prompt);
 
-            // עדכון זיהוי הדוברים עבור כל סגמנט בקבוצה
-            group.forEach((segment, index) => {
-                if (speakerIdentifications[index]) {
-                    segment.speaker = speakerIdentifications[index] === '1' ? 'מראיין' : intervieweeName;
+            try {
+                const speakerLabels = await getSegmentedText(group, prompt); // מחזיר רשימה של מזהי הדוברים
+
+                if (speakerLabels.length !== group.length) {
+                    console.error("Mismatch between number of segments and speaker labels returned.");
                 }
-            });
 
-            console.log(`Processed group ${i + 1} of ${groups.length}`);
+                group.forEach((segment, index) => {
+                    if (index < speakerLabels.length) {
+                        segment.speaker = speakerLabels[index] === '1' ? 'מראיין' : intervieweeName;
+                    } else {
+                        console.warn(`No speaker label returned for segment ${index + 1}`);
+                        segment.speaker = 'undefined';
+                    }
+                    console.log(`Displaying segment ${i * 5 + index + 1}:`, segment);
+                });
+
+                // הוספת הקבוצה המעודכנת לרשימת הסגמנטים הסופית
+                finalSegments.push(...group);
+
+            } catch (error) {
+                console.error("Error during speaker segmentation for group:", error);
+                alert("שגיאה במהלך חלוקת הדוברים. נא לנסות שוב.");
+            }
         }
 
-        console.log("Speaker identification complete. Merging segments by speaker...");
-
-        const mergedSegments = mergeSegmentsBySpeaker(transcriptionData);
-        console.log("Merged segments:", mergedSegments);
-
-        console.log("Merging segments into paragraphs by speaker...");
-        const finalMergedSegments = mergeSegmentsIntoParagraphs(mergedSegments);
-        console.log("Final merged segments:", finalMergedSegments);
-
-        displaySegmentationResult(finalMergedSegments);
+        console.log("Final merged segments:", finalSegments);
+        displaySegmentationResult(finalSegments);
     } catch (error) {
         console.error("Error during speaker segmentation:", error);
         alert("שגיאה במהלך חלוקת הדוברים. נא לנסות שוב.");
     }
 }
+
 
 
 
