@@ -392,11 +392,13 @@ function bufferToWaveBlob(abuffer) {
 
 async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
     const formData = new FormData();
+    let prmt = `מדובר בריאיון בנושא שילוב בינה מלאכותית בחינוך`
     formData.append('file', chunk);
     //formData.append('model', 'whisper-large-v3-turbo');
     formData.append('model', 'whisper-large-v3');
     formData.append('response_format', 'verbose_json'); 
     formData.append('language', defaultLanguage);
+    formData.append('prompt', prmt);
 
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
