@@ -725,20 +725,19 @@ async function startSpeakerSegmentation() {
             const prompt = createSpeakerIdentificationPrompt(group, intervieweeName);
             console.log("Processing group with prompt:", prompt);
 
-            const labels = await getSegmentedText(group, prompt);
-            
-            // בדיקת אי התאמה בין מספר התוויות למספר הסגמנטים
-            if (labels.length !== group.length) {
-                console.error("Mismatch between number of segments and speaker labels returned.");
-                console.error("Expected:", group.length, "Received:", labels.length);
-                console.error("Labels received:", labels);
-                throw new Error("Mismatch in speaker labels.");
-            }
+            try {
+                const labels = await getSegmentedText(group, prompt);
 
-            // שיוך תוויות הדובר לכל סגמנט בקבוצה
-            group.forEach((segment, index) => {
-                segment.speaker = labels[index] === '1' ? 'מראיין' : 'מרואיין';
-            });
+                // שיוך תוויות הדובר לכל סגמנט בקבוצה
+                group.forEach((segment, index) => {
+                    segment.speaker = labels[index] === '1' ? 'מראיין' : 'מרואיין';
+                });
+
+            } catch (error) {
+                console.error("Failed to get valid speaker labels for group:", error);
+                alert("שגיאה במהלך חלוקת הדוברים, יש בעיה בזיהוי הדוברים עבור חלק מהקטעים. אנא נסו שוב מאוחר יותר.");
+                return;
+            }
         }
 
         console.log("Speaker identification complete. Merging segments by speaker...");
@@ -754,6 +753,7 @@ async function startSpeakerSegmentation() {
         alert("שגיאה במהלך חלוקת הדוברים. נא לנסות שוב.");
     }
 }
+
 
 
 
@@ -868,17 +868,28 @@ async function getSegmentedText(segmentGroup, prompt) {
                 const result = await response.json();
                 success = true;
 
-                // טיפול בפלט כדי לוודא שמתקבלות תוויות ברורות בלבד
-                const labels = result.choices[0].message.content.split('\n').map(label => label.trim());
-                const validLabels = labels.filter(label => label === '1' || label === '2');
+                // לוג להצגת התגובה המקורית מהמודל
+                console.log("Response from model:", result);
 
-                if (validLabels.length !== segmentGroup.length) {
+                // טיפול בפלט כדי לוודא שמתקבלות תוויות ברורות בלבד
+                let labels = result.choices[0].message.content.split('\n').map(label => label.trim());
+
+                // לוג להצגת התוויות לאחר עיבוד ראשוני
+                console.log("Extracted labels before filtering:", labels);
+
+                // סינון תוויות לא תקינות
+                labels = labels.filter(label => label === '1' || label === '2');
+
+                // לוג להצגת התוויות התקינות בלבד לאחר הסינון
+                console.log("Filtered valid labels:", labels);
+
+                if (labels.length !== segmentGroup.length) {
                     console.warn("The number of valid labels doesn't match the number of segments.");
                     retries++;
                     continue;
                 }
 
-                return validLabels;
+                return labels;
             } else {
                 const errorText = await response.text();
                 const errorData = JSON.parse(errorText);
@@ -903,6 +914,8 @@ async function getSegmentedText(segmentGroup, prompt) {
 
     throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
 }
+
+
 
 
 
