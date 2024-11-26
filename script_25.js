@@ -7,6 +7,7 @@ let transcriptionDataText = '';
 let transcriptionDataSRT = '';
 let audioFileName = ''; // הוספת המשתנה החסר
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
+let transcriptionData = []; // משתנה גלובלי לאחסון נתוני התמלול
 
 // המשתנה global שנצבר עם הזמן המצטבר הכולל בכל מקטע
 let totalElapsedTime = 0;
