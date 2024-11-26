@@ -670,61 +670,68 @@ function showSpeakerSegmentationModal() {
 // פונקציה להתחלת תהליך זיהוי הדוברים
 async function startSpeakerSegmentation() {
     console.log("Starting speaker segmentation process...");
-    let intervieweeName = document.getElementById('intervieweeNameInput').value.trim();
-    if (!intervieweeName) {
-        intervieweeName = "מרואיין";
-    }
-
+    const intervieweeName = document.getElementById('intervieweeNameInput').value.trim() || 'מרואיין';
     console.log("Interviewee name:", intervieweeName);
-    const segments = transcriptionData; // שימוש בסגמנטים שכבר התקבלו מהתמלול
-    let totalSegments = segments.length;
-    let identifiedSegments = []; // משתנה מקומי לאחסון זיהוי הדוברים עבור כל סגמנט
-    document.getElementById("segmentationResult").textContent = "מתחיל בעיבוד התמלול...\n\n";
 
-    console.log("Total segments to process:", totalSegments);
-    for (let i = 0; i < totalSegments - 4; i++) {
-         console.log(`Processing segment group ${i + 1} to ${i + 5}`);
-        const segmentGroup = segments.slice(i, i + 5); // שליחת קבוצת סגמנטים (5 סגמנטים בכל פעם)
-        const prompt = createSpeakerIdentificationPrompt(segmentGroup, intervieweeName);
-
-        try {
-            const speakerIdentifications = await getSegmentedText(segmentGroup, prompt);
-            console.log("Speaker identification result for segment group:", speakerIdentifications);
-            // שמירה של זיהוי הדוברים עבור הסגמנט האמצעי (index 2)
-            identifiedSegments.push({
-                segmentId: i + 2,
-                speaker: speakerIdentifications[2],
-                text: segments[i + 2].text,
-                startTime: segments[i + 2].startTime,
-                endTime: segments[i + 2].endTime
-            });
-        } catch (error) {
-            console.error("Error with segment group:", error);
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 200)); // המתנה קצרה בין הבקשות
+    if (!transcriptionData || transcriptionData.length === 0) {
+        console.warn("No transcription data available for segmentation.");
+        alert("אין נתוני תמלול זמינים לחלוקה לדוברים.");
+        return;
     }
-      console.log("Merging segments by speaker...");
 
-    const mergedSegments = mergeSegmentsBySpeaker(identifiedSegments);
-     console.log("Merged segments:", mergedSegments);
-    displaySegmentationResult(mergedSegments);
+    console.log("Total segments to process:", transcriptionData.length);
+
+    try {
+        // לולאה על הסגמנטים ומיפוי הדוברים
+        transcriptionData.forEach((segment, index) => {
+            console.log(`Processing segment ${index + 1}:`, segment);
+            // הוספה של פרומפט לפנייה למודל כדי לזהות את הדובר
+            // פרומפט לדוגמה: "Based on the context, identify the speaker in the following segment: ..."
+            segment.speaker = identifySpeaker(segment.text);
+        });
+
+        console.log("Speaker identification complete. Merging segments by speaker...");
+
+        const mergedSegments = mergeSegmentsBySpeaker(transcriptionData);
+        console.log("Merged segments:", mergedSegments);
+
+        console.log("Merging segments into paragraphs by speaker...");
+        const finalMergedSegments = mergeSegmentsIntoParagraphs(mergedSegments);
+        console.log("Final merged segments:", finalMergedSegments);
+
+        displaySegmentationResult(finalMergedSegments);
+    } catch (error) {
+        console.error("Error during speaker segmentation:", error);
+        alert("שגיאה במהלך חלוקת הדוברים. נא לנסות שוב.");
+    }
 }
+
 
 
 // פונקציה להצגת תוצאת החלוקה לדוברים
-function displaySegmentationResult(mergedSegments) {
-     console.log("Displaying segmentation result...");
-    const segmentationResultElement = document.getElementById("segmentationResult");
+function displaySegmentationResult(segments) {
+    console.log("Displaying segmentation result...");
+    const segmentationResultContainer = document.getElementById('segmentationResult');
+    segmentationResultContainer.innerHTML = '';
 
-    segmentationResultElement.innerHTML = mergedSegments.map(paragraph => {
-        const speakerLabel = paragraph.speaker === 1 ? "מראיין" : "מרואיין";
-        const startTime = formatTimestamp(paragraph.startTime);
-        const endTime = formatTimestamp(paragraph.endTime);
-        const colorClass = paragraph.speaker === 1 ? "blue-paragraph" : "green-paragraph";
-        return `<div class="${colorClass}"><strong>${speakerLabel}:</strong> [${startTime} - ${endTime}]<br>${paragraph.text}</div>`;
-    }).join("\n\n");
+    if (!segments || segments.length === 0) {
+        console.warn("No segments to display.");
+        segmentationResultContainer.innerHTML = 'לא נמצאו נתונים להצגה.';
+        return;
+    }
+
+    segments.forEach((segment, index) => {
+        console.log(`Displaying segment ${index + 1}:`, segment);
+        const paragraph = document.createElement('p');
+        paragraph.textContent = `${segment.speaker}: ${segment.text}`;
+        paragraph.style.color = segment.speaker === 'מרואיין' ? 'blue' : 'green';
+        segmentationResultContainer.appendChild(paragraph);
+    });
+
+    document.getElementById('copyButton').style.display = 'block';
+    document.getElementById('downloadButton').style.display = 'block';
 }
+
 
 
 // פונקציה למיזוג הסגמנטים לפי דוברים לפסקאות
