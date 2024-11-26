@@ -669,16 +669,21 @@ function showSpeakerSegmentationModal() {
     openModal('speakerSegmentationModal');
 }
 
-function identifySpeaker(segmentText) {
-    // הגדרה בסיסית לזיהוי הדובר על בסיס תכנים של השיחה
-    if (segmentText.includes('?')) {
-        // אם יש סימן שאלה, כנראה שמדובר במראיין
-        return 'מראיין';
-    } else {
-        // אחרת, נניח שזה המרואיין
-        return 'מרואיין';
+
+// פונקציה ליצירת קבוצות סגמנטים עם סגמנט חופף
+function createOverlappingGroups(segments, groupSize, overlapSize) {
+    let groups = [];
+    for (let i = 0; i < segments.length; i += (groupSize - overlapSize)) {
+        let group = segments.slice(i, i + groupSize);
+        if (group.length > 0) {
+            groups.push(group);
+        }
     }
+    return groups;
 }
+
+
+
 
 function mergeSegmentsIntoParagraphs(segments) {
     const mergedSegments = [];
@@ -722,14 +727,28 @@ async function startSpeakerSegmentation() {
 
     console.log("Total segments to process:", transcriptionData.length);
 
+    // יצירת קבוצות עם חפיפה
+    const groupSize = 5;
+    const overlapSize = 1;
+    const groups = createOverlappingGroups(transcriptionData, groupSize, overlapSize);
+
     try {
-        // לולאה על הסגמנטים ומיפוי הדוברים
-        transcriptionData.forEach((segment, index) => {
-            console.log(`Processing segment ${index + 1}:`, segment);
-            // הוספה של פרומפט לפנייה למודל כדי לזהות את הדובר
-            // פרומפט לדוגמה: "Based on the context, identify the speaker in the following segment: ..."
-            segment.speaker = identifySpeaker(segment.text);
-        });
+        for (let i = 0; i < groups.length; i++) {
+            const group = groups[i];
+            const prompt = createSpeakerIdentificationPrompt(group, intervieweeName);
+            
+            // קבלת זיהוי הדוברים מהמודל עבור הקבוצה הנוכחית
+            const speakerIdentifications = await getSegmentedText(group, prompt);
+
+            // עדכון זיהוי הדוברים עבור כל סגמנט בקבוצה
+            group.forEach((segment, index) => {
+                if (speakerIdentifications[index]) {
+                    segment.speaker = speakerIdentifications[index] === '1' ? 'מראיין' : intervieweeName;
+                }
+            });
+
+            console.log(`Processed group ${i + 1} of ${groups.length}`);
+        }
 
         console.log("Speaker identification complete. Merging segments by speaker...");
 
@@ -746,6 +765,7 @@ async function startSpeakerSegmentation() {
         alert("שגיאה במהלך חלוקת הדוברים. נא לנסות שוב.");
     }
 }
+
 
 
 
