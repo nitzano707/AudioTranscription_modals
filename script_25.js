@@ -144,7 +144,7 @@ async function uploadAudio() {
    }
 
    const maxChunkSizeBytes = MAX_SEGMENT_SIZE_MB * 1024 * 1024;
-   //let transcriptionData = [];
+   let transcriptionData = [];
    let totalTimeElapsed = 0;
 
    try {
