@@ -726,8 +726,12 @@ async function startSpeakerSegmentation() {
             console.log("Processing group with prompt:", prompt);
 
             const labels = await getSegmentedText(group, prompt);
+            
+            // בדיקת אי התאמה בין מספר התוויות למספר הסגמנטים
             if (labels.length !== group.length) {
                 console.error("Mismatch between number of segments and speaker labels returned.");
+                console.error("Expected:", group.length, "Received:", labels.length);
+                console.error("Labels received:", labels);
                 throw new Error("Mismatch in speaker labels.");
             }
 
@@ -750,6 +754,7 @@ async function startSpeakerSegmentation() {
         alert("שגיאה במהלך חלוקת הדוברים. נא לנסות שוב.");
     }
 }
+
 
 
 
@@ -820,11 +825,13 @@ function createSpeakerIdentificationPrompt(segmentGroup, intervieweeName) {
 חשוב: 
 - אל תשנה מילים בתמלול המקורי.
 - החזר את זיהוי הדובר עבור כל סגמנט בקבוצה באופן הבא: 1 עבור מראיין, 2 עבור ${intervieweeName}.
+- יש להחזיר תווית אחת לכל סגמנט, וכל תווית צריכה להיות או 1 או 2 בלבד.
 
 הנה הטקסט לחלוקה:
 
 ${segmentGroup.map(s => s.text).join('\n\n')}`;
 }
+
 
 
 
@@ -860,7 +867,18 @@ async function getSegmentedText(segmentGroup, prompt) {
             if (response.ok) {
                 const result = await response.json();
                 success = true;
-                return result.choices[0].message.content.split('\n');
+
+                // טיפול בפלט כדי לוודא שמתקבלות תוויות ברורות בלבד
+                const labels = result.choices[0].message.content.split('\n').map(label => label.trim());
+                const validLabels = labels.filter(label => label === '1' || label === '2');
+
+                if (validLabels.length !== segmentGroup.length) {
+                    console.warn("The number of valid labels doesn't match the number of segments.");
+                    retries++;
+                    continue;
+                }
+
+                return validLabels;
             } else {
                 const errorText = await response.text();
                 const errorData = JSON.parse(errorText);
@@ -885,6 +903,7 @@ async function getSegmentedText(segmentGroup, prompt) {
 
     throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
 }
+
 
 
 
