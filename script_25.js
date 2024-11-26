@@ -671,13 +671,11 @@ function showSpeakerSegmentationModal() {
 
 
 // פונקציה ליצירת קבוצות סגמנטים עם סגמנט חופף
-function createOverlappingGroups(segments, groupSize, overlapSize) {
-    let groups = [];
-    for (let i = 0; i < segments.length; i += (groupSize - overlapSize)) {
-        let group = segments.slice(i, i + groupSize);
-        if (group.length > 0) {
-            groups.push(group);
-        }
+function createOverlappingGroups(transcriptionData, groupSize) {
+    const groups = [];
+    for (let i = 0; i < transcriptionData.length; i += groupSize - 1) {
+        const end = Math.min(i + groupSize, transcriptionData.length);
+        groups.push(transcriptionData.slice(i, end));
     }
     return groups;
 }
@@ -685,39 +683,32 @@ function createOverlappingGroups(segments, groupSize, overlapSize) {
 
 
 
-function mergeSegmentsIntoParagraphs(segments) {
-    const mergedSegments = [];
-    let currentSpeaker = null;
-    let currentParagraph = '';
 
-    segments.forEach(segment => {
-        if (segment.speaker !== currentSpeaker) {
-            // אם מדובר בדובר חדש, שמור את הפסקה הנוכחית והתחל פסקה חדשה
-            if (currentParagraph) {
-                mergedSegments.push({ speaker: currentSpeaker, text: currentParagraph.trim() });
-            }
+function mergeSegmentsIntoParagraphs(mergedSegments) {
+    const paragraphs = [];
+    let currentParagraph = "";
+    let currentSpeaker = mergedSegments[0].speaker;
+
+    for (const segment of mergedSegments) {
+        if (segment.speaker === currentSpeaker) {
+            currentParagraph += ` ${segment.text}`;
+        } else {
+            paragraphs.push({ text: currentParagraph.trim(), speaker: currentSpeaker });
             currentSpeaker = segment.speaker;
             currentParagraph = segment.text;
-        } else {
-            // אחרת, הוסף את הטקסט הנוכחי לפסקה הקיימת
-            currentParagraph += ' ' + segment.text;
         }
-    });
-
-    // הוסף את הפסקה האחרונה אם קיימת
-    if (currentParagraph) {
-        mergedSegments.push({ speaker: currentSpeaker, text: currentParagraph.trim() });
     }
 
-    return mergedSegments;
+    paragraphs.push({ text: currentParagraph.trim(), speaker: currentSpeaker });
+    return paragraphs;
 }
+
 
 
 // פונקציה להתחלת תהליך זיהוי הדוברים
 async function startSpeakerSegmentation() {
     console.log("Starting speaker segmentation process...");
     const intervieweeName = document.getElementById('intervieweeNameInput').value.trim() || 'מרואיין';
-    console.log("Interviewee name:", intervieweeName);
 
     if (!transcriptionData || transcriptionData.length === 0) {
         console.warn("No transcription data available for segmentation.");
@@ -725,46 +716,35 @@ async function startSpeakerSegmentation() {
         return;
     }
 
-    console.log("Total segments to process:", transcriptionData.length);
-
-    // יצירת קבוצות של סגמנטים עם חפיפה
+    // יצירת קבוצות עם חפיפה
     const overlappingGroups = createOverlappingGroups(transcriptionData, 5);
-    let finalSegments = [];
 
     try {
-        for (let i = 0; i < overlappingGroups.length; i++) {
-            const group = overlappingGroups[i];
+        // מעבר על כל קבוצת סגמנטים וביצוע זיהוי דוברים
+        for (const group of overlappingGroups) {
             const prompt = createSpeakerIdentificationPrompt(group, intervieweeName);
-            console.log(`Processing group ${i + 1} with prompt:`, prompt);
+            console.log("Processing group with prompt:", prompt);
 
-            try {
-                const speakerLabels = await getSegmentedText(group, prompt); // מחזיר רשימה של מזהי הדוברים
-
-                if (speakerLabels.length !== group.length) {
-                    console.error("Mismatch between number of segments and speaker labels returned.");
-                }
-
-                group.forEach((segment, index) => {
-                    if (index < speakerLabels.length) {
-                        segment.speaker = speakerLabels[index] === '1' ? 'מראיין' : intervieweeName;
-                    } else {
-                        console.warn(`No speaker label returned for segment ${index + 1}`);
-                        segment.speaker = 'undefined';
-                    }
-                    console.log(`Displaying segment ${i * 5 + index + 1}:`, segment);
-                });
-
-                // הוספת הקבוצה המעודכנת לרשימת הסגמנטים הסופית
-                finalSegments.push(...group);
-
-            } catch (error) {
-                console.error("Error during speaker segmentation for group:", error);
-                alert("שגיאה במהלך חלוקת הדוברים. נא לנסות שוב.");
+            const labels = await getSegmentedText(group, prompt);
+            if (labels.length !== group.length) {
+                console.error("Mismatch between number of segments and speaker labels returned.");
+                throw new Error("Mismatch in speaker labels.");
             }
+
+            // שיוך תוויות הדובר לכל סגמנט בקבוצה
+            group.forEach((segment, index) => {
+                segment.speaker = labels[index] === '1' ? 'מראיין' : 'מרואיין';
+            });
         }
 
-        console.log("Final merged segments:", finalSegments);
-        displaySegmentationResult(finalSegments);
+        console.log("Speaker identification complete. Merging segments by speaker...");
+        const mergedSegments = mergeSegmentsBySpeaker(transcriptionData);
+        console.log("Merged segments:", mergedSegments);
+
+        const finalMergedSegments = mergeSegmentsIntoParagraphs(mergedSegments);
+        console.log("Final merged segments:", finalMergedSegments);
+
+        displaySegmentationResult(finalMergedSegments);
     } catch (error) {
         console.error("Error during speaker segmentation:", error);
         alert("שגיאה במהלך חלוקת הדוברים. נא לנסות שוב.");
@@ -775,64 +755,45 @@ async function startSpeakerSegmentation() {
 
 
 
+
 // פונקציה להצגת תוצאת החלוקה לדוברים
-function displaySegmentationResult(segments) {
-    console.log("Displaying segmentation result...");
-    const segmentationResultContainer = document.getElementById('segmentationResult');
-    segmentationResultContainer.innerHTML = '';
+function displaySegmentationResult(finalMergedSegments) {
+    const resultContainer = document.getElementById('segmentationResult');
+    resultContainer.innerHTML = '';
 
-    if (!segments || segments.length === 0) {
-        console.warn("No segments to display.");
-        segmentationResultContainer.innerHTML = 'לא נמצאו נתונים להצגה.';
-        return;
-    }
-
-    segments.forEach((segment, index) => {
-        console.log(`Displaying segment ${index + 1}:`, segment);
-        const paragraph = document.createElement('p');
-        paragraph.textContent = `${segment.speaker}: ${segment.text}`;
-        paragraph.style.color = segment.speaker === 'מרואיין' ? 'blue' : 'green';
-        segmentationResultContainer.appendChild(paragraph);
+    finalMergedSegments.forEach((segment, index) => {
+        const segmentDiv = document.createElement('div');
+        segmentDiv.className = 'segment';
+        segmentDiv.innerHTML = `
+            <strong>${segment.speaker}:</strong> ${segment.text}
+        `;
+        resultContainer.appendChild(segmentDiv);
     });
-
-    document.getElementById('copyButton').style.display = 'block';
-    document.getElementById('downloadButton').style.display = 'block';
 }
+
 
 
 
 // פונקציה למיזוג הסגמנטים לפי דוברים לפסקאות
-function mergeSegmentsBySpeaker(identifiedSegments) {
-    console.log("Merging segments into paragraphs by speaker...");
-    let currentSpeaker = null;
-    let mergedSegments = [];
-    let currentParagraph = { speaker: null, text: "", startTime: null, endTime: null };
+function mergeSegmentsBySpeaker(segments) {
+    const merged = [];
+    let currentSpeaker = segments[0].speaker;
+    let currentText = segments[0].text;
 
-    identifiedSegments.forEach(segment => {
-        console.log("Processing segment:", segment);
-        if (segment.speaker !== currentSpeaker) {
-            if (currentParagraph.text) {
-                mergedSegments.push(currentParagraph);
-            }
-            currentSpeaker = segment.speaker;
-            currentParagraph = {
-                speaker: currentSpeaker,
-                text: segment.text,
-                startTime: segment.startTime,
-                endTime: segment.endTime
-            };
+    for (let i = 1; i < segments.length; i++) {
+        if (segments[i].speaker === currentSpeaker) {
+            currentText += ` ${segments[i].text}`;
         } else {
-            currentParagraph.text += ` ${segment.text}`;
-            currentParagraph.endTime = segment.endTime;
+            merged.push({ text: currentText, speaker: currentSpeaker });
+            currentSpeaker = segments[i].speaker;
+            currentText = segments[i].text;
         }
-    });
-
-    if (currentParagraph.text) {
-        mergedSegments.push(currentParagraph);
     }
- console.log("Final merged segments:", mergedSegments);
-    return mergedSegments;
+    // הוספת הסגמנט האחרון
+    merged.push({ text: currentText, speaker: currentSpeaker });
+    return merged;
 }
+
 
 
 
@@ -864,6 +825,7 @@ function createSpeakerIdentificationPrompt(segmentGroup, intervieweeName) {
 
 ${segmentGroup.map(s => s.text).join('\n\n')}`;
 }
+
 
 
 
@@ -923,6 +885,7 @@ async function getSegmentedText(segmentGroup, prompt) {
 
     throw new Error("לא ניתן היה לבצע חלוקה לדוברים לאחר ניסיונות מרובים.");
 }
+
 
 
 // פונקציה לחישוב זמן ההמתנה מתוך הודעת השגיאה
