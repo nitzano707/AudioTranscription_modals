@@ -669,6 +669,18 @@ function showSpeakerSegmentationModal() {
     openModal('speakerSegmentationModal');
 }
 
+function identifySpeaker(segmentText) {
+    // הגדרה בסיסית לזיהוי הדובר על בסיס תכנים של השיחה
+    if (segmentText.includes('?')) {
+        // אם יש סימן שאלה, כנראה שמדובר במראיין
+        return 'מראיין';
+    } else {
+        // אחרת, נניח שזה המרואיין
+        return 'מרואיין';
+    }
+}
+
+
 // פונקציה להתחלת תהליך זיהוי הדוברים
 async function startSpeakerSegmentation() {
     console.log("Starting speaker segmentation process...");
