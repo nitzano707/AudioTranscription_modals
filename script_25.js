@@ -8,6 +8,7 @@ let transcriptionDataSRT = '';
 let audioFileName = ''; // הוספת המשתנה החסר
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
 let transcriptionData = []; // משתנה גלובלי לאחסון נתוני התמלול
+let identifiedSegments = []; // משתנה גלובלי לאחסון זיהוי הדוברים עבור כל סגמנט
 
 // המשתנה global שנצבר עם הזמן המצטבר הכולל בכל מקטע
 let totalElapsedTime = 0;
@@ -658,6 +659,7 @@ function showSpeakerSegmentationModal() {
     openModal('speakerSegmentationModal');
 }
 
+// פונקציה להתחלת תהליך זיהוי הדוברים
 async function startSpeakerSegmentation() {
     let intervieweeName = document.getElementById('intervieweeNameInput').value.trim();
     if (!intervieweeName) {
@@ -666,7 +668,7 @@ async function startSpeakerSegmentation() {
 
     const segments = transcriptionData; // שימוש בסגמנטים שכבר התקבלו מהתמלול
     let totalSegments = segments.length;
-    let identifiedSegments = []; // מערך לאחסון זיהוי הדוברים עבור כל סגמנט
+    let identifiedSegments = []; // משתנה מקומי לאחסון זיהוי הדוברים עבור כל סגמנט
     document.getElementById("segmentationResult").textContent = "מתחיל בעיבוד התמלול...\n\n";
 
     for (let i = 0; i < totalSegments - 4; i++) {
@@ -678,7 +680,10 @@ async function startSpeakerSegmentation() {
             // שמירה של זיהוי הדוברים עבור הסגמנט האמצעי (index 2)
             identifiedSegments.push({
                 segmentId: i + 2,
-                speaker: speakerIdentifications[2]
+                speaker: speakerIdentifications[2],
+                text: segments[i + 2].text,
+                startTime: segments[i + 2].startTime,
+                endTime: segments[i + 2].endTime
             });
         } catch (error) {
             console.error("Error with segment group:", error);
@@ -687,15 +692,14 @@ async function startSpeakerSegmentation() {
         await new Promise(resolve => setTimeout(resolve, 200)); // המתנה קצרה בין הבקשות
     }
 
-    mergeSegmentsBySpeaker(identifiedSegments);
-    displaySegmentationResult();
+    const mergedSegments = mergeSegmentsBySpeaker(identifiedSegments);
+    displaySegmentationResult(mergedSegments);
 }
 
 
 // פונקציה להצגת תוצאת החלוקה לדוברים
-function displaySegmentationResult() {
+function displaySegmentationResult(mergedSegments) {
     const segmentationResultElement = document.getElementById("segmentationResult");
-    const mergedSegments = mergeSegmentsBySpeaker(identifiedSegments);
 
     segmentationResultElement.innerHTML = mergedSegments.map(paragraph => {
         const speakerLabel = paragraph.speaker === 1 ? "מראיין" : "מרואיין";
@@ -705,6 +709,7 @@ function displaySegmentationResult() {
         return `<div class="${colorClass}"><strong>${speakerLabel}:</strong> [${startTime} - ${endTime}]<br>${paragraph.text}</div>`;
     }).join("\n\n");
 }
+
 
 // פונקציה למיזוג הסגמנטים לפי דוברים לפסקאות
 function mergeSegmentsBySpeaker(identifiedSegments) {
@@ -736,6 +741,7 @@ function mergeSegmentsBySpeaker(identifiedSegments) {
 
     return mergedSegments;
 }
+
 
 
 
