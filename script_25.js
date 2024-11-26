@@ -161,7 +161,10 @@ async function uploadAudio() {
            }
            updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
 
-           await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
+           //await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
+           const chunkTranscription = await processAudioChunk(chunkFile, i + 1, totalChunks, totalTimeElapsed);
+           transcriptionData.push(...chunkTranscription); // הוספת נתוני התמלול של המקטע למשתנה הגלובלי
+           
            if (chunks[i].duration) {
                totalTimeElapsed += chunks[i].duration;
            }
