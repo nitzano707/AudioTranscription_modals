@@ -161,9 +161,11 @@ async function uploadAudio() {
            }
            updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
 
-           await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
            const chunkTranscription = await processAudioChunk(chunkFile, i + 1, totalChunks, totalTimeElapsed);
-           transcriptionData.push(...chunkTranscription); // הוספת נתוני התמלול של המקטע למשתנה הגלובלי
+           if (chunkTranscription) {
+               transcriptionData.push(...chunkTranscription); // הוספת נתוני התמלול של המקטע למשתנה הגלובלי
+           }
+           
            
            if (chunks[i].duration) {
                totalTimeElapsed += chunks[i].duration;
@@ -395,16 +397,15 @@ function bufferToWaveBlob(abuffer) {
     return new Blob([buffer], { type: "audio/wav" });
 }
 
-async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
+// פונקציה לעיבוד מקטע אודיו
+async function processAudioChunk(chunk, currentChunk, totalChunks, totalElapsedTime) {
     const formData = new FormData();
     
     formData.append('file', chunk);
-    //formData.append('model', 'whisper-large-v3-turbo');
     formData.append('model', 'whisper-large-v3');
     formData.append('response_format', 'verbose_json'); 
     formData.append('language', defaultLanguage);
   
-
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
         alert('מפתח API חסר. נא להזין שוב.');
@@ -426,6 +427,8 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             const data = await response.json();
             console.log(`Received response for chunk ${currentChunk}:`, data);
 
+            const chunkTranscription = [];
+
             if (data.segments) {
                 data.segments.forEach((segment) => {
                     if (typeof segment.start === 'number' && typeof segment.end === 'number') {
@@ -433,7 +436,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                         const endTime = formatTimestamp(segment.end + totalElapsedTime);
                         const text = segment.text.trim();
 
-                        transcriptionData.push({
+                        chunkTranscription.push({
                             text: text,
                             timestamp: `${startTime} --> ${endTime}`
                         });
@@ -450,6 +453,8 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             } else {
                 console.warn(`Missing segments in response for chunk ${currentChunk}`);
             }
+
+            return chunkTranscription; // החזרת המקטע המעובד
         } else {
             if (response.status === 401) {
                 alert('שגיאה במפתח API. נא להזין מפתח חדש.');
