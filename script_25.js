@@ -392,7 +392,7 @@ function bufferToWaveBlob(abuffer) {
 
 async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks) {
     const formData = new FormData();
-    let prmt = `מדובר בריאיון בנושא שילוב בינה מלאכותית בחינוך`
+    let prmt = `מדובר בריאיון בנושא שילוב בינה מלאכותית בחינוך. אתה לא משנה כלום מהמילים. תדייק`
     formData.append('file', chunk);
     //formData.append('model', 'whisper-large-v3-turbo');
     formData.append('model', 'whisper-large-v3');
