@@ -163,7 +163,9 @@ async function uploadAudio() {
 
            const chunkTranscription = await processAudioChunk(chunkFile, i + 1, totalChunks, totalTimeElapsed);
            if (chunkTranscription) {
+               console.log("Chunk transcription:", chunkTranscription);
                transcriptionData.push(...chunkTranscription); // הוספת נתוני התמלול של המקטע למשתנה הגלובלי
+               console.log("Updated transcriptionData:", transcriptionData);
            }
            
            
