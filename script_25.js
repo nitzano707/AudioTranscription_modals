@@ -680,6 +680,33 @@ function identifySpeaker(segmentText) {
     }
 }
 
+function mergeSegmentsIntoParagraphs(segments) {
+    const mergedSegments = [];
+    let currentSpeaker = null;
+    let currentParagraph = '';
+
+    segments.forEach(segment => {
+        if (segment.speaker !== currentSpeaker) {
+            // אם מדובר בדובר חדש, שמור את הפסקה הנוכחית והתחל פסקה חדשה
+            if (currentParagraph) {
+                mergedSegments.push({ speaker: currentSpeaker, text: currentParagraph.trim() });
+            }
+            currentSpeaker = segment.speaker;
+            currentParagraph = segment.text;
+        } else {
+            // אחרת, הוסף את הטקסט הנוכחי לפסקה הקיימת
+            currentParagraph += ' ' + segment.text;
+        }
+    });
+
+    // הוסף את הפסקה האחרונה אם קיימת
+    if (currentParagraph) {
+        mergedSegments.push({ speaker: currentSpeaker, text: currentParagraph.trim() });
+    }
+
+    return mergedSegments;
+}
+
 
 // פונקציה להתחלת תהליך זיהוי הדוברים
 async function startSpeakerSegmentation() {
