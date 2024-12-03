@@ -142,7 +142,7 @@ async function uploadAudio() {
    }
 
    const maxChunkSizeBytes = MAX_SEGMENT_SIZE_MB * 1024 * 1024;
-   let transcriptionData = [];
+   let  = [];
    let totalTimeElapsed = 0;
 
    try {
@@ -166,7 +166,8 @@ async function uploadAudio() {
 
            await new Promise(resolve => setTimeout(resolve, 500));
        }
-
+    // LOG
+        console.log(transcriptionData);
        saveTranscriptions(transcriptionData, audioFile.name);
        displayTranscription('text');
        closeModal('modal3');
