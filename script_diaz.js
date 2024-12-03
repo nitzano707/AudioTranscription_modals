@@ -5,6 +5,8 @@ const MAX_SEGMENT_SIZE_MB = 24; // גודל מקטע מקסימלי ב-MB
 let estimatedTime = 0;
 let transcriptionDataText = '';
 let transcriptionDataSRT = '';
+let transcriptionData = []; // משתנה גלובלי לשמירת התמלול
+
 let audioFileName = ''; // הוספת המשתנה החסר
 const defaultLanguage = 'he'; // שפה ברירת מחדל - עברית
 
