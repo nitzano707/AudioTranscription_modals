@@ -859,6 +859,134 @@ function downloadSegmentationResult() {
 }
 
 
+async function startSpeakerSegmentation() {
+    // בדיקה אם יש מפתח API של PyAnnote במטמון הדפדפן
+    let apiKey = localStorage.getItem('pyannoteApiKey');
+    if (!apiKey) {
+        apiKey = prompt('אנא הזן את מפתח ה-API של PyAnnote:');
+        if (!apiKey) {
+            alert('מפתח API נדרש לצורך המשך התהליך.');
+            return;
+        }
+        localStorage.setItem('pyannoteApiKey', apiKey);
+    }
+
+    // הצגת הודעה על תחילת עיבוד התמלול במודאל
+    const segmentationResultElement = document.getElementById("segmentationResult");
+    segmentationResultElement.textContent = "מתחיל בעיבוד התמלול... נא להמתין.";
+
+    // קובץ האודיו שנבחר
+    const audioFile = document.getElementById('audioFile').files[0];
+    if (!audioFile) {
+        alert('אנא בחר קובץ להעלאה.');
+        return;
+    }
+
+    try {
+        // שליחת הקובץ לזיהוי דוברים ב-API של PyAnnote
+        const jobId = await sendToSpeakerDiarization(audioFile, apiKey);
+        if (!jobId) {
+            throw new Error('Failed to initiate speaker diarization.');
+        }
+
+        // קבלת תוצאה של זיהוי הדוברים
+        const diarizationData = await getDiarizationResult(jobId, apiKey);
+        if (!diarizationData) {
+            throw new Error('Failed to fetch diarization data.');
+        }
+
+        // מיזוג תוצאת זיהוי הדוברים עם התמלול הקיים
+        const mergedTranscription = mergeDiarizationWithTranscription(diarizationData, transcriptionData);
+
+        // הצגת התוצאה המשולבת במודאל
+        displayMergedTranscriptionInModal(mergedTranscription);
+
+        // הצגת כפתורי העתקה והורדה לאחר סיום התמלול
+        document.getElementById("copyButton").style.display = "block";
+        document.getElementById("downloadButton").style.display = "block";
+
+        // בקשת אישור למחיקת מפתח ה-API ממטמון הדפדפן
+        const deleteApiKey = confirm('האם ברצונך למחוק את מפתח ה-API של PyAnnote ממטמון הדפדפן?');
+        if (deleteApiKey) {
+            localStorage.removeItem('pyannoteApiKey');
+        }
+
+    } catch (error) {
+        console.error('Error during speaker segmentation:', error);
+        segmentationResultElement.textContent = "שגיאה במהלך עיבוד החלוקה לדוברים. נא לנסות שוב.";
+    }
+}
+
+async function sendToSpeakerDiarization(audioFile, apiKey) {
+    const formData = new FormData();
+    formData.append('audio', audioFile);
+
+    try {
+        const response = await fetch('https://api.pyannote.ai/v1/diarize', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return data.jobId;
+        } else {
+            const errorText = await response.text();
+            throw new Error(`Error: ${errorText}`);
+        }
+    } catch (error) {
+        console.error('Error sending to PyAnnote:', error);
+    }
+}
+
+async function getDiarizationResult(jobId, apiKey) {
+    const options = {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`
+        }
+    };
+
+    try {
+        const response = await fetch(`https://api.pyannote.ai/v1/jobs/${jobId}`, options);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.status === 'succeeded') {
+                return data.output.diarization;
+            } else {
+                console.log(`Job status: ${data.status}`);
+                // המתנה של כמה שניות ובדיקה חוזרת אם עדיין לא הסתיים
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                return await getDiarizationResult(jobId, apiKey);
+            }
+        } else {
+            const errorText = await response.text();
+            throw new Error(`Error: ${errorText}`);
+        }
+    } catch (error) {
+        console.error('Error fetching PyAnnote result:', error);
+    }
+}
+
+function displayMergedTranscriptionInModal(mergedTranscription) {
+    const segmentationResultElement = document.getElementById('segmentationResult');
+    segmentationResultElement.innerHTML = ''; // איפוס התוכן הקיים
+
+    mergedTranscription.forEach((segment) => {
+        segmentationResultElement.innerHTML += `
+            <strong>${segment.speaker === 'speaker_1' ? 'מראיין' : 'מרואיין'}:</strong> 
+            [${segment.timestamp}] ${segment.text}<br><br>
+        `;
+    });
+
+    segmentationResultElement.innerHTML += "\n\n---\nסוף תמלול";
+}
+
+
+
 
 // פונקציה לאיפוס תהליך ההעלאה והתמלול
 function restartProcess() {
