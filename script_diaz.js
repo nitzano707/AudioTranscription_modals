@@ -861,12 +861,6 @@ function downloadSegmentationResult() {
 
 // התחלת זיהוי דוברים עם PYANNOTE
 
-// פונקציה להצגת מודאל של חלוקה לדוברים והתחלת תהליך זיהוי הדוברים
-function showSpeakerSegmentationModal() {
-    openModal('speakerSegmentationModal');
-    startSpeakerSegmentation();
-}
-
 async function startSpeakerSegmentation() {
     // בדיקה אם יש מפתח API של PyAnnote במטמון הדפדפן
     let apiKey = localStorage.getItem('pyannoteApiKey');
@@ -879,11 +873,6 @@ async function startSpeakerSegmentation() {
         localStorage.setItem('pyannoteApiKey', apiKey);
     }
 
-    // הצגת הודעה על תחילת עיבוד התמלול במודאל
-    const segmentationResultElement = document.getElementById("segmentationResult");
-    segmentationResultElement.textContent = "מתחיל בעיבוד התמלול... נא להמתין.";
-
-    // קובץ האודיו שנבחר
     const audioFile = document.getElementById('audioFile').files[0];
     if (!audioFile) {
         alert('אנא בחר קובץ להעלאה.');
@@ -892,8 +881,7 @@ async function startSpeakerSegmentation() {
 
     try {
         // שלב 1: יצירת URL זמני למדיה
-        const objectKey = apiKey.slice(-4) + '77Yflp';
-        const mediaUploadUrl = await createMediaUrl(apiKey, objectKey);
+        const mediaUploadUrl = await createMediaUrl(apiKey);
         if (!mediaUploadUrl) {
             throw new Error('Failed to create media URL.');
         }
@@ -902,103 +890,62 @@ async function startSpeakerSegmentation() {
         await uploadMediaFile(mediaUploadUrl, audioFile);
 
         // שלב 3: שליחת הבקשה לזיהוי דוברים עם ה-`media://` URL
-        const jobId = await sendToSpeakerDiarization(`media://${objectKey}`, apiKey);
+        const jobId = await sendToSpeakerDiarization(mediaUploadUrl, apiKey);
         if (!jobId) {
             throw new Error('Failed to initiate speaker diarization.');
         }
 
-        // קבלת תוצאה של זיהוי הדוברים
+        // שלב 4: קבלת תוצאה של זיהוי הדוברים
         const diarizationData = await getDiarizationResult(jobId, apiKey);
         if (!diarizationData) {
             throw new Error('Failed to fetch diarization data.');
         }
 
-        // מיזוג תוצאת זיהוי הדוברים עם התמלול הקיים
-        const mergedTranscription = mergeDiarizationWithTranscription(diarizationData, transcriptionData);
-
-        // הצגת התוצאה המשולבת במודאל
-        displayMergedTranscriptionInModal(mergedTranscription);
-
-        // הצגת כפתורי העתקה והורדה לאחר סיום התמלול
-        document.getElementById("copyButton").style.display = "block";
-        document.getElementById("downloadButton").style.display = "block";
+        displayMergedTranscriptionInModal(mergeDiarizationWithTranscription(diarizationData, transcriptionData));
 
         // בקשת אישור למחיקת מפתח ה-API ממטמון הדפדפן
         const deleteApiKey = confirm('האם ברצונך למחוק את מפתח ה-API של PyAnnote ממטמון הדפדפן?');
         if (deleteApiKey) {
             localStorage.removeItem('pyannoteApiKey');
         }
-
     } catch (error) {
         console.error('Error during speaker segmentation:', error);
-        segmentationResultElement.textContent = "שגיאה במהלך עיבוד החלוקה לדוברים. נא לנסות שוב.";
+        alert('שגיאה במהלך עיבוד החלוקה לדוברים. נא לנסות שוב.');
     }
 }
 
-async function createMediaUrl(apiKey, objectKey) {
+
+async function createMediaUrl(apiKey) {
     try {
-        const response = await fetch('https://api.pyannote.ai/v1/media/input', {
+        const response = await fetch('/.netlify/functions/createMediaUrl', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                url: `media://${objectKey}` // 'your-object-key' יכול להיות מחרוזת ייחודית כלשהי
-            })
+                'Content-Type': 'application/json',
+                'pyannote-api-key': apiKey
+            }
         });
-
         if (response.ok) {
             const data = await response.json();
-            return data.url; // ה-URL להעלאת הקובץ
-        } else {
-            const errorText = await response.text();
-            throw new Error(`Error creating media URL: ${errorText}`);
+            return data.uploadUrl;
         }
     } catch (error) {
         console.error('Error creating media URL:', error);
     }
 }
 
-async function uploadMediaFile(uploadUrl, audioFile) {
-    try {
-        const response = await fetch(uploadUrl, {
-            method: 'PUT',
-            body: audioFile
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to upload media file.');
-        }
-    } catch (error) {
-        console.error('Error uploading media file:', error);
-    }
-}
-
 async function sendToSpeakerDiarization(mediaUrl, apiKey) {
-    const requestBody = {
-        url: mediaUrl,
-        webhook: '', // במידה ואתה רוצה לקבל הודעה לאחר סיום העיבוד, אפשר לספק URL של webhook
-        numSpeakers: 2, // מספר דוברים להערכה (אם ידוע)
-        confidence: true // אם תרצה לכלול את רמת הביטחון בחלוקה לדוברים
-    };
-
     try {
-        const response = await fetch('https://api.pyannote.ai/v1/diarize', {
+        const response = await fetch('/.netlify/functions/sendToSpeakerDiarization', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'pyannote-api-key': apiKey
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({ mediaUrl })
         });
-
         if (response.ok) {
             const data = await response.json();
             return data.jobId;
-        } else {
-            const errorText = await response.text();
-            throw new Error(`Error: ${errorText}`);
         }
     } catch (error) {
         console.error('Error sending to PyAnnote:', error);
@@ -1006,48 +953,35 @@ async function sendToSpeakerDiarization(mediaUrl, apiKey) {
 }
 
 async function getDiarizationResult(jobId, apiKey) {
-    const options = {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`
-        }
-    };
-
     try {
-        const response = await fetch(`https://api.pyannote.ai/v1/jobs/${jobId}`, options);
+        let response = await fetch('/.netlify/functions/getDiarizationResult', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'pyannote-api-key': apiKey
+            },
+            body: JSON.stringify({ jobId })
+        });
+
+        while (response.status === 202) {
+            await new Promise(resolve => setTimeout(resolve, 5000));  // המתנה של 5 שניות
+            response = await fetch('/.netlify/functions/getDiarizationResult', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'pyannote-api-key': apiKey
+                },
+                body: JSON.stringify({ jobId })
+            });
+        }
+
         if (response.ok) {
-            const data = await response.json();
-            if (data.status === 'succeeded') {
-                return data.output.diarization;
-            } else {
-                console.log(`Job status: ${data.status}`);
-                // המתנה של כמה שניות ובדיקה חוזרת אם עדיין לא הסתיים
-                await new Promise(resolve => setTimeout(resolve, 5000));
-                return await getDiarizationResult(jobId, apiKey);
-            }
-        } else {
-            const errorText = await response.text();
-            throw new Error(`Error: ${errorText}`);
+            return await response.json();
         }
     } catch (error) {
         console.error('Error fetching PyAnnote result:', error);
     }
 }
-
-function displayMergedTranscriptionInModal(mergedTranscription) {
-    const segmentationResultElement = document.getElementById('segmentationResult');
-    segmentationResultElement.innerHTML = ''; // איפוס התוכן הקיים
-
-    mergedTranscription.forEach((segment) => {
-        segmentationResultElement.innerHTML += `
-            <strong>${segment.speaker === 'speaker_1' ? 'מראיין' : 'מרואיין'}:</strong> 
-            [${segment.timestamp}] ${segment.text}<br><br>
-        `;
-    });
-
-    segmentationResultElement.innerHTML += "\n\n---\nסוף תמלול";
-}
-
 
 
 
