@@ -1,47 +1,67 @@
-const fetch = require('node-fetch');
-
-exports.handler = async (event) => {
-    if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            body: 'Method Not Allowed'
-        };
-    }
-
+async function createMediaUrl(apiKey) {
     try {
-        // קבלת מפתח ה-API ממשתני הסביבה
-        const apiKey = process.env.PYANNOTE_API_KEY;
-
-        // יצירת כתובת זמנית להעלאת קובץ
-        const response = await fetch('https://api.pyannote.ai/v1/media/input', {
+        const response = await fetch('/.netlify/functions/createMediaUrl', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'pyannote-api-key': apiKey
+            }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            return data.uploadUrl;
+        }
+    } catch (error) {
+        console.error('Error creating media URL:', error);
+    }
+}
+
+async function sendToSpeakerDiarization(mediaUrl, apiKey) {
+    try {
+        const response = await fetch('/.netlify/functions/sendToSpeakerDiarization', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'pyannote-api-key': apiKey
             },
-            body: JSON.stringify({
-                url: `media://${generateObjectKey()}`
-            })
+            body: JSON.stringify({ mediaUrl })
+        });
+        if (response.ok) {
+            const data = await response.json();
+            return data.jobId;
+        }
+    } catch (error) {
+        console.error('Error sending to PyAnnote:', error);
+    }
+}
+
+async function getDiarizationResult(jobId, apiKey) {
+    try {
+        let response = await fetch('/.netlify/functions/getDiarizationResult', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'pyannote-api-key': apiKey
+            },
+            body: JSON.stringify({ jobId })
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to create media URL.');
+        while (response.status === 202) {
+            await new Promise(resolve => setTimeout(resolve, 5000));  // המתנה של 5 שניות
+            response = await fetch('/.netlify/functions/getDiarizationResult', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'pyannote-api-key': apiKey
+                },
+                body: JSON.stringify({ jobId })
+            });
         }
 
-        const data = await response.json();
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ uploadUrl: data.url })
-        };
+        if (response.ok) {
+            return await response.json();
+        }
     } catch (error) {
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: error.message })
-        };
+        console.error('Error fetching PyAnnote result:', error);
     }
-};
-
-// פונקציה ליצירת מפתח ייחודי
-function generateObjectKey() {
-    return Math.random().toString(36).substr(2, 9) + "77Yflp";
 }
