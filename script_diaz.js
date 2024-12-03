@@ -660,52 +660,72 @@ function showSpeakerSegmentationModal() {
 }
 
 async function startSpeakerSegmentation() {
-    let intervieweeName = document.getElementById('intervieweeNameInput').value.trim();
-    if (!intervieweeName) {
-        intervieweeName = "מרואיין";
-    }
+    // הצגת הודעה על תחילת התהליך במודאל
+    const segmentationResultElement = document.getElementById("segmentationResult");
+    segmentationResultElement.textContent = "מתחיל בעיבוד התמלול... נא להמתין.";
 
-    const transcriptionText = transcriptionDataText;
-    const segments = splitTextIntoSegments(transcriptionText);
-    let fullResult = "";
-    document.getElementById("segmentationResult").textContent = "מתחיל בעיבוד התמלול...\n\n";
-
-    for (const segment of segments) {
-        //const prompt = `חלק את הטקסט הבא לדוברים – "מראיין" ו-"${intervieweeName}". אם המשפט מכיל סימן שאלה או נשמע כמו שאלה, התייחס אליו כדבריו של המראיין. קטעים ארוכים ומפורטים ללא סימני שאלה הם לרוב דברי ${intervieweeName}. אם מופיעות מילים שנראות כשגויות או לא תקניות, השאר את המילה השגויה כפי שהיא מופיעה בתמלול, והצג את התיקון המוצע בסוגריים מרובעים מיד אחריה. לדוגמה: "השיקונים [השיקולים]". התמקד בתיקון מילים שאינן מתאימות להקשר המשפט או נראות שגויות מבחינת השפה. פצל את הפסקה בהתאם לדוברים, כאשר כל דובר ממשיך את דבריו ברצף, ללא תוויות חוזרות. החזר את הטקסט עם התיקונים בסוגריים מרובעים בלבד, ללא טקסט נוסף לפניו או אחריו:\n\n${segment}`;
-        const prompt = `חלק את הטקסט הבא לפי דוברים - "מראיין" ו-"${intervieweeName}". אל תדלג על שום מילה מהטקסט המקורי שאשלח לך. השתמש באסטרטגיות הבאות כדי להבחין ביניהם:- אם המשפט מכיל סימן שאלה, או מנוסח כשאלה, התייחס אליו כדבריו של המראיין.
-- קטעים ארוכים ומפורטים או כאלו הכוללים מידע אישי ומתארים חוויות – התייחס אליהם כדברי ${intervieweeName}.
-- כאשר מופיעים ביטויים כמו "ספרי לנו", "הסבר", או פניות דומות, ראה בכך אינדיקציה לכך שמדובר בדברי המראיין.
-- במקרים בהם שם המרואיין מופיע בתוך הטקסט, זהו רמז להפרדת דבריו מהשאלות של המראיין.
-- שים לב לשימוש במגדר בצורת הפעלים: אם המגדר של המראיין והמרואיין שונים, צורת הפעלים יכולה לעזור לזהות את הדובר, כאשר המראיין או המרואיין מדברים בהתאם למגדרם.
-- שמור על רצף הדובר, כך שכל דובר ממשיך את דבריו ללא תוויות חוזרות מיותרות.
-- בדוק את עצמך היטב שאתה לא מדלג על אף מילה מהטקסט המקורי שנשלח אליך.
-- אם מופיעה מילה שנראית שגויה או לא תקנית, השאר אותה כפי שהיא והצג תיקון מוצע בסוגריים מרובעים מיד אחריה. לדוגמה: "השיקונים [השיקולים]". התמקד בתיקון מילים שאינן מתאימות להקשר המשפט או נראות שגויות מבחינה לשונית.
-- אל תוסיף שום טקסט או תו כלשהו (כמו למשל "Here is the divided text:") לפני או אחרי הטקסט שאתה מחזיר.
-החזר את הטקסט כשהוא מפוצל לפי דוברים, עם התיקונים המוצעים בלבד בסוגריים מרובעים, ללא טקסט נוסף לפני או אחרי:\n\n${segment}`;
-
-
-        
-
-        try {
-            const result = await getSegmentedText(segment, prompt, intervieweeName);
-            // הוספת שורה חדשה בין הדוברים
-            fullResult += result.replace(/(מראיין:|מרואיין:|${intervieweeName}:)/g, "\n$1") + "\n\n";
-            document.getElementById("segmentationResult").textContent = fullResult;
-        } catch (error) {
-            console.error("Error with segment:", error);
+    try {
+        // שלב 1: בדיקת מפתח API של PyAnnote
+        let apiKey = localStorage.getItem('pyannoteApiKey');
+        if (!apiKey) {
+            apiKey = prompt('אנא הזן את מפתח ה-API של PyAnnote:');
+            if (!apiKey) {
+                alert('מפתח API נדרש לצורך המשך התהליך.');
+                return;
+            }
+            localStorage.setItem('pyannoteApiKey', apiKey);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 200)); // המתנה קצרה בין הבקשות
+        // שלב 2: בחירת קובץ האודיו
+        const audioFile = document.getElementById('audioFile').files[0];
+        if (!audioFile) {
+            alert('אנא בחר קובץ להעלאה.');
+            return;
+        }
+
+        // שלב 3: יצירת URL זמני להעלאת קובץ המדיה
+        const uploadUrl = await createMediaUrl(apiKey);
+        if (!uploadUrl) {
+            throw new Error('Failed to create media URL.');
+        }
+
+        // שלב 4: העלאת קובץ האודיו ל-URL שנוצר
+        await uploadMediaFileNetlify(audioFile, uploadUrl, apiKey);
+
+        // שלב 5: שליחת הבקשה לזיהוי דוברים עם ה-`media://` URL
+        const jobId = await sendToSpeakerDiarization(uploadUrl, apiKey);
+        if (!jobId) {
+            throw new Error('Failed to initiate speaker diarization.');
+        }
+
+        // שלב 6: קבלת תוצאה של זיהוי הדוברים
+        const diarizationData = await getDiarizationResult(jobId, apiKey);
+        if (!diarizationData) {
+            throw new Error('Failed to fetch diarization data.');
+        }
+
+        // שלב 7: מיזוג תוצאת זיהוי הדוברים עם התמלול הקיים (בהנחה שיש `transcriptionData`)
+        const mergedTranscription = mergeDiarizationWithTranscription(diarizationData, transcriptionData);
+
+        // שלב 8: הצגת התוצאה המשולבת במודאל
+        displayMergedTranscriptionInModal(mergedTranscription);
+
+        // הצגת כפתורי העתקה והורדה לאחר סיום התמלול
+        document.getElementById("copyButton").style.display = "block";
+        document.getElementById("downloadButton").style.display = "block";
+
+        // שלב 9: בקשת אישור למחיקת מפתח ה-API ממטמון הדפדפן
+        const deleteApiKey = confirm('האם ברצונך למחוק את מפתח ה-API של PyAnnote ממטמון הדפדפן?');
+        if (deleteApiKey) {
+            localStorage.removeItem('pyannoteApiKey');
+        }
+
+    } catch (error) {
+        console.error('Error during speaker segmentation:', error);
+        segmentationResultElement.textContent = "שגיאה במהלך עיבוד החלוקה לדוברים. נא לנסות שוב.";
     }
-
-    // הוספת הודעת "סוף תמלול"
-    fullResult += "\n\n---\nסוף תמלול";
-    document.getElementById("segmentationResult").textContent = fullResult;
-
-    // הפיכת כפתורי ההורדה וההעתקה לזמינים לאחר סיום התמלול
-    document.getElementById("copyButton").style.display = "block";
-    document.getElementById("downloadButton").style.display = "block";
 }
+
 
 
 
@@ -861,60 +881,6 @@ function downloadSegmentationResult() {
 
 // התחלת זיהוי דוברים עם PYANNOTE
 
-async function startSpeakerSegmentation() {
-    // בדיקה אם יש מפתח API של PyAnnote במטמון הדפדפן
-    let apiKey = localStorage.getItem('pyannoteApiKey');
-    if (!apiKey) {
-        apiKey = prompt('אנא הזן את מפתח ה-API של PyAnnote:');
-        if (!apiKey) {
-            alert('מפתח API נדרש לצורך המשך התהליך.');
-            return;
-        }
-        localStorage.setItem('pyannoteApiKey', apiKey);
-    }
-
-    const audioFile = document.getElementById('audioFile').files[0];
-    if (!audioFile) {
-        alert('אנא בחר קובץ להעלאה.');
-        return;
-    }
-
-    try {
-        // שלב 1: יצירת URL זמני למדיה
-        const mediaUploadUrl = await createMediaUrl(apiKey);
-        if (!mediaUploadUrl) {
-            throw new Error('Failed to create media URL.');
-        }
-
-        // שלב 2: העלאת קובץ המדיה ל-URL שנוצר
-        await uploadMediaFile(mediaUploadUrl, audioFile);
-
-        // שלב 3: שליחת הבקשה לזיהוי דוברים עם ה-`media://` URL
-        const jobId = await sendToSpeakerDiarization(mediaUploadUrl, apiKey);
-        if (!jobId) {
-            throw new Error('Failed to initiate speaker diarization.');
-        }
-
-        // שלב 4: קבלת תוצאה של זיהוי הדוברים
-        const diarizationData = await getDiarizationResult(jobId, apiKey);
-        if (!diarizationData) {
-            throw new Error('Failed to fetch diarization data.');
-        }
-
-        displayMergedTranscriptionInModal(mergeDiarizationWithTranscription(diarizationData, transcriptionData));
-
-        // בקשת אישור למחיקת מפתח ה-API ממטמון הדפדפן
-        const deleteApiKey = confirm('האם ברצונך למחוק את מפתח ה-API של PyAnnote ממטמון הדפדפן?');
-        if (deleteApiKey) {
-            localStorage.removeItem('pyannoteApiKey');
-        }
-    } catch (error) {
-        console.error('Error during speaker segmentation:', error);
-        alert('שגיאה במהלך עיבוד החלוקה לדוברים. נא לנסות שוב.');
-    }
-}
-
-
 async function createMediaUrl(apiKey) {
     try {
         const response = await fetch('/.netlify/functions/createMediaUrl', {
@@ -933,7 +899,43 @@ async function createMediaUrl(apiKey) {
     }
 }
 
-async function sendToSpeakerDiarization(mediaUrl, apiKey) {
+
+
+async function uploadMediaFileNetlify(audioFile, uploadUrl, apiKey) {
+    try {
+        const reader = new FileReader();
+        reader.readAsDataURL(audioFile);
+        reader.onloadend = async () => {
+            const base64data = reader.result.split(',')[1]; // החלק שמכיל את המידע בקובץ
+
+            const response = await fetch('/.netlify/functions/uploadAudioToPyAnnote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'pyannote-api-key': apiKey
+                },
+                body: JSON.stringify({
+                    uploadUrl: uploadUrl,
+                    audioFileBase64: base64data
+                })
+            });
+
+            if (response.ok) {
+                console.log('File uploaded successfully');
+            } else {
+                const errorText = await response.text();
+                throw new Error(`Error uploading file: ${errorText}`);
+            }
+        };
+    } catch (error) {
+        console.error('Error uploading media file:', error);
+    }
+}
+
+
+
+
+aasync function sendToSpeakerDiarization(mediaUrl, apiKey) {
     try {
         const response = await fetch('/.netlify/functions/sendToSpeakerDiarization', {
             method: 'POST',
@@ -951,6 +953,8 @@ async function sendToSpeakerDiarization(mediaUrl, apiKey) {
         console.error('Error sending to PyAnnote:', error);
     }
 }
+
+
 
 async function getDiarizationResult(jobId, apiKey) {
     try {
@@ -982,6 +986,8 @@ async function getDiarizationResult(jobId, apiKey) {
         console.error('Error fetching PyAnnote result:', error);
     }
 }
+
+
 
 
 
