@@ -166,8 +166,7 @@ async function uploadAudio() {
 
            await new Promise(resolve => setTimeout(resolve, 500));
        }
-    // LOG
-        console.log(transcriptionData);
+   
        saveTranscriptions(transcriptionData, audioFile.name);
        displayTranscription('text');
        closeModal('modal3');
@@ -184,6 +183,8 @@ async function uploadAudio() {
        closeModal('modal3');
        alert('שגיאה במהלך התמלול. נא לנסות שוב.');
    }
+     // LOG
+        console.log(transcriptionData);
 }
 
 function copyTranscription() {
