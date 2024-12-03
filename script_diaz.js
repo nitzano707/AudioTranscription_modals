@@ -656,6 +656,7 @@ function updateProgressBarSmoothly(currentChunk, totalChunks, estimatedTime) {
 
 function showSpeakerSegmentationModal() {
     openModal('speakerSegmentationModal');
+    startSpeakerSegmentation();
 }
 
 async function startSpeakerSegmentation() {
