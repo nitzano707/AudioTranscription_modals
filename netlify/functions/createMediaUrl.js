@@ -1,67 +1,41 @@
-async function createMediaUrl(apiKey) {
+const fetch = require('node-fetch');
+
+exports.handler = async (event) => {
+    if (event.httpMethod !== 'POST') {
+        return {
+            statusCode: 405,
+            body: 'Method Not Allowed'
+        };
+    }
+
     try {
-        const response = await fetch('/.netlify/functions/createMediaUrl', {
+        const apiKey = event.headers['pyannote-api-key'];  // קבלת מפתח ה-API מהבקשה
+
+        const response = await fetch('https://api.pyannote.ai/v1/media/input', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'pyannote-api-key': apiKey
-            }
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                url: 'media://' + apiKey.slice(-4) + '77Yflp'  // יצירת מפתח ייחודי
+            })
         });
+
         if (response.ok) {
             const data = await response.json();
-            return data.uploadUrl;
+            return {
+                statusCode: 200,
+                body: JSON.stringify({ uploadUrl: data.url })
+            };
+        } else {
+            const errorText = await response.text();
+            throw new Error(`Error creating media URL: ${errorText}`);
         }
     } catch (error) {
-        console.error('Error creating media URL:', error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: error.message })
+        };
     }
-}
-
-async function sendToSpeakerDiarization(mediaUrl, apiKey) {
-    try {
-        const response = await fetch('/.netlify/functions/sendToSpeakerDiarization', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'pyannote-api-key': apiKey
-            },
-            body: JSON.stringify({ mediaUrl })
-        });
-        if (response.ok) {
-            const data = await response.json();
-            return data.jobId;
-        }
-    } catch (error) {
-        console.error('Error sending to PyAnnote:', error);
-    }
-}
-
-async function getDiarizationResult(jobId, apiKey) {
-    try {
-        let response = await fetch('/.netlify/functions/getDiarizationResult', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'pyannote-api-key': apiKey
-            },
-            body: JSON.stringify({ jobId })
-        });
-
-        while (response.status === 202) {
-            await new Promise(resolve => setTimeout(resolve, 5000));  // המתנה של 5 שניות
-            response = await fetch('/.netlify/functions/getDiarizationResult', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'pyannote-api-key': apiKey
-                },
-                body: JSON.stringify({ jobId })
-            });
-        }
-
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (error) {
-        console.error('Error fetching PyAnnote result:', error);
-    }
-}
+};
