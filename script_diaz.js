@@ -183,8 +183,7 @@ async function uploadAudio() {
        closeModal('modal3');
        alert('שגיאה במהלך התמלול. נא לנסות שוב.');
    }
-     // LOG
-        console.log(transcriptionData);
+     
 }
 
 function copyTranscription() {
@@ -436,7 +435,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                         console.warn(`Invalid timestamp for segment:`, segment);
                     }
                 });
-
+                    console.log('Current transcriptionData after processing a chunk:', transcriptionData); // לוג כאן
                 // עדכון totalElapsedTime לפי זמן הסיום של המקטע האחרון
                 const lastSegment = data.segments[data.segments.length - 1];
                 if (lastSegment && typeof lastSegment.end === 'number') {
