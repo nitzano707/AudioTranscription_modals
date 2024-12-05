@@ -821,15 +821,22 @@ function downloadSegmentationResult() {
 // התחלת זיהוי דוברים עם PYANNOTE
 
 async function startSpeakerSegmentation() {
-    const audioFile = document.getElementById('audioFile').files[0];
-    if (!audioFile) {
-        alert('אנא בחר קובץ להעלאה.');
-        return;
+      
+    // בדיקה אם יש מפתח API של PyAnnote במטמון הדפדפן
+    let apiKey = localStorage.getItem('pyannoteApiKey');
+    if (!apiKey) {
+        apiKey = prompt('אנא הזן את מפתח ה-API של PyAnnote:');
+        if (!apiKey) {
+            alert('מפתח API נדרש לצורך המשך התהליך.');
+            return;
+        }
+        localStorage.setItem('pyannoteApiKey', apiKey);
     }
 
-    const apiKey = localStorage.getItem('pyannoteApiKey');
-    if (!apiKey) {
-        alert('מפתח API ל-PyAnnote חסר. נא להזין אותו בהגדרות.');
+
+     const audioFile = document.getElementById('audioFile').files[0];
+    if (!audioFile) {
+        alert('אנא בחר קובץ להעלאה.');
         return;
     }
 
