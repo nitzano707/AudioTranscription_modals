@@ -821,97 +821,47 @@ function downloadSegmentationResult() {
 // התחלת זיהוי דוברים עם PYANNOTE
 
 async function startSpeakerSegmentation() {
-    // בדיקה אם יש מפתח API של PyAnnote במטמון הדפדפן
-    let apiKey = localStorage.getItem('pyannoteApiKey');
-    if (!apiKey) {
-        apiKey = prompt('אנא הזן את מפתח ה-API של PyAnnote:');
-        if (!apiKey) {
-            alert('מפתח API נדרש לצורך המשך התהליך.');
-            return;
-        }
-        localStorage.setItem('pyannoteApiKey', apiKey);
-    }
-
-    // הצגת הודעה על תחילת עיבוד התמלול במודאל
-    const segmentationResultElement = document.getElementById("segmentationResult");
-    segmentationResultElement.textContent = "מתחיל בעיבוד התמלול... נא להמתין.";
-
-    // קובץ האודיו שנבחר
     const audioFile = document.getElementById('audioFile').files[0];
     if (!audioFile) {
         alert('אנא בחר קובץ להעלאה.');
         return;
     }
 
+    const apiKey = localStorage.getItem('pyannoteApiKey');
+    if (!apiKey) {
+        alert('מפתח API ל-PyAnnote חסר. נא להזין אותו בהגדרות.');
+        return;
+    }
+
+    const segmentationResultElement = document.getElementById("segmentationResult");
+    segmentationResultElement.textContent = "מתחיל בהעלאת הקובץ... נא להמתין.";
+
     try {
-        // שלב 1: יצירת URL זמני למדיה
-        const mediaUploadUrl = await createMediaUrl(apiKey);
-        if (!mediaUploadUrl) {
-            throw new Error('Failed to create media URL.');
-        }
+        // שלב 1: העלאת קובץ
+        const uploadUrl = "{"url":"https://pyannote-temp-files.s3.fr-par.scw.cloud/media/1a362a69-bfdd-48c2-928d-8a2e451f8857/fecb80f4-8dce-489f-bcc0-e0f869db2cc9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=SCWWPPYX678RXP8QN950%2F20241205%2Ffr-par%2Fs3%2Faws4_request&X-Amz-Date=20241205T082426Z&X-Amz-Expires=3600&X-Amz-Signature=d33bf955f03f2a8d2edbf6e6cfbc30ed839ede2924b2a6eeb187d2bf3ef6e41c&X-Amz-SignedHeaders=host&x-id=PutObject"}; // ה-URL שהתקבל
+        await uploadMediaFile(uploadUrl, audioFile);
 
-        // שלב 2: העלאת קובץ המדיה ל-URL שנוצר
-        await uploadMediaFile(mediaUploadUrl, audioFile);
+        segmentationResultElement.textContent = "הקובץ הועלה בהצלחה. מתחיל תהליך זיהוי הדוברים...";
 
-        // שלב 3: שליחת הבקשה לזיהוי דוברים עם ה-`media://` URL
-        const jobId = await sendToSpeakerDiarization(mediaUploadUrl, apiKey);
+        // שלב 2: שליחת בקשה לזיהוי דוברים
+        const jobId = await sendToSpeakerDiarization(uploadUrl, apiKey);
         if (!jobId) {
-            throw new Error('Failed to initiate speaker diarization.');
+            throw new Error('נכשל בהתחלת תהליך זיהוי הדוברים.');
         }
 
-        // קבלת תוצאה של זיהוי הדוברים
+        // שלב 3: קבלת תוצאות
         const diarizationData = await getDiarizationResult(jobId, apiKey);
         if (!diarizationData) {
-            throw new Error('Failed to fetch diarization data.');
+            throw new Error('נכשל בקבלת נתוני הדיאריזציה.');
         }
 
-        // מיזוג תוצאת זיהוי הדוברים עם התמלול הקיים
-        const mergedTranscription = mergeDiarizationWithTranscription(diarizationData, transcriptionData);
+        // שלב 4: הצגת תוצאות
+        displaySpeakerSegmentationResults(diarizationData);
 
-        // הצגת התוצאה המשולבת במודאל
-        displayMergedTranscriptionInModal(mergedTranscription);
-
-        // הצגת כפתורי העתקה והורדה לאחר סיום התמלול
-        document.getElementById("copyButton").style.display = "block";
-        document.getElementById("downloadButton").style.display = "block";
-
-        // בקשת אישור למחיקת מפתח ה-API ממטמון הדפדפן
-        const deleteApiKey = confirm('האם ברצונך למחוק את מפתח ה-API של PyAnnote ממטמון הדפדפן?');
-        if (deleteApiKey) {
-            localStorage.removeItem('pyannoteApiKey');
-        }
-
+        segmentationResultElement.textContent = "תהליך זיהוי הדוברים הושלם בהצלחה!";
     } catch (error) {
-        console.error('Error during speaker segmentation:', error);
-        segmentationResultElement.textContent = "שגיאה במהלך עיבוד החלוקה לדוברים. נא לנסות שוב.";
-    }
-}
-
-
-async function createMediaUrl(apiKey) {
-    try {
-        const options = {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ url: 'media://audio-file' }) // יצירת כתובת URL למדיה
-        };
-
-        const response = await fetch('https://api.pyannote.ai/v1/media/input', options);
-
-        if (response.status === 201) {
-            const data = await response.json();
-            return data.url; // החזרת ה-URL להעלאת הקובץ
-        } else {
-            // טיפול בשגיאות בהתאם לקודים המתקבלים
-            const errorData = await response.json();
-            console.error('Error creating media URL: ', errorData);
-            alert(`שגיאה ביצירת URL למדיה: ${errorData.message}`);
-        }
-    } catch (error) {
-        console.error('Error creating media URL:', error);
+        console.error('שגיאה במהלך תהליך זיהוי הדוברים:', error);
+        segmentationResultElement.textContent = "שגיאה במהלך תהליך זיהוי הדוברים. נא לנסות שוב.";
     }
 }
 
@@ -926,19 +876,15 @@ async function uploadMediaFile(uploadUrl, audioFile) {
         if (!response.ok) {
             throw new Error('Failed to upload media file.');
         }
+        console.log('File uploaded successfully.');
     } catch (error) {
         console.error('Error uploading media file:', error);
+        throw error;
     }
 }
 
 
 async function sendToSpeakerDiarization(mediaUrl, apiKey) {
-    const requestBody = {
-        url: mediaUrl,
-        numSpeakers: 2, // מספר דוברים להערכה (אם ידוע)
-        confidence: true // לכלול את רמת הביטחון בחלוקה לדוברים
-    };
-
     try {
         const response = await fetch('https://api.pyannote.ai/v1/diarize', {
             method: 'POST',
@@ -946,65 +892,62 @@ async function sendToSpeakerDiarization(mediaUrl, apiKey) {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({ url: mediaUrl })
         });
 
         if (response.ok) {
             const data = await response.json();
-            return data.jobId;
+            return data.jobId; // מחזיר את מזהה העבודה
         } else {
-            const errorText = await response.text();
-            throw new Error(`Error: ${errorText}`);
+            console.error('Failed to start diarization:', await response.text());
         }
     } catch (error) {
-        console.error('Error sending to PyAnnote:', error);
+        console.error('Error starting diarization:', error);
+        throw error;
     }
 }
 
 
 async function getDiarizationResult(jobId, apiKey) {
-    const options = {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`
-        }
-    };
-
     try {
-        const response = await fetch(`https://api.pyannote.ai/v1/jobs/${jobId}`, options);
-        if (response.ok) {
-            const data = await response.json();
-            if (data.status === 'succeeded') {
-                return data.output.diarization;
+        while (true) {
+            const response = await fetch(`https://api.pyannote.ai/v1/jobs/${jobId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.status === 'succeeded') {
+                    return data.output.diarization; // תוצאות הדיאריזציה
+                }
+                console.log('Processing... waiting for 5 seconds.');
+                await new Promise(resolve => setTimeout(resolve, 5000)); // המתנה של 5 שניות
             } else {
-                // המתנה של כמה שניות ובדיקה חוזרת אם עדיין לא הסתיים
-                await new Promise(resolve => setTimeout(resolve, 5000));
-                return await getDiarizationResult(jobId, apiKey);
+                console.error('Failed to fetch diarization result:', await response.text());
+                throw new Error('Error fetching diarization result.');
             }
-        } else {
-            const errorText = await response.text();
-            throw new Error(`Error: ${errorText}`);
         }
     } catch (error) {
-        console.error('Error fetching PyAnnote result:', error);
+        console.error('Error fetching diarization result:', error);
+        throw error;
     }
 }
 
 
-function displayMergedTranscriptionInModal(mergedTranscription) {
+function displaySpeakerSegmentationResults(diarizationData) {
     const segmentationResultElement = document.getElementById('segmentationResult');
     segmentationResultElement.innerHTML = ''; // איפוס התוכן הקיים
 
-    mergedTranscription.forEach((segment) => {
+    diarizationData.forEach(segment => {
         segmentationResultElement.innerHTML += `
-            <strong>${segment.speaker === 'speaker_1' ? 'מראיין' : 'מרואיין'}:</strong> 
-            [${segment.timestamp}] ${segment.text}<br><br>
+            <strong>${segment.label === 'SPEAKER_1' ? 'מראיין' : 'מרואיין'}:</strong> 
+            [${formatTimestamp(segment.start)} - ${formatTimestamp(segment.end)}] ${segment.text}<br><br>
         `;
     });
-
-    segmentationResultElement.innerHTML += "\n\n---\nסוף תמלול";
 }
-
 
 
 
