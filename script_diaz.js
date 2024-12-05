@@ -888,7 +888,8 @@ async function uploadMediaFile(uploadUrl, audioFile) {
     try {
         const response = await fetch(uploadUrl, {
             method: 'PUT',
-            body: audioFile
+            body: audioFile,
+            mode: 'no-cors' // מצב no-cors
         });
 
         if (!response.ok) {
