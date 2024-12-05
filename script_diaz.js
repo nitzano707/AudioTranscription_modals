@@ -838,7 +838,18 @@ async function startSpeakerSegmentation() {
 
     try {
         // שלב 1: העלאת קובץ
-        const uploadUrl = "{"url":"https://pyannote-temp-files.s3.fr-par.scw.cloud/media/1a362a69-bfdd-48c2-928d-8a2e451f8857/fecb80f4-8dce-489f-bcc0-e0f869db2cc9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=SCWWPPYX678RXP8QN950%2F20241205%2Ffr-par%2Fs3%2Faws4_request&X-Amz-Date=20241205T082426Z&X-Amz-Expires=3600&X-Amz-Signature=d33bf955f03f2a8d2edbf6e6cfbc30ed839ede2924b2a6eeb187d2bf3ef6e41c&X-Amz-SignedHeaders=host&x-id=PutObject"}; // ה-URL שהתקבל
+        //const uploadUrl = "{"url":"https://pyannote-temp-files.s3.fr-par.scw.cloud/media/1a362a69-bfdd-48c2-928d-8a2e451f8857/fecb80f4-8dce-489f-bcc0-e0f869db2cc9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=SCWWPPYX678RXP8QN950%2F20241205%2Ffr-par%2Fs3%2Faws4_request&X-Amz-Date=20241205T082426Z&X-Amz-Expires=3600&X-Amz-Signature=d33bf955f03f2a8d2edbf6e6cfbc30ed839ede2924b2a6eeb187d2bf3ef6e41c&X-Amz-SignedHeaders=host&x-id=PutObject"}; // ה-URL שהתקבל
+        // JSON שהתקבל
+        const jsonResponse = '{"url":"https://pyannote-temp-files.s3.fr-par.scw.cloud/media/1a362a69-bfdd-48c2-928d-8a2e451f8857/fecb80f4-8dce-489f-bcc0-e0f869db2cc9?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=SCWWPPYX678RXP8QN950%2F20241205%2Ffr-par%2Fs3%2Faws4_request&X-Amz-Date=20241205T082426Z&X-Amz-Expires=3600&X-Amz-Signature=d33bf955f03f2a8d2edbf6e6cfbc30ed839ede2924b2a6eeb187d2bf3ef6e41c&X-Amz-SignedHeaders=host&x-id=PutObject"}';
+        
+        // ניתוח ה-JSON
+        const parsedResponse = JSON.parse(jsonResponse);
+        
+        // חילוץ ה-URL
+        const uploadUrl = parsedResponse.url;
+        
+        console.log(uploadUrl); // הצגת ה-URL
+
         await uploadMediaFile(uploadUrl, audioFile);
 
         segmentationResultElement.textContent = "הקובץ הועלה בהצלחה. מתחיל תהליך זיהוי הדוברים...";
