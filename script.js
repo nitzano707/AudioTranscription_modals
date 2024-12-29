@@ -15,6 +15,7 @@ let firstChunkDuration = 0;
 
 let apiKey = localStorage.getItem('groqApiKey');
 
+/*
 document.addEventListener('DOMContentLoaded', () => {
     apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
@@ -29,6 +30,57 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector("button[onclick*='textTab']").classList.add('active');
     displayTranscription('text');
 });
+*/
+
+document.addEventListener('DOMContentLoaded', () => {
+    const apiKey = localStorage.getItem('groqApiKey');
+    const apiRequest = document.getElementById('apiRequest');
+    const startProcessBtn = document.getElementById('startProcessBtn');
+    const logoutButton = document.getElementById('logoutButton');
+
+    if (!apiKey) {
+        // אין API Key - הצגת אזור הזנת API והסתרת כפתורים אחרים
+        apiRequest.style.display = 'block';
+        startProcessBtn.style.display = 'none';
+        logoutButton.style.display = 'none';
+        document.getElementById('apiKeyInput').focus();
+    } else {
+        // יש API Key - הצגת כפתור "התחל תהליך" וכפתור "התנתק"
+        apiRequest.style.display = 'none';
+        startProcessBtn.style.display = 'block';
+        logoutButton.style.display = 'inline-block';
+    }
+
+    // הגדרת ברירת מחדל לתצוגת טאב הטקסט
+    document.getElementById('textTab').style.display = 'block';
+    document.querySelector("button[onclick*='textTab']").classList.add('active');
+    displayTranscription('text');
+});
+
+// פונקציית ההתנתקות
+function logout() {
+    // הצגת הודעת אישור
+    const confirmation = window.confirm(
+        "האם אתה בטוח שברצונך להתנתק?\n" +
+        "תוכל להתחבר שוב עם אותו API Key או להפיק API Key חדש מאתר Groq.\n" +
+        "ההגדרות הנוכחיות שלך לא יישמרו."
+    );
+
+    if (confirmation) {
+        // מחיקת ה-API Key מה-localStorage
+        localStorage.removeItem('groqApiKey');
+
+        // עדכון התצוגה
+        document.getElementById('apiRequest').style.display = 'block';
+        document.getElementById('startProcessBtn').style.display = 'none';
+        document.getElementById('logoutButton').style.display = 'none';
+        document.getElementById('apiKeyInput').focus();
+
+        // הודעת הצלחה למשתמש
+        alert('התנתקת בהצלחה! תוכל להזין API Key חדש כדי להמשיך.');
+    }
+}
+
 
 
 function saveApiKey() {
