@@ -61,9 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
 function logout() {
     // הצגת הודעת אישור
     const confirmation = window.confirm(
-        "האם אתה בטוח שברצונך להתנתק?\n" +
-        "תוכל להתחבר שוב עם אותו API Key או להפיק API Key חדש מאתר Groq.\n" +
-        "ההגדרות הנוכחיות שלך לא יישמרו."
+        "האם ברצונך להתנתק?\n" +
+        "ניתן להתחבר שוב עם אותו API Key או להפיק API Key חדש מאתר Groq.\n" +
+        "ההגדרות הנוכחיות לא יישמרו."
     );
 
     if (confirmation) {
