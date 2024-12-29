@@ -273,20 +273,24 @@ button:disabled {
 
 
 #logoutButton {
+    position: absolute; /* מיקום מוחלט יחסית לעמוד */
+    top: 10px; /* מרחק של 10px מהחלק העליון */
+    left: 10px; /* מרחק של 10px מהצד השמאלי */
     background-color: #f44336; /* רקע אדום */
-    color: white;
-    padding: 10px 20px;
-    font-size: 16px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+    color: white; /* טקסט בצבע לבן */
+    padding: 10px 20px; /* ריווח פנימי */
+    font-size: 16px; /* גודל הטקסט */
+    border: none; /* ללא גבול */
+    border-radius: 5px; /* פינות מעוגלות */
+    cursor: pointer; /* שינוי סמן העכבר */
+    z-index: 1000; /* מבטיח שהכפתור יישאר מעל אלמנטים אחרים */
     transition: background-color 0.3s ease;
-    margin-top: 10px; /* מרווח מעל הכפתור */
 }
 
 #logoutButton:hover {
     background-color: #d32f2f; /* אדום כהה יותר במעבר עכבר */
 }
+
 
 
 /* עיצוב כללי למסך הפתיחה */
