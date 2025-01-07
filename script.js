@@ -448,7 +448,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     //formData.append('model', 'whisper-large-v3-turbo');
     formData.append('model', 'whisper-large-v3');
     formData.append('response_format', 'verbose_json'); 
-    formData.append('language', defaultLanguage);
+    //formData.append('language', defaultLanguage);
 
     const apiKey = localStorage.getItem('groqApiKey');
     if (!apiKey) {
