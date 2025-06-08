@@ -1,5 +1,5 @@
 // משתנים גלובליים
-const MAX_SEGMENT_SIZE_MB = 23; // גודל מקטע מקסימלי ב-MB
+const MAX_SEGMENT_SIZE_MB = 10; // גודל מקטע מקסימלי ב-MB
 
 // משתנים לאחסון התמלול בפורמטים שונים
 let estimatedTime = 0;
