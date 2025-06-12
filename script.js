@@ -199,14 +199,34 @@ async function uploadAudio() {
 // פיצול קובץ אודיו (MP3/WAV) ל-chunks בפורמט WAV בלבד
 async function splitAudioFileToWavChunks(file, maxChunkSizeBytes) {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const arrayBuffer = await file.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+    // טיפול במקרה של Blob שכבר WAV (בפיצול חוזר)
+    let arrayBuffer;
+    try {
+        arrayBuffer = await file.arrayBuffer();
+    } catch (e) {
+        console.warn("בעיה בקריאת blob לאודיו:", e);
+        return [];
+    }
+    let audioBuffer;
+    try {
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    } catch (e) {
+        console.warn("בעיה בדיקוד קובץ אודיו. כנראה שה-blob קטן או לא תקני:", e);
+        return [];
+    }
     const sampleRate = audioBuffer.sampleRate;
     const numChannels = audioBuffer.numberOfChannels;
     const totalDuration = audioBuffer.duration;
 
+    // הגנה: לא מפצלים אם משך האודיו אפס
+    if (totalDuration === 0) {
+        console.warn("אורך קובץ אודיו אפס – אין מה לפצל.");
+        return [];
+    }
+
     let estimatedChunkDuration = (maxChunkSizeBytes / (sampleRate * numChannels * 2));
-    if (estimatedChunkDuration <= 0) estimatedChunkDuration = 60;
+    if (estimatedChunkDuration <= 0.1) estimatedChunkDuration = 1; // הגנה – לא ליצור chunks של אפס שניות
     const numberOfChunks = Math.ceil(totalDuration / estimatedChunkDuration);
     const chunkDuration = totalDuration / numberOfChunks;
 
@@ -214,7 +234,17 @@ async function splitAudioFileToWavChunks(file, maxChunkSizeBytes) {
     const chunks = [];
     while (currentTime < totalDuration) {
         const end = Math.min(currentTime + chunkDuration, totalDuration);
+
+        // הגנה: דילוג על מקטעים ריקים/מינימליים
+        if (end <= currentTime || (end - currentTime) < 0.01) {
+            break;
+        }
+
         const frameCount = Math.floor((end - currentTime) * sampleRate);
+        if (frameCount <= 0) {
+            currentTime = end;
+            continue;
+        }
         const chunkBuffer = audioContext.createBuffer(numChannels, frameCount, sampleRate);
 
         for (let channel = 0; channel < numChannels; channel++) {
@@ -236,6 +266,7 @@ async function splitAudioFileToWavChunks(file, maxChunkSizeBytes) {
     }
     return chunks;
 }
+
 
 function bufferToWaveBlob(abuffer) {
     const numOfChan = abuffer.numberOfChannels;
