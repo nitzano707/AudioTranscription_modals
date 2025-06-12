@@ -1,4 +1,4 @@
-const MAX_SEGMENT_SIZE_MB = 10; // גודל מקטע מקסימלי ב-MB
+const MAX_SEGMENT_SIZE_MB = 24; // גודל מקטע מקסימלי ב-MB
 
 let estimatedTime = 0;
 let transcriptionDataText = '';
