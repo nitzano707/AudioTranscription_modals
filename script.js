@@ -79,46 +79,47 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 // חיתוך בטוח של MP3
 
-
-// אתחול ffmpeg והגדרת splitMp3WithFFmpeg
-const { createFFmpeg, fetchFile } = FFmpeg;
-const ffmpeg = createFFmpeg({ log: true });
+// אתחול ffmpeg מתוך הסביבה הגלובלית (בצד לקוח)
+const ffmpeg = window.createFFmpeg({ log: true });
 
 async function splitMp3WithFFmpeg(file, segmentDurationSeconds = 600) {
-   if (!ffmpeg.isLoaded()) {
-       await ffmpeg.load();
-   }
+    const fetchFile = window.fetchFile;
 
-   const fileName = 'input.mp3';
-   ffmpeg.FS('writeFile', fileName, await fetchFile(file));
+    if (!ffmpeg.isLoaded()) {
+        await ffmpeg.load();
+    }
 
-   const fileArray = [];
-   let i = 0;
+    const fileName = 'input.mp3';
+    ffmpeg.FS('writeFile', fileName, await fetchFile(file));
 
-   while (true) {
-       const outputName = `chunk_${i}.mp3`;
-       const command = [
-           '-ss', String(i * segmentDurationSeconds),
-           '-t', String(segmentDurationSeconds),
-           '-i', fileName,
-           '-c', 'copy',
-           outputName
-       ];
+    const fileArray = [];
+    let i = 0;
 
-       try {
-           await ffmpeg.run(...command);
-           const data = ffmpeg.FS('readFile', outputName);
-           fileArray.push(new File([data.buffer], outputName, { type: 'audio/mp3' }));
-           ffmpeg.FS('unlink', outputName);
-           i++;
-       } catch (e) {
-           break; // אין עוד קטעים
-       }
-   }
+    while (true) {
+        const outputName = `chunk_${i}.mp3`;
+        const command = [
+            '-ss', String(i * segmentDurationSeconds),
+            '-t', String(segmentDurationSeconds),
+            '-i', fileName,
+            '-c', 'copy',
+            outputName
+        ];
 
-   ffmpeg.FS('unlink', fileName);
-   return fileArray;
+        try {
+            await ffmpeg.run(...command);
+            const data = ffmpeg.FS('readFile', outputName);
+            fileArray.push(new File([data.buffer], outputName, { type: 'audio/mp3' }));
+            ffmpeg.FS('unlink', outputName);
+            i++;
+        } catch (e) {
+            break; // אין עוד קטעים
+        }
+    }
+
+    ffmpeg.FS('unlink', fileName);
+    return fileArray;
 }
+
 
 
 
