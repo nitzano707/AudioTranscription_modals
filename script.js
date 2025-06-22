@@ -79,42 +79,37 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 // חיתוך בטוח של MP3
 
-async function splitMp3WithFFmpeg(file, segmentDurationInSeconds) {
-    const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ log: true });
+async function splitMp3WithFFmpeg(file, segmentDurationSeconds = 600) {
+    const ffmpeg = window.createFFmpeg({ log: true });
+    await ffmpeg.load();
+    ffmpeg.FS('writeFile', 'input.mp3', await window.fetchFile(file));
 
-    try {
-        if (!ffmpeg.isLoaded()) {
-            await ffmpeg.load();
+    const outputPattern = 'output_%03d.mp3';
+    await ffmpeg.run(
+        '-i', 'input.mp3',
+        '-f', 'segment',
+        '-segment_time', segmentDurationSeconds.toString(),
+        '-c', 'copy',
+        outputPattern
+    );
+
+    const outputFiles = [];
+    let index = 0;
+    while (true) {
+        const filename = `output_${index.toString().padStart(3, '0')}.mp3`;
+        try {
+            const data = ffmpeg.FS('readFile', filename);
+            const blob = new Blob([data.buffer], { type: 'audio/mp3' });
+            outputFiles.push(new File([blob], filename, { type: 'audio/mp3' }));
+            index++;
+        } catch (e) {
+            break; // No more files
         }
-
-        const fileName = 'input.mp3';
-        ffmpeg.FS('writeFile', fileName, await fetchFile(file));
-
-        const outputPattern = 'output_%03d.mp3';
-        await ffmpeg.run(
-            '-i', fileName,
-            '-f', 'segment',
-            '-segment_time', segmentDurationInSeconds.toString(),
-            '-c', 'copy',
-            outputPattern
-        );
-
-        const files = ffmpeg.FS('readdir', '/');
-        const outputFiles = files.filter(f => f.startsWith('output_') && f.endsWith('.mp3'));
-
-        const chunks = outputFiles.map(name => {
-            const data = ffmpeg.FS('readFile', name);
-            return new File([data.buffer], name, { type: 'audio/mp3' });
-        });
-
-        return chunks;
-    } catch (err) {
-        console.error("שגיאה ב-ffmpeg.wasm:", err);
-        alert("אירעה שגיאה בפיצול הקובץ עם ffmpeg. נסה שוב או השתמש בקובץ קטן יותר.");
-        return [];
     }
+
+    return outputFiles;
 }
+
 
 
 
@@ -176,7 +171,7 @@ async function uploadAudio() {
    if (modal) {
        const modalBody = modal.querySelector('.modal-body p');
        if (modalBody) {
-           modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFileName}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
+           modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFile.name}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
        }
    } else {
        console.warn("Modal or modal header not found.");
@@ -209,7 +204,7 @@ async function uploadAudio() {
        } else if (isMP3 && audioFile.size > maxChunkSizeBytes) {
            console.log("↪️ קובץ MP3 גדול – פיצול עם ffmpeg.wasm.");
            chunks = await splitMp3WithFFmpeg(audioFile, 600); // כל 10 דקות
-       } else if (audioFile.size <= maxChunkSizeBytes) {
+       } else if (!isMP3 && audioFile.size <= maxChunkSizeBytes) {
            console.log("✓ קובץ נתמך קטן – נשלח כיחידה אחת ללא המרה.");
            chunks = [audioFile];
        } else {
@@ -243,7 +238,7 @@ async function uploadAudio() {
        if (modal4) {
            const modalBody = modal4.querySelector('.modal-body p');
            if (modalBody) {
-               modalBody.innerHTML = `תמלול הקובץ <strong>${audioFileName}</strong> הושלם`;
+               modalBody.innerHTML = `תמלול הקובץ <strong>${audioFile.name}</strong> הושלם`;
            }
        }
    } catch (error) {
@@ -252,6 +247,7 @@ async function uploadAudio() {
        alert('שגיאה במהלך התמלול. נא לנסות שוב.');
    }
 }
+
 
 
 
