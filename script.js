@@ -79,41 +79,43 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 // חיתוך בטוח של MP3
 
-async function splitMp3Safely(file, maxChunkSizeBytes = 24 * 1024 * 1024) {
-  const arrayBuffer = await file.arrayBuffer();
-  const uint8 = new Uint8Array(arrayBuffer);
+async function splitMp3WithFFmpeg(file, segmentDurationInSeconds) {
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
 
-  let offset = 0;
-  const chunks = [];
+    try {
+        if (!ffmpeg.isLoaded()) {
+            await ffmpeg.load();
+        }
 
-  while (offset < uint8.length) {
-    let chunkEnd = offset + maxChunkSizeBytes;
-    if (chunkEnd >= uint8.length) chunkEnd = uint8.length;
+        const fileName = 'input.mp3';
+        ffmpeg.FS('writeFile', fileName, await fetchFile(file));
 
-    // חפש את תחילת פריים MP3 הקרוב ביותר
-    while (chunkEnd < uint8.length && !isMp3FrameHeader(uint8, chunkEnd)) {
-      chunkEnd++;
+        const outputPattern = 'output_%03d.mp3';
+        await ffmpeg.run(
+            '-i', fileName,
+            '-f', 'segment',
+            '-segment_time', segmentDurationInSeconds.toString(),
+            '-c', 'copy',
+            outputPattern
+        );
+
+        const files = ffmpeg.FS('readdir', '/');
+        const outputFiles = files.filter(f => f.startsWith('output_') && f.endsWith('.mp3'));
+
+        const chunks = outputFiles.map(name => {
+            const data = ffmpeg.FS('readFile', name);
+            return new File([data.buffer], name, { type: 'audio/mp3' });
+        });
+
+        return chunks;
+    } catch (err) {
+        console.error("שגיאה ב-ffmpeg.wasm:", err);
+        alert("אירעה שגיאה בפיצול הקובץ עם ffmpeg. נסה שוב או השתמש בקובץ קטן יותר.");
+        return [];
     }
-
-    const chunkBuffer = uint8.slice(offset, chunkEnd);
-    const chunkBlob = new Blob([chunkBuffer], { type: 'audio/mpeg' });
-    const chunkFile = new File([chunkBlob], `chunk_${chunks.length + 1}.mp3`, { type: 'audio/mpeg' });
-
-    chunks.push(chunkFile);
-    offset = chunkEnd;
-  }
-
-  return chunks;
 }
 
-function isMp3FrameHeader(bytes, i) {
-  // Header בסיסי לפי mp3-parser
-  return (
-    bytes[i] === 0xff &&
-    (bytes[i + 1] & 0xe0) === 0xe0 &&
-    (bytes[i + 1] & 0x06) !== 0x00
-  );
-}
 
 
 
@@ -133,18 +135,32 @@ async function uploadAudio() {
    const isMP4 = fileType.includes('mp4') || fileExtension === 'mp4';
    const isMP3 = fileType.includes('mp3') || fileExtension === 'mp3';
    const sizeInMB = audioFile.size / (1024 * 1024);
-   const maxChunkSizeBytes = MAX_SEGMENT_SIZE_MB * 1024 * 1024;
 
-   if ((isM4A || isMP4) && sizeInMB > MAX_SEGMENT_SIZE_MB) {
-       alert(`קבצי ${isM4A ? 'M4A' : 'MP4'} חייבים להיות קטנים מ-${MAX_SEGMENT_SIZE_MB}MB. אנא העלה קובץ קטן יותר או השתמש בפורמט MP3/WAV.`);
+   if (isM4A && sizeInMB > MAX_SEGMENT_SIZE_MB) {
+       alert(`קבצי M4A חייבים להיות קטנים מ-${MAX_SEGMENT_SIZE_MB}MB. אנא העלה קובץ קטן יותר או השתמש בפורמט MP3/WAV.`);
        document.getElementById('audioFile').value = ""; 
        document.getElementById('fileName').textContent = "לא נבחר קובץ";
        document.getElementById('uploadBtn').disabled = true;
        return;
    }
 
-   if (!isMP3 && !fileType.includes('wav') && !isM4A && !isMP4) {
-       alert('פורמט קובץ לא נתמך. אנא השתמש בקובץ בפורמט MP3 | WAV | M4A | MP4.');
+   if (isMP4 && sizeInMB > MAX_SEGMENT_SIZE_MB) {
+       alert(`קבצי MP4 חייבים להיות קטנים מ-${MAX_SEGMENT_SIZE_MB}MB. אנא העלה קובץ קטן יותר או השתמש בפורמט MP3/WAV.`);
+       document.getElementById('audioFile').value = ""; 
+       document.getElementById('fileName').textContent = "לא נבחר קובץ";
+       document.getElementById('uploadBtn').disabled = true;
+       return;
+   }
+
+   if (!fileType.includes('mp3') && 
+       !fileType.includes('wav') && 
+       !fileType.includes('m4a') && 
+       !fileType.includes('mp4') &&
+       fileExtension !== 'mp3' && 
+       fileExtension !== 'wav' && 
+       fileExtension !== 'mp4' &&
+       fileExtension !== 'm4a') {
+       alert('פורמט קובץ לא נתמך. אנא השתמש בקובץ בפורמט MP3 | WAV | M4A |.');
        return;
    }
 
@@ -160,32 +176,42 @@ async function uploadAudio() {
    if (modal) {
        const modalBody = modal.querySelector('.modal-body p');
        if (modalBody) {
-           modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFile.name}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
+           modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFileName}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
        }
+   } else {
+       console.warn("Modal or modal header not found.");
    }
 
    let estimatedDurationInMinutes;
-   if (isMP3) estimatedDurationInMinutes = (sizeInMB / 0.96);
-   else if (fileType.includes('wav') || fileExtension === 'wav') estimatedDurationInMinutes = (sizeInMB / 10);
-   else if (isM4A || isMP4) estimatedDurationInMinutes = (sizeInMB / 0.75);
-
+   if (isMP3) {
+       estimatedDurationInMinutes = (sizeInMB / 0.96);
+   } else if (fileType.includes('wav') || fileExtension === 'wav') {
+       estimatedDurationInMinutes = (sizeInMB / 10);
+   } else if (isM4A || isMP4) {
+       estimatedDurationInMinutes = (sizeInMB / 0.75);
+   }
    if (estimatedDurationInMinutes > 120) {
        alert(`משך הקובץ מוערך כ-${Math.round(estimatedDurationInMinutes)} דקות, ייתכן שהוא יחרוג ממכסת התמלול של 120 דקות לשעה. אנא היוועץ אם להמשיך.`);
    }
 
+   const maxChunkSizeBytes = MAX_SEGMENT_SIZE_MB * 1024 * 1024;
    let transcriptionData = [];
    let totalTimeElapsed = 0;
 
    try {
        console.log("בודק אם הקובץ דורש פיצול...");
+
        let chunks = [];
 
        if (isMP3 && audioFile.size <= maxChunkSizeBytes) {
            console.log("✓ קובץ MP3 קטן – נשלח כיחידה אחת ללא המרה.");
            chunks = [audioFile];
        } else if (isMP3 && audioFile.size > maxChunkSizeBytes) {
-           console.log("↪️ קובץ MP3 גדול – פיצול לפי מבנה פריימים עם mp3-parser.");
-           chunks = await splitMp3Safely(audioFile, maxChunkSizeBytes);
+           console.log("↪️ קובץ MP3 גדול – פיצול עם ffmpeg.wasm.");
+           chunks = await splitMp3WithFFmpeg(audioFile, 600); // כל 10 דקות
+       } else if (audioFile.size <= maxChunkSizeBytes) {
+           console.log("✓ קובץ נתמך קטן – נשלח כיחידה אחת ללא המרה.");
+           chunks = [audioFile];
        } else {
            console.log("↪️ המרה לפורמט WAV + פיצול.");
            chunks = await splitAudioFileToWavChunks(audioFile, maxChunkSizeBytes);
@@ -195,18 +221,17 @@ async function uploadAudio() {
        console.log(`Total chunks created: ${totalChunks}`);
 
        for (let i = 0; i < totalChunks; i++) {
-           const chunk = chunks[i];
-           const ext = chunk.name.endsWith('.mp3') ? 'mp3' : 'wav';
-           const chunkFile = new File([chunk], `chunk_${i + 1}.${ext}`, { type: chunk.type });
-
+           const chunkFile = chunks[i];
            if (i === 0) {
                document.getElementById('progress').style.width = '0%';
                document.getElementById('progressText').textContent = '0%';
            }
-
            updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
+
            await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
-           if (chunk.duration) totalTimeElapsed += chunk.duration;
+           if (chunks[i].duration) {
+               totalTimeElapsed += chunks[i].duration;
+           }
            await new Promise(resolve => setTimeout(resolve, 500));
        }
 
@@ -218,7 +243,7 @@ async function uploadAudio() {
        if (modal4) {
            const modalBody = modal4.querySelector('.modal-body p');
            if (modalBody) {
-               modalBody.innerHTML = `תמלול הקובץ <strong>${audioFile.name}</strong> הושלם`;
+               modalBody.innerHTML = `תמלול הקובץ <strong>${audioFileName}</strong> הושלם`;
            }
        }
    } catch (error) {
@@ -227,6 +252,7 @@ async function uploadAudio() {
        alert('שגיאה במהלך התמלול. נא לנסות שוב.');
    }
 }
+
 
 
 
