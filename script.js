@@ -78,36 +78,46 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 
 // חיתוך בטוח של MP3
+// טען את ffmpeg.wasm מה-CDN של jsDelivr (יש לו תמיכה ב-CORS)
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
+
+// אתחול ffmpeg והגדרת splitMp3WithFFmpeg
+const { createFFmpeg, fetchFile } = FFmpeg;
+const ffmpeg = createFFmpeg({ log: true });
 
 async function splitMp3WithFFmpeg(file, segmentDurationSeconds = 600) {
-    const ffmpeg = window.createFFmpeg({ log: true });
-    await ffmpeg.load();
-    ffmpeg.FS('writeFile', 'input.mp3', await window.fetchFile(file));
+   if (!ffmpeg.isLoaded()) {
+       await ffmpeg.load();
+   }
 
-    const outputPattern = 'output_%03d.mp3';
-    await ffmpeg.run(
-        '-i', 'input.mp3',
-        '-f', 'segment',
-        '-segment_time', segmentDurationSeconds.toString(),
-        '-c', 'copy',
-        outputPattern
-    );
+   const fileName = 'input.mp3';
+   ffmpeg.FS('writeFile', fileName, await fetchFile(file));
 
-    const outputFiles = [];
-    let index = 0;
-    while (true) {
-        const filename = `output_${index.toString().padStart(3, '0')}.mp3`;
-        try {
-            const data = ffmpeg.FS('readFile', filename);
-            const blob = new Blob([data.buffer], { type: 'audio/mp3' });
-            outputFiles.push(new File([blob], filename, { type: 'audio/mp3' }));
-            index++;
-        } catch (e) {
-            break; // No more files
-        }
-    }
+   const fileArray = [];
+   let i = 0;
+   let command;
+   let outputName;
 
-    return outputFiles;
+   while (true) {
+       outputName = `chunk_${i}.mp3`;
+       command = [
+           '-ss', String(i * segmentDurationSeconds),
+           '-t', String(segmentDurationSeconds),
+           '-i', fileName,
+           '-c', 'copy',
+           outputName
+       ];
+       await ffmpeg.run(...command);
+       try {
+           const data = ffmpeg.FS('readFile', outputName);
+           fileArray.push(new File([data.buffer], outputName, { type: 'audio/mp3' }));
+           i++;
+       } catch (e) {
+           break; // אין עוד קטעים
+       }
+   }
+
+   return fileArray;
 }
 
 
@@ -151,10 +161,10 @@ async function uploadAudio() {
        !fileType.includes('wav') && 
        !fileType.includes('m4a') && 
        !fileType.includes('mp4') &&
-       fileExtension !== 'mp3' && 
-       fileExtension !== 'wav' && 
-       fileExtension !== 'mp4' &&
-       fileExtension !== 'm4a') {
+       !fileExtension === 'mp3' && 
+       !fileExtension === 'wav' && 
+       !fileExtension === 'mp4' &&
+       !fileExtension === 'm4a') {
        alert('פורמט קובץ לא נתמך. אנא השתמש בקובץ בפורמט MP3 | WAV | M4A |.');
        return;
    }
@@ -171,7 +181,7 @@ async function uploadAudio() {
    if (modal) {
        const modalBody = modal.querySelector('.modal-body p');
        if (modalBody) {
-           modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFile.name}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
+           modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFileName}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
        }
    } else {
        console.warn("Modal or modal header not found.");
@@ -203,10 +213,7 @@ async function uploadAudio() {
            chunks = [audioFile];
        } else if (isMP3 && audioFile.size > maxChunkSizeBytes) {
            console.log("↪️ קובץ MP3 גדול – פיצול עם ffmpeg.wasm.");
-           chunks = await splitMp3WithFFmpeg(audioFile, 600); // כל 10 דקות
-       } else if (!isMP3 && audioFile.size <= maxChunkSizeBytes) {
-           console.log("✓ קובץ נתמך קטן – נשלח כיחידה אחת ללא המרה.");
-           chunks = [audioFile];
+           chunks = await splitMp3WithFFmpeg(audioFile, 600);
        } else {
            console.log("↪️ המרה לפורמט WAV + פיצול.");
            chunks = await splitAudioFileToWavChunks(audioFile, maxChunkSizeBytes);
@@ -238,7 +245,7 @@ async function uploadAudio() {
        if (modal4) {
            const modalBody = modal4.querySelector('.modal-body p');
            if (modalBody) {
-               modalBody.innerHTML = `תמלול הקובץ <strong>${audioFile.name}</strong> הושלם`;
+               modalBody.innerHTML = `תמלול הקובץ <strong>${audioFileName}</strong> הושלם`;
            }
        }
    } catch (error) {
