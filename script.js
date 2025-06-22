@@ -223,22 +223,27 @@ async function uploadAudio() {
            // שלח את קובץ ה-MP3 כמו שהוא (לא עובר פיצול)
            console.log("MP3 small enough – sending as single chunk.");
            await processAudioChunk(audioFile, transcriptionData, 1, 1, totalTimeElapsed);
-       } else {
-           // התנהגות מקורית (פיצול ל-WAV)
-           console.log("Splitting non-MP3 file into WAV chunks...");
-           chunks = await splitAudioFileToWavChunks(audioFile, maxChunkSizeBytes);
-           totalChunks = chunks.length;
-           console.log(`Total WAV chunks created: ${totalChunks}`);
-           for (let i = 0; i < totalChunks; i++) {
-               const chunkFile = new File([chunks[i]], `chunk_${i + 1}.wav`, { type: "audio/wav" });
-               if (i === 0) {
-                   document.getElementById('progress').style.width = '0%';
-                   document.getElementById('progressText').textContent = '0%';
-               }
-               updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
-               await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
-               await new Promise(resolve => setTimeout(resolve, 500));
-           }
+       } else if (audioFile.size > maxChunkSizeBytes) {
+    // קובץ גדול – פצל!
+    console.log("Splitting non-MP3 file into WAV chunks...");
+    chunks = await splitAudioFileToWavChunks(audioFile, maxChunkSizeBytes);
+    totalChunks = chunks.length;
+    for (let i = 0; i < totalChunks; i++) {
+        const chunkFile = new File([chunks[i]], `chunk_${i + 1}.wav`, { type: "audio/wav" });
+        if (i === 0) {
+            document.getElementById('progress').style.width = '0%';
+            document.getElementById('progressText').textContent = '0%';
+        }
+        updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
+        await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+} else {
+    // קובץ קטן – שלח אותו כמו שהוא!
+    console.log("Non-MP3 small enough – sending as single chunk.");
+    await processAudioChunk(audioFile, transcriptionData, 1, 1, totalTimeElapsed);
+}
+
        }
 
 
