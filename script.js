@@ -82,40 +82,43 @@ document.getElementById('audioFile').addEventListener('change', function () {
 async function splitMp3ByFrames(file, maxChunkSizeBytes) {
     const arrayBuffer = await file.arrayBuffer();
     const data = new Uint8Array(arrayBuffer);
-    const frames = [];
-    let offset = 0;
 
-    // אסוף את תחילת כל ה-frames
-    while (offset < data.length) {
-        const header = mp3Parser.readFrameHeader(data, offset);
-        if (!header) break;
-        frames.push({ offset, length: header.frameLength });
-        offset += header.frameLength;
+    // דילוג על ID3 אם יש
+    let offset = 0;
+    if (data[0] === 0x49 && data[1] === 0x44 && data[2] === 0x33) {
+        const tagSize = (data[6] << 21) | (data[7] << 14) | (data[8] << 7) | (data[9]);
+        offset = 10 + tagSize;
     }
 
-    // צור chunks לפי גודל
-    const chunks = [];
-    let chunkStart = 0;
-    let chunkSize = 0;
+    const frames = [];
+    let scan = offset;
+    while (scan < data.length) {
+        const header = mp3Parser.readFrameHeader(data, scan);
+        if (!header) break;
+        frames.push({ offset: scan, length: header.frameLength });
+        scan += header.frameLength;
+    }
 
+    // חיתוך לצ'אנקים
+    const chunks = [];
+    let chunkStart = frames[0] ? frames[0].offset : offset;
+    let chunkSize = 0;
     for (let i = 0; i < frames.length; i++) {
         const frame = frames[i];
-        if ((chunkSize + frame.length > maxChunkSizeBytes) && chunkSize > 0) {
-            // פצל כאן
-            const chunk = data.slice(chunkStart, frame.offset);
-            chunks.push(new Blob([chunk], { type: 'audio/mp3' }));
+        if (chunkSize + frame.length > maxChunkSizeBytes && chunkSize > 0) {
+            chunks.push(new Blob([data.slice(chunkStart, frame.offset)], { type: 'audio/mp3' }));
             chunkStart = frame.offset;
             chunkSize = 0;
         }
         chunkSize += frame.length;
     }
-    // הוסף את החלק האחרון
+    // הוסף את הצ'אנק האחרון
     if (chunkStart < data.length) {
-        const chunk = data.slice(chunkStart, data.length);
-        chunks.push(new Blob([chunk], { type: 'audio/mp3' }));
+        chunks.push(new Blob([data.slice(chunkStart, data.length)], { type: 'audio/mp3' }));
     }
     return chunks;
 }
+
 
 
 //
