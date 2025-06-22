@@ -78,8 +78,7 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 
 // חיתוך בטוח של MP3
-// טען את ffmpeg.wasm מה-CDN של jsDelivr (יש לו תמיכה ב-CORS)
-<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.js"></script>
+
 
 // אתחול ffmpeg והגדרת splitMp3WithFFmpeg
 const { createFFmpeg, fetchFile } = FFmpeg;
