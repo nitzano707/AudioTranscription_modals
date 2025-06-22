@@ -159,7 +159,7 @@ async function uploadAudio() {
 
         let chunks = [];
         
-        if (fileType.includes('mp3') && audioFile.size <= maxChunkSizeBytes) {
+        if (fileType.includes('mp3') && audioFile.size <= MAX_SEGMENT_SIZE_MB) {
             console.log("✓ קובץ MP3 קטן – נשלח כיחידה אחת ללא המרה.");
             chunks = [audioFile]; // שולח אותו כפי שהוא
         } else {
