@@ -188,7 +188,7 @@ async function uploadAudio() {
        // בדוק אם מדובר ב-MP3
        if ((fileType.includes('mp3') || fileExtension === 'mp3') && sizeInMB > MAX_SEGMENT_SIZE_MB) {
            console.log("Splitting MP3 file into MP3 chunks...");
-           chunks = await splitMp3ByFrames(audioFile, maxChunkSizeBytes);
+           chunks = await splitMp3BySize(audioFile, maxChunkSizeBytes);
            totalChunks = chunks.length;
            console.log(`Total MP3 chunks created: ${totalChunks}`);
            for (let i = 0; i < totalChunks; i++) {
