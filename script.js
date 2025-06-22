@@ -78,16 +78,21 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 
 // חיתוך בטוח של MP3
+let ffmpeg;
+let fetchFile;
 
-// אתחול ffmpeg מתוך הסביבה הגלובלית (בצד לקוח)
-const ffmpeg = window.createFFmpeg({ log: true });
-
-async function splitMp3WithFFmpeg(file, segmentDurationSeconds = 600) {
-    const fetchFile = window.fetchFile;
-
-    if (!ffmpeg.isLoaded()) {
+async function loadFFmpeg() {
+    if (!ffmpeg) {
+        const ffmpegModule = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.mjs');
+        ffmpeg = ffmpegModule.createFFmpeg({ log: true });
+        fetchFile = ffmpegModule.fetchFile;
         await ffmpeg.load();
     }
+}
+
+
+async function splitMp3WithFFmpeg(file, segmentDurationSeconds = 600) {
+    await loadFFmpeg();
 
     const fileName = 'input.mp3';
     ffmpeg.FS('writeFile', fileName, await fetchFile(file));
@@ -119,6 +124,8 @@ async function splitMp3WithFFmpeg(file, segmentDurationSeconds = 600) {
     ffmpeg.FS('unlink', fileName);
     return fileArray;
 }
+
+
 
 
 
