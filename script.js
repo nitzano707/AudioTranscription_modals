@@ -78,53 +78,45 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 
 // חיתוך בטוח של MP3
-let ffmpeg;
-let fetchFile;
-
-async function loadFFmpeg() {
-    if (!ffmpeg) {
-        const ffmpegModule = await import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/esm/ffmpeg.min.mjs');
-        ffmpeg = ffmpegModule.createFFmpeg({ log: true });
-        fetchFile = ffmpegModule.fetchFile;
-        await ffmpeg.load();
-    }
-}
-
-
+const { createFFmpeg, fetchFile } = FFmpeg;
+const ffmpeg = createFFmpeg({ log: true });
 
 async function splitMp3WithFFmpeg(file, segmentDurationSeconds = 600) {
-    await loadFFmpeg();
+   if (!ffmpeg.isLoaded()) {
+       await ffmpeg.load();
+   }
 
-    const fileName = 'input.mp3';
-    ffmpeg.FS('writeFile', fileName, await fetchFile(file));
+   const fileName = 'input.mp3';
+   ffmpeg.FS('writeFile', fileName, await fetchFile(file));
 
-    const fileArray = [];
-    let i = 0;
+   const fileArray = [];
+   let i = 0;
 
-    while (true) {
-        const outputName = `chunk_${i}.mp3`;
-        const command = [
-            '-ss', String(i * segmentDurationSeconds),
-            '-t', String(segmentDurationSeconds),
-            '-i', fileName,
-            '-c', 'copy',
-            outputName
-        ];
+   while (true) {
+       const outputName = `chunk_${i}.mp3`;
+       const command = [
+           '-ss', String(i * segmentDurationSeconds),
+           '-t', String(segmentDurationSeconds),
+           '-i', fileName,
+           '-c', 'copy',
+           outputName
+       ];
 
-        try {
-            await ffmpeg.run(...command);
-            const data = ffmpeg.FS('readFile', outputName);
-            fileArray.push(new File([data.buffer], outputName, { type: 'audio/mp3' }));
-            ffmpeg.FS('unlink', outputName);
-            i++;
-        } catch (e) {
-            break; // אין עוד קטעים
-        }
-    }
+       try {
+           await ffmpeg.run(...command);
+           const data = ffmpeg.FS('readFile', outputName);
+           fileArray.push(new File([data.buffer], outputName, { type: 'audio/mp3' }));
+           ffmpeg.FS('unlink', outputName);
+           i++;
+       } catch (e) {
+           break; // אין עוד קטעים
+       }
+   }
 
-    ffmpeg.FS('unlink', fileName);
-    return fileArray;
+   ffmpeg.FS('unlink', fileName);
+   return fileArray;
 }
+
 
 
 
