@@ -79,24 +79,42 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 // פיצול בטוח של קבצי MP3
 
-async function splitMp3BySize(file, maxChunkSizeBytes) {
+function findNextMp3FrameHeader(data, startOffset) {
+    for (let i = startOffset; i < data.length - 1; i++) {
+        if (data[i] === 0xFF && (data[i + 1] & 0xE0) === 0xE0) {
+            return i;
+        }
+    }
+    return null;
+}
+
+async function splitMp3ByFrameHeaders(file, maxChunkSizeBytes) {
     const arrayBuffer = await file.arrayBuffer();
-    const totalSize = arrayBuffer.byteLength;
+    const data = new Uint8Array(arrayBuffer);
     const chunks = [];
     let start = 0;
-    let chunkIdx = 1;
 
-    while (start < totalSize) {
-        const end = Math.min(start + maxChunkSizeBytes, totalSize);
-        // יוצר Blob חדש ממקטע
-        chunks.push(new Blob([arrayBuffer.slice(start, end)], { type: 'audio/mp3' }));
-        console.log(`Chunk ${chunkIdx}: bytes ${start} - ${end}, size: ${((end - start)/1024/1024).toFixed(2)} MB`);
+    while (start < data.length) {
+        let end = Math.min(start + maxChunkSizeBytes, data.length);
+
+        // התחלת chunk – תמיד על header
+        start = findNextMp3FrameHeader(data, start) || start;
+
+        // סוף chunk: חפש header קרוב קדימה, אם יש
+        let nextHeader = findNextMp3FrameHeader(data, end);
+        if (nextHeader && nextHeader - end < 10000) { // פיצול נוח על header קרוב
+            end = nextHeader;
+        }
+
+        const chunkData = data.slice(start, end);
+        chunks.push(new Blob([chunkData], { type: 'audio/mp3' }));
+        console.log(`Chunk ${chunks.length}: bytes ${start} - ${end}, size: ${((end - start)/1024/1024).toFixed(2)} MB`);
         start = end;
-        chunkIdx++;
     }
     console.log("Total MP3 chunks created:", chunks.length);
     return chunks;
 }
+
 
 
 
@@ -188,7 +206,7 @@ async function uploadAudio() {
        // בדוק אם מדובר ב-MP3
        if ((fileType.includes('mp3') || fileExtension === 'mp3') && sizeInMB > MAX_SEGMENT_SIZE_MB) {
            console.log("Splitting MP3 file into MP3 chunks...");
-           chunks = await splitMp3BySize(audioFile, maxChunkSizeBytes);
+           chunks = await splitMp3ByFrameHeaders(audioFile, maxChunkSizeBytes);
            totalChunks = chunks.length;
            console.log(`Total MP3 chunks created: ${totalChunks}`);
            for (let i = 0; i < totalChunks; i++) {
