@@ -187,6 +187,7 @@ async function uploadAudio() {
             } else {
                 // MP3 קטן – יחידה אחת
                 console.log("MP3 small enough – sending as single chunk.");
+                updateProgressBarSmoothly(1, 1, estimatedTime);
                 await processAudioChunk(audioFile, transcriptionData, 1, 1, totalTimeElapsed);
             }
         }
@@ -206,6 +207,7 @@ async function uploadAudio() {
             } else {
                 // קובץ קטן – שלח כיחידה אחת
                 console.log("Non-MP3 small enough – sending as single chunk.");
+                updateProgressBarSmoothly(1, 1, estimatedTime);
                 await processAudioChunk(audioFile, transcriptionData, 1, 1, totalTimeElapsed);
             }
         }
