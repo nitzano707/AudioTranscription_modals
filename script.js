@@ -99,7 +99,7 @@ async function uploadAudio() {
        return;
    }
 
-    if (isMP4 && sizeInMB > MAX_SEGMENT_SIZE_MB) {
+   if (isMP4 && sizeInMB > MAX_SEGMENT_SIZE_MB) {
        alert(`קבצי MP4 חייבים להיות קטנים מ-${MAX_SEGMENT_SIZE_MB}MB. אנא העלה קובץ קטן יותר או השתמש בפורמט MP3/WAV.`);
        document.getElementById('audioFile').value = ""; 
        document.getElementById('fileName').textContent = "לא נבחר קובץ";
@@ -157,30 +157,39 @@ async function uploadAudio() {
    try {
        console.log("בודק אם הקובץ דורש פיצול...");
 
-        let chunks = [];
-        
-        if (fileType.includes('mp3') && audioFile.size <= MAX_SEGMENT_SIZE_MB) {
-            console.log("✓ קובץ MP3 קטן – נשלח כיחידה אחת ללא המרה.");
-            chunks = [audioFile]; // שולח אותו כפי שהוא
-        } else {
-            console.log("↪️ המרה לפורמט WAV + פיצול.");
-            chunks = await splitAudioFileToWavChunks(audioFile, maxChunkSizeBytes);
-        }
+       let chunks = [];
+
+       if (fileType.includes('mp3') && audioFile.size <= maxChunkSizeBytes) {
+           console.log("✓ קובץ MP3 קטן – נשלח כיחידה אחת ללא המרה.");
+           chunks = [audioFile]; // שולח אותו כפי שהוא
+       } else {
+           console.log("↪️ המרה לפורמט WAV + פיצול.");
+           chunks = await splitAudioFileToWavChunks(audioFile, maxChunkSizeBytes);
+       }
+
        const totalChunks = chunks.length;
        console.log(`Total chunks created: ${totalChunks}`);
 
        for (let i = 0; i < totalChunks; i++) {
-           const chunkFile = new File([chunks[i]], `chunk_${i + 1}.wav`, { type: "audio/wav" });
+           const isSingleOriginalMp3 = (totalChunks === 1 && fileType.includes('mp3'));
+
+           const chunkFile = isSingleOriginalMp3
+               ? chunks[i]
+               : new File([chunks[i]], `chunk_${i + 1}.wav`, { type: "audio/wav" });
+
            if (i === 0) {
                document.getElementById('progress').style.width = '0%';
                document.getElementById('progressText').textContent = '0%';
            }
+
            updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
 
            await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
+
            if (chunks[i].duration) {
                totalTimeElapsed += chunks[i].duration;
            }
+
            await new Promise(resolve => setTimeout(resolve, 500));
        }
 
@@ -188,6 +197,7 @@ async function uploadAudio() {
        displayTranscription('text');
        closeModal('modal3');
        openModal('modal4');
+
        const modal4 = document.getElementById('modal4');
        if (modal4) {
            const modalBody = modal4.querySelector('.modal-body p');
