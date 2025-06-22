@@ -83,15 +83,15 @@ async function splitMp3ByFrames(file, maxChunkSizeBytes) {
     const arrayBuffer = await file.arrayBuffer();
     const data = new Uint8Array(arrayBuffer);
 
-    // דילוג על ID3 אם יש
+    // דילוג על תגית ID3 (אם קיימת)
     let offset = 0;
     if (data[0] === 0x49 && data[1] === 0x44 && data[2] === 0x33) {
         const tagSize = (data[6] << 21) | (data[7] << 14) | (data[8] << 7) | (data[9]);
         offset = 10 + tagSize;
     }
-
-    const frames = [];
     let scan = offset;
+    const frames = [];
+
     while (scan < data.length) {
         const header = mp3Parser.readFrameHeader(data, scan);
         if (!header) break;
@@ -99,25 +99,35 @@ async function splitMp3ByFrames(file, maxChunkSizeBytes) {
         scan += header.frameLength;
     }
 
-    // חיתוך לצ'אנקים
+    // ------------------
+    // שלב הפיצול האמיתי
+    // ------------------
     const chunks = [];
-    let chunkStart = frames[0] ? frames[0].offset : offset;
+    let chunkStart = frames.length > 0 ? frames[0].offset : offset;
+    let chunkEnd = chunkStart;
     let chunkSize = 0;
+
     for (let i = 0; i < frames.length; i++) {
         const frame = frames[i];
+        // אם נוסיף את הפריים הזה, נעבור את המגבלה
         if (chunkSize + frame.length > maxChunkSizeBytes && chunkSize > 0) {
-            chunks.push(new Blob([data.slice(chunkStart, frame.offset)], { type: 'audio/mp3' }));
+            // פצל כאן
+            chunks.push(new Blob([data.slice(chunkStart, chunkEnd)], { type: 'audio/mp3' }));
             chunkStart = frame.offset;
             chunkSize = 0;
         }
+        chunkEnd = frame.offset + frame.length;
         chunkSize += frame.length;
     }
-    // הוסף את הצ'אנק האחרון
+    // אל תשכח את האחרון!
     if (chunkStart < data.length) {
         chunks.push(new Blob([data.slice(chunkStart, data.length)], { type: 'audio/mp3' }));
     }
+    console.log("Total frames found:", frames.length);
+    console.log("Total MP3 chunks created:", chunks.length);
     return chunks;
 }
+
 
 
 
