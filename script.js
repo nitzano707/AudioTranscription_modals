@@ -76,6 +76,49 @@ document.getElementById('audioFile').addEventListener('change', function () {
     }
 });
 
+
+// חיתוך בטוח של MP3
+
+async function splitMp3Safely(file, maxChunkSizeBytes = 24 * 1024 * 1024) {
+  const arrayBuffer = await file.arrayBuffer();
+  const uint8 = new Uint8Array(arrayBuffer);
+
+  let offset = 0;
+  const chunks = [];
+
+  while (offset < uint8.length) {
+    let chunkEnd = offset + maxChunkSizeBytes;
+    if (chunkEnd >= uint8.length) chunkEnd = uint8.length;
+
+    // חפש את תחילת פריים MP3 הקרוב ביותר
+    while (chunkEnd < uint8.length && !isMp3FrameHeader(uint8, chunkEnd)) {
+      chunkEnd++;
+    }
+
+    const chunkBuffer = uint8.slice(offset, chunkEnd);
+    const chunkBlob = new Blob([chunkBuffer], { type: 'audio/mpeg' });
+    const chunkFile = new File([chunkBlob], `chunk_${chunks.length + 1}.mp3`, { type: 'audio/mpeg' });
+
+    chunks.push(chunkFile);
+    offset = chunkEnd;
+  }
+
+  return chunks;
+}
+
+function isMp3FrameHeader(bytes, i) {
+  // Header בסיסי לפי mp3-parser
+  return (
+    bytes[i] === 0xff &&
+    (bytes[i + 1] & 0xe0) === 0xe0 &&
+    (bytes[i + 1] & 0x06) !== 0x00
+  );
+}
+
+
+
+//
+
 async function uploadAudio() {
    const audioFile = document.getElementById('audioFile').files[0];
 
@@ -88,36 +131,20 @@ async function uploadAudio() {
    const fileExtension = audioFile.name.split('.').pop().toLowerCase();
    const isM4A = fileType.includes('m4a') || fileExtension === 'm4a';
    const isMP4 = fileType.includes('mp4') || fileExtension === 'mp4';
+   const isMP3 = fileType.includes('mp3') || fileExtension === 'mp3';
    const sizeInMB = audioFile.size / (1024 * 1024);
+   const maxChunkSizeBytes = MAX_SEGMENT_SIZE_MB * 1024 * 1024;
 
-   if (isM4A && sizeInMB > MAX_SEGMENT_SIZE_MB) {
-       alert(`קבצי M4A חייבים להיות קטנים מ-${MAX_SEGMENT_SIZE_MB}MB. אנא העלה קובץ קטן יותר או השתמש בפורמט MP3/WAV.`);
+   if ((isM4A || isMP4) && sizeInMB > MAX_SEGMENT_SIZE_MB) {
+       alert(`קבצי ${isM4A ? 'M4A' : 'MP4'} חייבים להיות קטנים מ-${MAX_SEGMENT_SIZE_MB}MB. אנא העלה קובץ קטן יותר או השתמש בפורמט MP3/WAV.`);
        document.getElementById('audioFile').value = ""; 
        document.getElementById('fileName').textContent = "לא נבחר קובץ";
        document.getElementById('uploadBtn').disabled = true;
        return;
    }
 
-   if (isMP4 && sizeInMB > MAX_SEGMENT_SIZE_MB) {
-       alert(`קבצי MP4 חייבים להיות קטנים מ-${MAX_SEGMENT_SIZE_MB}MB. אנא העלה קובץ קטן יותר או השתמש בפורמט MP3/WAV.`);
-       document.getElementById('audioFile').value = ""; 
-       document.getElementById('fileName').textContent = "לא נבחר קובץ";
-       document.getElementById('uploadBtn').disabled = true;
-       return;
-   }
-
-   if (
-       !fileType.includes('mp3') &&
-       !fileType.includes('mpeg') &&
-       !fileType.includes('wav') &&
-       !fileType.includes('m4a') &&
-       !fileType.includes('mp4') &&
-       fileExtension !== 'mp3' &&
-       fileExtension !== 'wav' &&
-       fileExtension !== 'mp4' &&
-       fileExtension !== 'm4a'
-   ) {
-       alert('פורמט קובץ לא נתמך. אנא השתמש בקובץ בפורמט MP3 | WAV | M4A |.');
+   if (!isMP3 && !fileType.includes('wav') && !isM4A && !isMP4) {
+       alert('פורמט קובץ לא נתמך. אנא השתמש בקובץ בפורמט MP3 | WAV | M4A | MP4.');
        return;
    }
 
@@ -133,44 +160,32 @@ async function uploadAudio() {
    if (modal) {
        const modalBody = modal.querySelector('.modal-body p');
        if (modalBody) {
-           modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFileName}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
+           modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFile.name}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
        }
    }
 
    let estimatedDurationInMinutes;
-   if (fileType.includes('mp3') || fileType.includes('mpeg') || fileExtension === 'mp3') {
-       estimatedDurationInMinutes = sizeInMB / 0.96;
-   } else if (fileType.includes('wav') || fileExtension === 'wav') {
-       estimatedDurationInMinutes = sizeInMB / 10;
-   } else if (isM4A || isMP4) {
-       estimatedDurationInMinutes = sizeInMB / 0.75;
-   }
+   if (isMP3) estimatedDurationInMinutes = (sizeInMB / 0.96);
+   else if (fileType.includes('wav') || fileExtension === 'wav') estimatedDurationInMinutes = (sizeInMB / 10);
+   else if (isM4A || isMP4) estimatedDurationInMinutes = (sizeInMB / 0.75);
 
    if (estimatedDurationInMinutes > 120) {
        alert(`משך הקובץ מוערך כ-${Math.round(estimatedDurationInMinutes)} דקות, ייתכן שהוא יחרוג ממכסת התמלול של 120 דקות לשעה. אנא היוועץ אם להמשיך.`);
    }
 
-   const maxChunkSizeBytes = MAX_SEGMENT_SIZE_MB * 1024 * 1024;
    let transcriptionData = [];
    let totalTimeElapsed = 0;
 
    try {
        console.log("בודק אם הקובץ דורש פיצול...");
-
        let chunks = [];
 
-       const isSupportedFile = (
-           fileType.includes('mp3') || fileType.includes('mpeg') ||
-           fileType.includes('wav') || fileType.includes('m4a') ||
-           fileType.includes('mp4') ||
-           ['mp3', 'wav', 'm4a', 'mp4'].includes(fileExtension)
-       );
-
-       const isSmallSupportedFile = isSupportedFile && audioFile.size <= maxChunkSizeBytes;
-
-       if (isSmallSupportedFile) {
-           console.log("✓ קובץ נתמך וקטן – נשלח כיחידה אחת ללא המרה.");
-           chunks = [audioFile]; // ללא המרה
+       if (isMP3 && audioFile.size <= maxChunkSizeBytes) {
+           console.log("✓ קובץ MP3 קטן – נשלח כיחידה אחת ללא המרה.");
+           chunks = [audioFile];
+       } else if (isMP3 && audioFile.size > maxChunkSizeBytes) {
+           console.log("↪️ קובץ MP3 גדול – פיצול לפי מבנה פריימים עם mp3-parser.");
+           chunks = await splitMp3Safely(audioFile, maxChunkSizeBytes);
        } else {
            console.log("↪️ המרה לפורמט WAV + פיצול.");
            chunks = await splitAudioFileToWavChunks(audioFile, maxChunkSizeBytes);
@@ -180,11 +195,9 @@ async function uploadAudio() {
        console.log(`Total chunks created: ${totalChunks}`);
 
        for (let i = 0; i < totalChunks; i++) {
-           const isOriginalSingleFile = isSmallSupportedFile && totalChunks === 1;
-
-           const chunkFile = isOriginalSingleFile
-               ? chunks[i]
-               : new File([chunks[i]], `chunk_${i + 1}.wav`, { type: "audio/wav" });
+           const chunk = chunks[i];
+           const ext = chunk.name.endsWith('.mp3') ? 'mp3' : 'wav';
+           const chunkFile = new File([chunk], `chunk_${i + 1}.${ext}`, { type: chunk.type });
 
            if (i === 0) {
                document.getElementById('progress').style.width = '0%';
@@ -192,13 +205,8 @@ async function uploadAudio() {
            }
 
            updateProgressBarSmoothly(i + 1, totalChunks, estimatedTime);
-
            await processAudioChunk(chunkFile, transcriptionData, i + 1, totalChunks, totalTimeElapsed);
-
-           if (chunks[i].duration) {
-               totalTimeElapsed += chunks[i].duration;
-           }
-
+           if (chunk.duration) totalTimeElapsed += chunk.duration;
            await new Promise(resolve => setTimeout(resolve, 500));
        }
 
@@ -206,12 +214,11 @@ async function uploadAudio() {
        displayTranscription('text');
        closeModal('modal3');
        openModal('modal4');
-
        const modal4 = document.getElementById('modal4');
        if (modal4) {
            const modalBody = modal4.querySelector('.modal-body p');
            if (modalBody) {
-               modalBody.innerHTML = `תמלול הקובץ <strong>${audioFileName}</strong> הושלם`;
+               modalBody.innerHTML = `תמלול הקובץ <strong>${audioFile.name}</strong> הושלם`;
            }
        }
    } catch (error) {
@@ -220,6 +227,7 @@ async function uploadAudio() {
        alert('שגיאה במהלך התמלול. נא לנסות שוב.');
    }
 }
+
 
 
 
