@@ -83,38 +83,71 @@ async function splitMp3ByFrames(file, maxChunkSizeBytes) {
     const arrayBuffer = await file.arrayBuffer();
     const data = new Uint8Array(arrayBuffer);
 
-    // דילוג על תגית ID3 (אם קיימת)
+    console.log("קובץ:", file.name, "גודל:", data.length, "בייט (", (data.length / (1024 * 1024)).toFixed(2), "MB )");
+
+    // --- 1. דילוג על ID3 (אם קיים) ---
     let offset = 0;
     if (data[0] === 0x49 && data[1] === 0x44 && data[2] === 0x33) {
-        const tagSize = (data[6] << 21) | (data[7] << 14) | (data[8] << 7) | (data[9]);
+        // חישוב גודל תגית ID3 (4 בתים בסוף header, כל בית עם 7 סיביות בלבד)
+        const tagSize = ((data[6] & 0x7F) << 21) | ((data[7] & 0x7F) << 14) | ((data[8] & 0x7F) << 7) | (data[9] & 0x7F);
         offset = 10 + tagSize;
+        console.log("ID3 tag detected. Tag size:", tagSize, "bytes. מתחילים לבדוק frames מ-offset:", offset);
+    } else {
+        console.log("No ID3 tag detected. מתחילים לבדוק frames מהתחלה.");
     }
+
+    // --- 2. סריקה ואיתור frames ---
     let scan = offset;
     const frames = [];
+    let frameCount = 0;
+    let scanLimit = Math.min(data.length, offset + 60 * 1024 * 1024); // לא לעבור 60MB אודיו (למניעת תקיעה)
 
-    while (scan < data.length) {
+    while (scan < scanLimit) {
         const header = mp3Parser.readFrameHeader(data, scan);
-        if (!header) break;
+        if (!header) {
+            // חפש גם בעוד כמה bytes (אולי לא בדיוק על ההתחלה)
+            let found = false;
+            for (let skip = 1; skip <= 100; skip++) {
+                const altHeader = mp3Parser.readFrameHeader(data, scan + skip);
+                if (altHeader) {
+                    console.log("Warning: Frame found with offset correction of", skip, "bytes. Realigning scan...");
+                    scan += skip;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) break;
+            else continue;
+        }
         frames.push({ offset: scan, length: header.frameLength });
         scan += header.frameLength;
+        frameCount++;
+        if (frameCount <= 5 || frameCount % 500 === 0) {
+            console.log("Frame", frameCount, "at offset", scan, "length:", header.frameLength);
+        }
+    }
+    console.log("Total frames found:", frames.length);
+
+    if (frames.length === 0) {
+        console.warn("לא נמצאו frames – ייתכן שהקובץ אינו MP3 תקני, או שיש בעיית קידוד/tag ענק.");
     }
 
-    // ------------------
-    // שלב הפיצול האמיתי
-    // ------------------
+    // --- 3. פיצול ל-chunks לפי הגודל ---
     const chunks = [];
     let chunkStart = frames.length > 0 ? frames[0].offset : offset;
     let chunkEnd = chunkStart;
     let chunkSize = 0;
+    let chunkIndex = 1;
 
     for (let i = 0; i < frames.length; i++) {
         const frame = frames[i];
-        // אם נוסיף את הפריים הזה, נעבור את המגבלה
         if (chunkSize + frame.length > maxChunkSizeBytes && chunkSize > 0) {
-            // פצל כאן
+            // פיצול!
             chunks.push(new Blob([data.slice(chunkStart, chunkEnd)], { type: 'audio/mp3' }));
+            console.log(`יצירת chunk ${chunkIndex}: bytes ${chunkStart} - ${chunkEnd}, גודל: ${(chunkEnd-chunkStart)/1024/1024} MB`);
             chunkStart = frame.offset;
             chunkSize = 0;
+            chunkIndex++;
         }
         chunkEnd = frame.offset + frame.length;
         chunkSize += frame.length;
@@ -122,11 +155,13 @@ async function splitMp3ByFrames(file, maxChunkSizeBytes) {
     // אל תשכח את האחרון!
     if (chunkStart < data.length) {
         chunks.push(new Blob([data.slice(chunkStart, data.length)], { type: 'audio/mp3' }));
+        console.log(`יצירת chunk ${chunkIndex}: bytes ${chunkStart} - ${data.length}, גודל: ${(data.length-chunkStart)/1024/1024} MB`);
     }
-    console.log("Total frames found:", frames.length);
     console.log("Total MP3 chunks created:", chunks.length);
+
     return chunks;
 }
+
 
 
 
