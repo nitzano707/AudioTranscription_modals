@@ -94,30 +94,32 @@ async function splitMp3WithFFmpeg(file, segmentDurationSeconds = 600) {
 
    const fileArray = [];
    let i = 0;
-   let command;
-   let outputName;
 
    while (true) {
-       outputName = `chunk_${i}.mp3`;
-       command = [
+       const outputName = `chunk_${i}.mp3`;
+       const command = [
            '-ss', String(i * segmentDurationSeconds),
            '-t', String(segmentDurationSeconds),
            '-i', fileName,
            '-c', 'copy',
            outputName
        ];
-       await ffmpeg.run(...command);
+
        try {
+           await ffmpeg.run(...command);
            const data = ffmpeg.FS('readFile', outputName);
            fileArray.push(new File([data.buffer], outputName, { type: 'audio/mp3' }));
+           ffmpeg.FS('unlink', outputName);
            i++;
        } catch (e) {
            break; // אין עוד קטעים
        }
    }
 
+   ffmpeg.FS('unlink', fileName);
    return fileArray;
 }
+
 
 
 
