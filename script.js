@@ -78,13 +78,12 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 async function uploadAudio() {
    const audioFile = document.getElementById('audioFile').files[0];
-   
+
    if (!audioFile) {
        alert('אנא בחר קובץ להעלאה.');
        return;
    }
 
-   // בדיקת סוג וגודל הקובץ
    const fileType = audioFile.type.toLowerCase();
    const fileExtension = audioFile.name.split('.').pop().toLowerCase();
    const isM4A = fileType.includes('m4a') || fileExtension === 'm4a';
@@ -107,21 +106,23 @@ async function uploadAudio() {
        return;
    }
 
-   if (!fileType.includes('mp3') && 
-       !fileType.includes('mpeg') && 
-       !fileType.includes('wav') && 
-       !fileType.includes('m4a') && 
+   if (
+       !fileType.includes('mp3') &&
+       !fileType.includes('mpeg') &&
+       !fileType.includes('wav') &&
+       !fileType.includes('m4a') &&
        !fileType.includes('mp4') &&
-       fileExtension !== 'mp3' && 
-       fileExtension !== 'wav' && 
+       fileExtension !== 'mp3' &&
+       fileExtension !== 'wav' &&
        fileExtension !== 'mp4' &&
-       fileExtension !== 'm4a') {
+       fileExtension !== 'm4a'
+   ) {
        alert('פורמט קובץ לא נתמך. אנא השתמש בקובץ בפורמט MP3 | WAV | M4A |.');
        return;
    }
 
    calculateEstimatedTime();
-   
+
    if (!apiKey) {
        alert('מפתח API חסר. נא להזין מחדש.');
        return;
@@ -134,19 +135,17 @@ async function uploadAudio() {
        if (modalBody) {
            modalBody.innerHTML = `ברגעים אלה הקובץ <strong>${audioFileName}</strong> עולה ועובר תהליך עיבוד. בסיום התהליך יוצג התמלול`;
        }
-   } else {
-       console.warn("Modal or modal header not found.");
    }
 
-   // הערכת משך
    let estimatedDurationInMinutes;
    if (fileType.includes('mp3') || fileType.includes('mpeg') || fileExtension === 'mp3') {
-       estimatedDurationInMinutes = (sizeInMB / 0.96);
+       estimatedDurationInMinutes = sizeInMB / 0.96;
    } else if (fileType.includes('wav') || fileExtension === 'wav') {
-       estimatedDurationInMinutes = (sizeInMB / 10);
+       estimatedDurationInMinutes = sizeInMB / 10;
    } else if (isM4A || isMP4) {
-       estimatedDurationInMinutes = (sizeInMB / 0.75);
+       estimatedDurationInMinutes = sizeInMB / 0.75;
    }
+
    if (estimatedDurationInMinutes > 120) {
        alert(`משך הקובץ מוערך כ-${Math.round(estimatedDurationInMinutes)} דקות, ייתכן שהוא יחרוג ממכסת התמלול של 120 דקות לשעה. אנא היוועץ אם להמשיך.`);
    }
@@ -160,14 +159,18 @@ async function uploadAudio() {
 
        let chunks = [];
 
-       const isSmallMP3 = (
-           (fileType.includes('mp3') || fileType.includes('mpeg') || fileExtension === 'mp3') &&
-           audioFile.size <= maxChunkSizeBytes
+       const isSupportedFile = (
+           fileType.includes('mp3') || fileType.includes('mpeg') ||
+           fileType.includes('wav') || fileType.includes('m4a') ||
+           fileType.includes('mp4') ||
+           ['mp3', 'wav', 'm4a', 'mp4'].includes(fileExtension)
        );
 
-       if (isSmallMP3) {
-           console.log("✓ קובץ MP3 קטן – נשלח כיחידה אחת ללא המרה.");
-           chunks = [audioFile]; // שולח אותו כפי שהוא
+       const isSmallSupportedFile = isSupportedFile && audioFile.size <= maxChunkSizeBytes;
+
+       if (isSmallSupportedFile) {
+           console.log("✓ קובץ נתמך וקטן – נשלח כיחידה אחת ללא המרה.");
+           chunks = [audioFile]; // ללא המרה
        } else {
            console.log("↪️ המרה לפורמט WAV + פיצול.");
            chunks = await splitAudioFileToWavChunks(audioFile, maxChunkSizeBytes);
@@ -177,9 +180,9 @@ async function uploadAudio() {
        console.log(`Total chunks created: ${totalChunks}`);
 
        for (let i = 0; i < totalChunks; i++) {
-           const isOriginalSingleMp3 = isSmallMP3 && totalChunks === 1;
+           const isOriginalSingleFile = isSmallSupportedFile && totalChunks === 1;
 
-           const chunkFile = isOriginalSingleMp3
+           const chunkFile = isOriginalSingleFile
                ? chunks[i]
                : new File([chunks[i]], `chunk_${i + 1}.wav`, { type: "audio/wav" });
 
