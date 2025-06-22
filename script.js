@@ -108,13 +108,14 @@ async function uploadAudio() {
    }
 
    if (!fileType.includes('mp3') && 
+       !fileType.includes('mpeg') && 
        !fileType.includes('wav') && 
        !fileType.includes('m4a') && 
        !fileType.includes('mp4') &&
-       !fileExtension === 'mp3' && 
-       !fileExtension === 'wav' && 
-       !fileExtension === 'mp4' &&
-       !fileExtension === 'm4a') {
+       fileExtension !== 'mp3' && 
+       fileExtension !== 'wav' && 
+       fileExtension !== 'mp4' &&
+       fileExtension !== 'm4a') {
        alert('פורמט קובץ לא נתמך. אנא השתמש בקובץ בפורמט MP3 | WAV | M4A |.');
        return;
    }
@@ -139,7 +140,7 @@ async function uploadAudio() {
 
    // הערכת משך
    let estimatedDurationInMinutes;
-   if (fileType.includes('mp3') || fileExtension === 'mp3') {
+   if (fileType.includes('mp3') || fileType.includes('mpeg') || fileExtension === 'mp3') {
        estimatedDurationInMinutes = (sizeInMB / 0.96);
    } else if (fileType.includes('wav') || fileExtension === 'wav') {
        estimatedDurationInMinutes = (sizeInMB / 10);
@@ -159,7 +160,12 @@ async function uploadAudio() {
 
        let chunks = [];
 
-       if (fileType.includes('mp3') && audioFile.size <= maxChunkSizeBytes) {
+       const isSmallMP3 = (
+           (fileType.includes('mp3') || fileType.includes('mpeg') || fileExtension === 'mp3') &&
+           audioFile.size <= maxChunkSizeBytes
+       );
+
+       if (isSmallMP3) {
            console.log("✓ קובץ MP3 קטן – נשלח כיחידה אחת ללא המרה.");
            chunks = [audioFile]; // שולח אותו כפי שהוא
        } else {
@@ -171,9 +177,9 @@ async function uploadAudio() {
        console.log(`Total chunks created: ${totalChunks}`);
 
        for (let i = 0; i < totalChunks; i++) {
-           const isSingleOriginalMp3 = (totalChunks === 1 && fileType.includes('mp3'));
+           const isOriginalSingleMp3 = isSmallMP3 && totalChunks === 1;
 
-           const chunkFile = isSingleOriginalMp3
+           const chunkFile = isOriginalSingleMp3
                ? chunks[i]
                : new File([chunks[i]], `chunk_${i + 1}.wav`, { type: "audio/wav" });
 
