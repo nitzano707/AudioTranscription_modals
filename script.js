@@ -83,12 +83,13 @@ let fetchFile;
 
 async function loadFFmpeg() {
     if (!ffmpeg) {
-        const ffmpegModule = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/ffmpeg.min.mjs');
+        const ffmpegModule = await import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/esm/ffmpeg.min.mjs');
         ffmpeg = ffmpegModule.createFFmpeg({ log: true });
         fetchFile = ffmpegModule.fetchFile;
         await ffmpeg.load();
     }
 }
+
 
 
 async function splitMp3WithFFmpeg(file, segmentDurationSeconds = 600) {
