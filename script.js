@@ -180,7 +180,8 @@ async function uploadAudio() {
                 const chunks = await splitMp3ByFrameHeaders(audioFile, maxChunkSizeBytes);
                 for (let i = 0; i < chunks.length; i++) {
                     const chunkFile = new File([chunks[i]], `chunk_${i + 1}.mp3`, { type: "audio/mp3" });
-                    if (i === 0) updateProgressBarSmoothly(1, chunks.length, estimatedTime);
+                    //if (i === 0) updateProgressBarSmoothly(1, chunks.length, estimatedTime);
+                    updateProgressBarSmoothly(i + 1, chunks.length, estimatedTime); // בלי תנאי!
                     await processAudioChunk(chunkFile, transcriptionData, i + 1, chunks.length, totalTimeElapsed);
                     await new Promise(resolve => setTimeout(resolve, 500));
                 }
@@ -200,7 +201,8 @@ async function uploadAudio() {
                 const chunks = await splitAudioFileToWavChunks(audioFile, maxChunkSizeBytes);
                 for (let i = 0; i < chunks.length; i++) {
                     const chunkFile = new File([chunks[i]], `chunk_${i + 1}.wav`, { type: "audio/wav" });
-                    if (i === 0) updateProgressBarSmoothly(1, chunks.length, estimatedTime);
+                   // if (i === 0) updateProgressBarSmoothly(1, chunks.length, estimatedTime);
+                    updateProgressBarSmoothly(i + 1, chunks.length, estimatedTime); // בלי תנאי!
                     await processAudioChunk(chunkFile, transcriptionData, i + 1, chunks.length, totalTimeElapsed);
                     await new Promise(resolve => setTimeout(resolve, 500));
                 }
