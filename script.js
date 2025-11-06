@@ -1814,6 +1814,13 @@ function restartProcess() {
 
 
 
+    // איפוס פס ההתקדמות
+    const progressElement = document.getElementById('progress');
+    const progressTextElement = document.getElementById('progressText');
+    if (progressElement) progressElement.style.width = '0%';
+    if (progressTextElement) progressTextElement.textContent = '0%';
+    
+
     // איפוס תוצאות חלוקת דוברים
 
     const downloadButton = document.getElementById('downloadButton');
