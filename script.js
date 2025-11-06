@@ -85,7 +85,7 @@ document.getElementById('audioFile').addEventListener('change', function () {
 
 // --------------------------------------------------------------------------------------
 //
-// 🛠️ שיפור פיצול MP3 (מטפל במטא-דאטה - ID3 Tags)
+// 🛠️ פונקציות פיצול MP3
 //
 // --------------------------------------------------------------------------------------
 
@@ -146,8 +146,7 @@ async function splitMp3ByFrameHeaders(file, maxChunkSizeBytes) {
 
         const chunkData = data.slice(start, end);
 
-        // 3. הוסף את המקטע ואת משך הזמן המשוער (הדבר דורש שיפור, אך כרגע אין לנו דרך לחשב משך MP3 בצד לקוח ללא פענוח)
-        // **הערה: במקרה של MP3 אנו עדיין מסתמכים על המדד של ה-API לחישוב הזמן, וזהו עדיין וקטור סיכון לסחף**
+        // 3. הוסף את המקטע ואת משך הזמן המשוער
         chunks.push({
             file: new Blob([chunkData], { type: 'audio/mp3' }),
             duration: null, // אין לנו את משך הזמן האמיתי של ה-MP3 בצד לקוח
@@ -168,7 +167,7 @@ async function splitMp3ByFrameHeaders(file, maxChunkSizeBytes) {
 
 // --------------------------------------------------------------------------------------
 //
-// 🛠️ שיפור פיצול WAV (הסרת רקורסיה וחישוב משך זמן מדויק)
+// 🛠️ פונקציות פיצול WAV (WAV, M4A, MP4)
 //
 // --------------------------------------------------------------------------------------
 
@@ -186,16 +185,9 @@ async function splitAudioFileToWavChunks(file, maxChunkSizeBytes) {
 
     const sampleRate = audioBuffer.sampleRate;
     const numChannels = audioBuffer.numberOfChannels;
-    const totalDuration = audioBuffer.duration;
     const totalFrames = audioBuffer.length;
-
-    if (totalDuration === 0) {
-        console.warn("אורך קובץ אודיו אפס – אין מה לפצל.");
-        return [];
-    }
     
     // חישוב מדויק של מספר ה-Frames המקסימלי ל-Chunk
-    // 2 בתים לדגימה (Int16) * מספר ערוצים
     const bytesPerFrame = numChannels * 2; 
     const maxFramesPerChunk = Math.floor(maxChunkSizeBytes / bytesPerFrame);
     
@@ -221,7 +213,6 @@ async function splitAudioFileToWavChunks(file, maxChunkSizeBytes) {
             const originalChannelData = audioBuffer.getChannelData(channel);
             const chunkChannelData = chunkBuffer.getChannelData(channel);
             
-            // העתק את הנתונים מהערוץ המקורי (ללא שימוש ב-Math.floor בגלל שהשתמשנו ב-Frames)
             for (let i = 0; i < frameCount; i++) {
                 chunkChannelData[i] = originalChannelData[currentFrame + i];
             }
@@ -244,9 +235,8 @@ async function splitAudioFileToWavChunks(file, maxChunkSizeBytes) {
     return chunks; // מחזיר מערך של {file, duration}
 }
 
-// פונקציית הקידוד ל-WAV (ללא שינוי, היא תקינה)
+// פונקציית הקידוד ל-WAV (נשארת ללא שינוי, היא תקינה)
 function bufferToWaveBlob(abuffer) {
-    // ... הקוד המקורי של bufferToWaveBlob נשאר ללא שינוי ...
     const numOfChan = abuffer.numberOfChannels;
     const length = abuffer.length * numOfChan * 2 + 44;
     const buffer = new ArrayBuffer(length);
@@ -358,21 +348,18 @@ async function uploadAudio() {
                 console.log("Splitting non-MP3 file into WAV chunks...");
                 chunks = await splitAudioFileToWavChunks(audioFile, MAX_CHUNK_SIZE_BYTES);
             } else {
-                console.log("Non-MP3 small enough – sending as single chunk.");
+                console.log("Non-MP3 small enough – converting to WAV chunk.");
                 
                 // קבצים קטנים מומרים ל-WAV כדי לקבל משך זמן מדויק, למעט WAV
-                if (isM4A || isMP4) {
-                    const wavChunks = await splitAudioFileToWavChunks(audioFile, audioFile.size);
-                    if (wavChunks.length === 1) {
-                         chunks = wavChunks;
-                    } else {
-                         // אם קובץ קטן עדיין פוצל, זו שגיאה או שהוא גדול מדי.
-                         // נשתמש בקובץ המקורי ללא משך זמן ונסמוך על ה-API, כגיבוי.
-                         chunks.push({ file: audioFile, duration: null });
-                    }
-                } else {
-                    // WAV קטן מספיק
+                const wavChunks = await splitAudioFileToWavChunks(audioFile, audioFile.size);
+                if (wavChunks.length === 1) {
+                    chunks = wavChunks;
+                } else if (isWAV) {
+                    // אם WAV קטן, נשלח אותו ישירות (אם ה-WAV chunking נכשל על קטן, זה מוזר, נשתמש במקור)
                     chunks.push({ file: audioFile, duration: null });
+                } else {
+                    // גיבוי למקרה של M4A/MP4 קטן שלא עבר המרה תקינה
+                     chunks.push({ file: audioFile, duration: null });
                 }
             }
         }
@@ -391,8 +378,12 @@ async function uploadAudio() {
             
             updateProgressBarSmoothly(currentChunk, totalChunks, globalState.estimatedTime);
             
-            // 2. שולח את משך הזמן האמיתי יחד עם המקטע
-            await processAudioChunk(chunk.file, transcriptionData, currentChunk, totalChunks, chunk.duration); 
+            // קביעת הסיומת לפי ה-MIME type של ה-Blob
+            // כל ה-non-MP3 הפכו ל-WAV, לכן זה או MP3 או WAV
+            const fileExtension = chunk.file.type.includes('mp3') ? 'mp3' : 'wav';
+
+            // 2. שולח את משך הזמן האמיתי יחד עם המקטע והסיומת
+            await processAudioChunk(chunk.file, transcriptionData, currentChunk, totalChunks, chunk.duration, fileExtension); 
             
             // המתן חצי שנייה בין שליחת בקשות API
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -420,14 +411,18 @@ async function uploadAudio() {
 
 // --------------------------------------------------------------------------------------
 //
-// ⚡️ עיבוד מקטע (התיקון הקריטי לסחף זמן)
+// ⚡️ עיבוד מקטע (התיקון הקריטי ל-400 Bad Request ולסחף זמן)
 //
 // --------------------------------------------------------------------------------------
 
-// הוספת durationParam כדי לקבל את משך הזמן האמיתי של המקטע
-async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, durationParam) {
+// הוספת fileExtension כפרמטר חדש
+async function processAudioChunk(chunk, transcriptionData, currentChunk, totalChunks, durationParam, fileExtension) {
     const formData = new FormData();
-    formData.append('file', chunk);
+    
+    // **התיקון הקריטי ל-400 Bad Request:** ציון שם קובץ מפורש עם סיומת נכונה!
+    const fileName = `chunk_${currentChunk}.${fileExtension}`; 
+    formData.append('file', chunk, fileName); // הוספת שם הקובץ כארגומנט שלישי
+
     formData.append('model', 'whisper-large-v3');
     formData.append('response_format', 'verbose_json');
 
@@ -470,13 +465,12 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
                 });
 
                 // **התיקון הקריטי לסחף זמן:**
-                // במקום להשתמש בזמן הסיום המדווח של ה-API (lastSegment.end),
-                // אנו משתמשים במשך הזמן האמיתי של ה-Chunk אם הוא ידוע.
+                // במקום להשתמש בזמן הסיום המדווח של ה-API, אנו משתמשים במשך הזמן האמיתי של ה-Chunk אם הוא ידוע.
                 if (durationParam !== null) {
                     globalState.totalElapsedTime += durationParam;
                     console.log(`[FIXED TIME] totalElapsedTime updated by actual duration: ${durationParam.toFixed(2)}s. New total: ${globalState.totalElapsedTime.toFixed(2)}s`);
                 } else {
-                    // אם משך הזמן לא ידוע (כמו ב-MP3 גולמי), נסמוך על ה-API
+                    // אם משך הזמן לא ידוע (כמו ב-MP3 גולמי שלא פוענח), נסמוך על ה-API כגיבוי
                     const lastSegment = data.segments[data.segments.length - 1];
                     if (lastSegment && typeof lastSegment.end === 'number') {
                          globalState.totalElapsedTime += lastSegment.end;
@@ -501,10 +495,11 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             }
             const errorText = await response.text();
             console.error(`Error for chunk ${currentChunk}:`, errorText);
+            
+            // נסה לנתח את שגיאת מגבלת הקצב
             try {
                 const errorData = JSON.parse(errorText);
                 if (errorData.error && errorData.error.code === 'rate_limit_exceeded') {
-                    // לוגיקת Rate Limit נשארת, אך עדיף לעטוף אותה ב-retry mechanism
                     let waitTime = errorData.error.message.match(/try again in ([\d\w\.]+)/)?.[1];
                     if (waitTime) {
                         waitTime = waitTime
@@ -520,6 +515,8 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
             } catch (parseError) {
                 console.warn('Failed to parse error response:', parseError);
             }
+            
+             // אם הייתה שגיאה כללית (כמו 400), אך לא מגבלת קצב, פשוט המשך למקטע הבא
         }
     } catch (error) {
         console.error('Network error:', error);
@@ -528,7 +525,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 
 // --------------------------------------------------------------------------------------
 //
-// פונקציות עזר (ללא שינוי, או שינויים קלים ב-Scope)
+// פונקציות עזר ו-UI (ללא שינוי מהותי)
 //
 // --------------------------------------------------------------------------------------
 
@@ -907,5 +904,3 @@ function restartProcess() {
     document.getElementById("segmentationResult").textContent = "";
     document.getElementById("intervieweeNameInput").value = "";
 }
-
-// **הערה חשובה:** יש לוודא שכל אלמנטי ה-HTML (כמו modal3, modal4, progress bar וכו') המופיעים בקוד, קיימים ב-HTML המקורי של היישום.
