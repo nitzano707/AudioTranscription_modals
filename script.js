@@ -1472,7 +1472,7 @@ function openTab(evt, tabName) {
 
 
 
-// -------- פונקציות סגמנטציה לחלוקה לפי דוברים (ללא שינוי מהותי) --------
+// -------- פונקציות סגמנטציה לחלוקה לפי דוברים --------
 
 
 
@@ -1724,40 +1724,126 @@ function splitTextIntoSegments(text, maxLength = 4000) {
 
     return segments;
 
+}
 
-    function restartProcess() {
+
+
+function copySegmentationResult() {
+
+    const segmentationResult = document.getElementById('segmentationResult').textContent;
+
+    if (segmentationResult) {
+
+        navigator.clipboard.writeText(segmentationResult).then(() => {
+
+            alert('תמלול הועתק בהצלחה!');
+
+        }).catch((error) => {
+
+            console.error('שגיאה בהעתקת הטקסט:', error);
+
+        });
+
+    }
+
+}
+
+
+
+function downloadSegmentationResult() {
+
+    const segmentationResult = document.getElementById('segmentationResult').textContent;
+
+    if (segmentationResult) {
+
+        const blob = new Blob([segmentationResult], { type: 'text/plain' });
+
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+
+        a.href = url;
+
+        a.download = 'segmentation_result.txt';
+
+        document.body.appendChild(a);
+
+        a.click();
+
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+
+    }
+
+}
+
+
+
+function restartProcess() {
+
     globalState.estimatedTime = 0;
+
     globalState.audioFileName = '';
+
     globalState.transcriptionDataText = '';
+
     globalState.transcriptionDataSRT = '';
+
     globalState.totalElapsedTime = 0;
 
+
+
     closeModal('modal1');
+
     closeModal('modal3');
+
     closeModal('modal4');
+
     
+
     document.getElementById('audioFile').value = "";
+
     document.getElementById('fileName').textContent = "לא נבחר קובץ";
+
     document.getElementById('uploadBtn').disabled = true;
+
     document.getElementById('uploadBtn').classList.remove('start-over');
+
     document.getElementById('startProcessBtn').style.display = 'block';
 
+
+
     // איפוס תוצאות חלוקת דוברים
+
     const downloadButton = document.getElementById('downloadButton');
+
     const copyButton = document.getElementById('copyButton');
+
     const segmentationResult = document.getElementById("segmentationResult");
+
     const intervieweeNameInput = document.getElementById("intervieweeNameInput");
+
     
+
     if (downloadButton) downloadButton.style.display = 'none';
+
     if (copyButton) copyButton.style.display = 'none';
+
     if (segmentationResult) segmentationResult.textContent = "";
+
     if (intervieweeNameInput) intervieweeNameInput.value = "";
+
     
+
     // איפוס תצוגת התמלול
+
     const textContent = document.getElementById('textContent');
+
     const srtContent = document.getElementById('srtContent');
+
     if (textContent) textContent.textContent = "";
+
     if (srtContent) srtContent.textContent = "";
-}
 
 }
