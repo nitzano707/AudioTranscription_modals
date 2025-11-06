@@ -423,7 +423,7 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
     const fileName = `chunk_${currentChunk}.${fileExtension}`; 
     formData.append('file', chunk, fileName); // הוספת שם הקובץ כארגומנט שלישי
 
-    formData.append('model', 'whisper-large-v3');
+    formData.append('model', 'whisper-large-v3-turbo');
     formData.append('response_format', 'verbose_json');
 
     const apiKey = globalState.apiKey;
