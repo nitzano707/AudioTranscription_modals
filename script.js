@@ -95,10 +95,9 @@ async function splitMp3ByFrameHeaders(file, maxChunkSizeBytes) {
     const chunks = [];
     let start = 0;
 
-    // ✅ הערכת bitrate לצורך חישוב חפיפה בבייטים
-    const avgBitrateBitsPerSec = 128000; // 128kbps כהערכה שמרנית
-    const bytesPerSecond = Math.max(1, Math.floor(avgBitrateBitsPerSec / 8));
-    const overlapBytes = OVERLAP_SECONDS * bytesPerSecond; // ✅
+    // ✅ הוספת חפיפה של 2 שניות (בהנחת bitrate 128kbps)
+    const bytesPerSecond = 128000 / 8; // 128kbps → 16KB/sec
+    const overlapBytes = bytesPerSecond * 2; // 2 שניות חפיפה
 
     while (start < data.length) {
         let end = Math.min(start + maxChunkSizeBytes, data.length);
@@ -108,20 +107,29 @@ async function splitMp3ByFrameHeaders(file, maxChunkSizeBytes) {
 
         // סוף chunk: חפש header קרוב קדימה, אם יש
         let nextHeader = findNextMp3FrameHeader(data, end);
-        if (nextHeader && nextHeader - end < 10000) { // פיצול נוח על header קרוב
+        if (nextHeader && nextHeader - end < 10000) { 
             end = nextHeader;
         }
 
         const chunkData = data.slice(start, end);
         chunks.push(new Blob([chunkData], { type: 'audio/mp3' }));
-        console.log(`Chunk ${chunks.length}: bytes ${start} - ${end}, size: ${((end - start)/1024/1024).toFixed(2)} MB`);
 
-        // ✅ חפיפה של 2 שניות: תחילת המקטע הבא חוזרת מעט אחורה
+        console.log(
+            `Chunk ${chunks.length}: bytes ${start} - ${end}, size: ${(
+                (end - start) /
+                1024 /
+                1024
+            ).toFixed(2)} MB`
+        );
+
+        // ✅ חפיפה — תחילת המקטע הבא תהיה מעט אחורה
         start = Math.max(0, end - overlapBytes);
     }
-    console.log("Total MP3 chunks created:", chunks.length);
+
+    console.log('Total MP3 chunks created:', chunks.length);
     return chunks;
 }
+
 
 
 
@@ -239,76 +247,46 @@ async function uploadAudio() {
 // פיצול קובץ אודיו (MP3/WAV) ל-chunks בפורמט WAV בלבד
 async function splitAudioFileToWavChunks(file, maxChunkSizeBytes) {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-    // טיפול במקרה של Blob שכבר WAV (בפיצול חוזר)
-    let arrayBuffer;
-    try {
-        arrayBuffer = await file.arrayBuffer();
-    } catch (e) {
-        console.warn("בעיה בקריאת blob לאודיו:", e);
-        return [];
-    }
-    let audioBuffer;
-    try {
-        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    } catch (e) {
-        console.warn("בעיה בדיקוד קובץ אודיו. כנראה שה-blob קטן או לא תקני:", e);
-        return [];
-    }
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
     const sampleRate = audioBuffer.sampleRate;
     const numChannels = audioBuffer.numberOfChannels;
     const totalDuration = audioBuffer.duration;
-    const totalFrames = audioBuffer.length;
 
-    // הגנה: לא מפצלים אם משך האודיו אפס
-    if (totalDuration === 0) {
-        console.warn("אורך קובץ אודיו אפס – אין מה לפצל.");
-        return [];
-    }
+    if (totalDuration === 0) return [];
 
-    // ✅ חישוב לפי frames כדי למנוע צבירת שגיאות זמן
+    let estimatedChunkDuration = maxChunkSizeBytes / (sampleRate * numChannels * 2);
+    if (estimatedChunkDuration <= 0.1) estimatedChunkDuration = 1;
+
     const bytesPerSecond = sampleRate * numChannels * 2;
-    let estimatedChunkDuration = (maxChunkSizeBytes / bytesPerSecond);
-    if (estimatedChunkDuration <= 0.1) estimatedChunkDuration = 1; // הגנה – לא ליצור chunks של אפס שניות
-    const chunkFramesTarget = Math.floor(estimatedChunkDuration * sampleRate);
-    const overlapFrames = Math.max(1, Math.floor(OVERLAP_SECONDS * sampleRate)); // ✅ חפיפה
+    const overlapSeconds = 2; // ✅ חפיפה של 2 שניות
+    const overlapFrames = Math.floor(overlapSeconds * sampleRate);
 
-    let startFrame = 0;
+    let currentTime = 0;
     const chunks = [];
-    while (startFrame < totalFrames) {
-        let endFrame = Math.min(startFrame + chunkFramesTarget, totalFrames);
 
-        // ✅ הוספת חפיפה
-        if (endFrame < totalFrames) {
-            endFrame = Math.min(endFrame + overlapFrames, totalFrames);
-        }
-
-        const frameCount = endFrame - startFrame;
-        if (frameCount <= 0) {
-            break;
-        }
-
+    while (currentTime < totalDuration) {
+        const end = Math.min(currentTime + estimatedChunkDuration, totalDuration);
+        const frameCount = Math.floor((end - currentTime) * sampleRate);
         const chunkBuffer = audioContext.createBuffer(numChannels, frameCount, sampleRate);
+
         for (let channel = 0; channel < numChannels; channel++) {
-            const originalChannelData = audioBuffer.getChannelData(channel);
-            const chunkChannelData = chunkBuffer.getChannelData(channel);
-            chunkChannelData.set(originalChannelData.subarray(startFrame, endFrame), 0);
+            const original = audioBuffer.getChannelData(channel);
+            const chunkData = chunkBuffer.getChannelData(channel);
+            for (let i = 0; i < frameCount; i++) {
+                chunkData[i] = original[Math.floor(currentTime * sampleRate) + i];
+            }
         }
 
-        const blob = bufferToWaveBlob(chunkBuffer);
-        // אם עדיין גדול מדי (edge case) – פצל רקורסיבית:
-        if (blob.size > maxChunkSizeBytes) {
-            const subChunks = await splitAudioFileToWavChunks(blob, maxChunkSizeBytes);
-            chunks.push(...subChunks);
-        } else {
-            chunks.push(blob);
-        }
+        chunks.push(bufferToWaveBlob(chunkBuffer));
 
-        // ✅ הזזה קדימה עם חפיפה (התחלת המקטע הבא "דורכת" 2 שניות אחורה)
-        startFrame = endFrame - overlapFrames;
+        // ✅ החפיפה — המקטע הבא יתחיל 2 שניות לפני סוף הקודם
+        currentTime = Math.max(0, end - overlapSeconds);
     }
+
     return chunks;
 }
+
 
 
 function bufferToWaveBlob(abuffer) {
