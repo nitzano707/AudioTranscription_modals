@@ -854,7 +854,8 @@ async function processAudioChunk(chunk, transcriptionData, currentChunk, totalCh
 
     formData.append('response_format', 'verbose_json');
 
-
+     // ✅ הוספת שפת תמלול — עברית
+    formData.append('language', 'he');
 
     const apiKey = globalState.apiKey;
 
