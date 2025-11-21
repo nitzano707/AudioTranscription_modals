@@ -11,6 +11,31 @@
         
           gtag('config', 'G-V3RD4C87HK');
         </script>
+<style>
+#redirect-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #333;
+    color: white;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 1rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    z-index: 9999;
+}
+#redirect-toast button {
+    margin-right: 10px;
+    background: #4f9cff;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+</style>
 
 
 <script src="mp3-parser.js"></script>
@@ -59,6 +84,10 @@
 <body>
 
 
+<div id="redirect-toast">
+    עוברים לתמללי-פרו – הגרסה החדשה 🚀  
+    <button onclick="goNow()">עבור עכשיו</button>
+</div>
 
 
 
@@ -306,6 +335,22 @@
         </center>
     </p>
 
+
+    <script>
+function goNow() {
+    window.location.href = "https://tamleli-pro.netlify.app";
+}
+
+// הצגת Toast והפניה אוטומטית
+window.addEventListener("load", () => {
+    const toast = document.getElementById("redirect-toast");
+    toast.style.opacity = 1;
+
+    setTimeout(() => {
+        goNow();
+    }, 3000); // 3 שניות
+});
+</script>
 
 </body>
 
